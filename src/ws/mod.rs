@@ -268,11 +268,12 @@ where
     }
 }
 
-/// Whether `s` is an MBID (a UUID, any case).
+/// Whether `s` is an MBID (a UUID, any case, but not the nil UUID, as musicbrainz-server's `is_guid`).
 #[must_use]
 pub fn is_mbid(s: &str) -> bool {
     let b = s.as_bytes();
     b.len() == 36
+        && b.iter().any(|c| *c != b'0' && *c != b'-')
         && b.iter().enumerate().all(|(i, c)| match i {
             8 | 13 | 18 | 23 => *c == b'-',
             _ => c.is_ascii_hexdigit(),
@@ -843,6 +844,7 @@ mod tests {
         assert!(is_mbid("B84EE12A-09EF-421B-82DE-0441A926375B"));
         assert!(!is_mbid("b84ee12a09ef421b82de0441a926375b"));
         assert!(!is_mbid("x84ee12a-09ef-421b-82de-0441a926375b"));
+        assert!(!is_mbid("00000000-0000-0000-0000-000000000000"));
     }
 
     #[test]
