@@ -3,37 +3,36 @@
 //! depends on the entity type, `inc`, and where in the response an entity is (top level, in a list, in an artist
 //! credit, as a relationship target).
 
-// Rows are read into tuples, as wide as the columns they read.
-#![allow(clippy::type_complexity)]
-
-use std::collections::HashSet;
-
-use rusqlite::{Connection, OptionalExtension as _, Row};
 use serde_json::{Map, Value, json};
 
 use super::inc::Inc;
-use crate::db::{Lookups, date, queries as q};
+use crate::date;
 use crate::kind::Kind;
+use crate::store::build::SAME_AS_RECORDING;
+use crate::store::{Row, Store};
 
 pub type Obj = Map<String, Value>;
-type R<T> = rusqlite::Result<T>;
+
+/// A row an entity refers to is missing: the store is inconsistent.
+#[derive(Debug, thiserror::Error)]
+#[error("{0} {1} is missing")]
+pub struct Missing(pub &'static str, pub u32);
+
+pub type R<T> = Result<T, Missing>;
+/// How aliases sort: (sort key, locale, name).
+type AliasKey = (String, Option<String>, String);
+/// A relationship attribute: name, MBID, credited as, text value, whether it is creditable.
+type Attribute = (String, Option<String>, Option<String>, Option<String>, bool);
 
 /// Most lists of related entities in a lookup are cut at this many (musicbrainz-server's `$MAX_ITEMS`).
-pub const MAX_ITEMS: i64 = 25;
+pub const MAX_ITEMS: usize = 25;
 
 /// Release filters of browse requests and of lists in lookups (`status=`, `type=`).
 #[derive(Debug, Default, Clone)]
 pub struct Filter {
-    pub status: Vec<i64>,
-    pub primary_types: Vec<i64>,
-    pub secondary_types: Vec<i64>,
-}
-
-impl Filter {
-    #[must_use]
-    pub fn is_empty(&self) -> bool {
-        self.status.is_empty() && self.primary_types.is_empty() && self.secondary_types.is_empty()
-    }
+    pub status: Vec<u32>,
+    pub primary_types: Vec<u32>,
+    pub secondary_types: Vec<u32>,
 }
 
 /// Which relationships of an entity are loaded.
@@ -58,8 +57,8 @@ pub struct Opts {
     pub tags: bool,
     pub sublevel_ratings: bool,
     /// The artist credit of the release being serialized, and of the track (to leave out what they repeat).
-    pub release_ac: Option<i64>,
-    pub track_ac: Option<i64>,
+    pub release_ac: Option<u32>,
+    pub track_ac: Option<u32>,
     pub rels: Rels,
     /// Whether a recording's first release date was loaded.
     pub first_release_date: bool,
@@ -118,36 +117,12 @@ impl Opts {
 
 /// What entities are serialized with.
 pub struct Ctx<'a> {
-    pub conn: &'a Connection,
-    pub lk: &'a Lookups,
+    pub store: &'a Store,
     pub inc: &'a Inc,
     pub filter: &'a Filter,
     /// The answer is XML: musicbrainz-server's XML serializer shows what was loaded, without the JSON
     /// serializer's rules for leaving out repeated aliases and tags, and ratings wherever they were loaded.
     pub xml: bool,
-}
-
-struct Period {
-    begin: String,
-    end: String,
-    ended: bool,
-}
-
-impl Period {
-    /// From 7 columns starting at `i`: begin year, month, day, end year, month, day, ended.
-    fn from_row(row: &Row<'_>, i: usize) -> R<Self> {
-        Ok(Self {
-            begin: date::format(row.get(i)?, row.get(i + 1)?, row.get(i + 2)?),
-            end: date::format(row.get(i + 3)?, row.get(i + 4)?, row.get(i + 5)?),
-            ended: row.get::<_, Option<bool>>(i + 6)?.unwrap_or(false),
-        })
-    }
-
-    fn write(&self, into: &mut Obj) {
-        into.insert("begin".into(), opt_str(&self.begin));
-        into.insert("end".into(), opt_str(&self.end));
-        into.insert("ended".into(), Value::Bool(self.ended));
-    }
 }
 
 /// An empty string as null (musicbrainz-server's `format || JSON::null`).
@@ -159,49 +134,79 @@ fn opt_str(s: &str) -> Value {
     }
 }
 
-fn text(v: Option<String>) -> Value {
-    v.map_or(Value::Null, Value::String)
+fn text(v: Option<&str>) -> Value {
+    v.map_or(Value::Null, |s| Value::String(s.to_owned()))
 }
 
-fn int(v: Option<i64>) -> Value {
+fn int(v: Option<u32>) -> Value {
     v.map_or(Value::Null, Value::from)
+}
+
+fn period(row: &Row<'_>, into: &mut Obj) {
+    let (by, bm, bd) = row.date("begin");
+    let (ey, em, ed) = row.date("end");
+    into.insert("begin".into(), opt_str(&date::format(by, bm, bd)));
+    into.insert("end".into(), opt_str(&date::format(ey, em, ed)));
+    into.insert("ended".into(), Value::Bool(row.bool("ended")));
+}
+
+/// A sort key close to musicbrainz-server's ICU collation: case only decides between otherwise equal strings, and
+/// then lowercase comes first.
+#[must_use]
+pub fn collation_key(s: &str) -> String {
+    let swapped: String = s
+        .chars()
+        .map(|c| {
+            if c.is_uppercase() {
+                c.to_lowercase().next().unwrap_or(c)
+            } else {
+                c.to_uppercase().next().unwrap_or(c)
+            }
+        })
+        .collect();
+    format!("{}\u{0}{swapped}", s.to_lowercase())
 }
 
 /// Common to every entity: what musicbrainz-server's `serialize_entity` adds to the type's own serializer.
 struct Common<'a> {
     kind: Kind,
-    id: i64,
+    id: u32,
     gid: String,
-    period: Option<Period>,
+    /// The row has begin, end and ended.
+    period: Option<Row<'a>>,
     /// (lookup table, id) of the entity's type, for entity types with a "simple" type.
-    type_: Option<(&'a str, Option<i64>)>,
+    type_: Option<(&'a str, Option<u32>)>,
 }
 
-impl Ctx<'_> {
-    fn stmt(&self, sql: &str) -> R<rusqlite::CachedStatement<'_>> {
-        self.conn.prepare_cached(sql)
+/// A relationship of the entity being serialized.
+struct Rel<'a> {
+    row: Row<'a>,
+    target: u32,
+    link: Row<'a>,
+    backward: bool,
+}
+
+impl<'a> Ctx<'a> {
+    fn get(&self, table: &'static str, id: u32) -> R<Row<'a>> {
+        self.store.t(table).get(id).ok_or(Missing(table, id))
     }
 
-    fn strings(&self, sql: &str, id: i64) -> R<Vec<String>> {
-        self.stmt(sql)?.query_map([id], |r| r.get(0))?.collect()
-    }
-
-    fn named(&self, into: &mut Obj, key: &str, table: &str, id: Option<i64>) {
-        let named = self.lk.named(table, id);
+    fn named(&self, into: &mut Obj, key: &str, table: &str, id: Option<u32>) {
+        let named = self.store.named(table, id);
         into.insert(
             key.into(),
-            named.map_or(Value::Null, |n| Value::String(n.name.clone())),
+            named
+                .as_ref()
+                .map_or(Value::Null, |n| Value::String(n.0.to_owned())),
         );
         into.insert(
             format!("{key}-id"),
-            named
-                .and_then(|n| n.gid.clone())
-                .map_or(Value::Null, Value::String),
+            named.and_then(|n| n.1).map_or(Value::Null, Value::String),
         );
     }
 
     /// An entity of any type.
-    pub fn entity(&self, kind: Kind, id: i64, o: Opts) -> R<Value> {
+    pub fn entity(&self, kind: Kind, id: u32, o: Opts) -> R<Value> {
         match kind {
             Kind::Area => self.area(id, o),
             Kind::Artist => self.artist(id, o),
@@ -219,55 +224,62 @@ impl Ctx<'_> {
         }
     }
 
+    /// Entities in the order given.
+    pub fn list(&self, kind: Kind, ids: &[u32], o: Opts) -> R<Value> {
+        ids.iter()
+            .map(|id| self.entity(kind, *id, o))
+            .collect::<R<Vec<_>>>()
+            .map(Value::Array)
+    }
+
     fn finish(&self, out: &mut Obj, c: Common<'_>, o: Opts) -> R<()> {
         let inc = self.inc;
-        let artist_in_credits = || -> R<bool> {
-            if c.kind != Kind::Artist {
-                return Ok(false);
-            }
-            for ac in [o.release_ac, o.track_ac].into_iter().flatten() {
-                if self.credit_artists(ac)?.contains(&c.id) {
-                    return Ok(true);
-                }
-            }
-            Ok(false)
+        let artist_in_credits = || {
+            c.kind == Kind::Artist
+                && [o.release_ac, o.track_ac]
+                    .into_iter()
+                    .flatten()
+                    .any(|ac| self.credit_artists(ac).contains(&c.id))
         };
-
         if c.kind.has_aliases() && o.with_inc && o.aliases && inc.aliases {
             // Recording artists repeated from the release's or track's credit don't repeat their aliases.
             let repeated =
-                !self.xml && o.release_ac.is_some() && o.track_ac.is_some() && artist_in_credits()?;
+                !self.xml && o.release_ac.is_some() && o.track_ac.is_some() && artist_in_credits();
             if !repeated {
-                out.insert("aliases".into(), self.aliases(c.kind, c.id)?);
+                out.insert("aliases".into(), self.aliases(c.kind, c.id));
             }
         }
         if c.kind.has_annotations() && o.toplevel && o.with_inc && inc.annotation {
-            let text: Option<Option<String>> = self
-                .stmt(q::ANNOTATION)?
-                .query_row((c.kind.code(), c.id), |r| r.get(0))
-                .optional()?;
-            out.insert(
-                "annotation".into(),
-                text.flatten().map_or(Value::Null, Value::String),
-            );
+            let text = self
+                .store
+                .derived
+                .annotation(c.kind, c.id)
+                .and_then(|a| self.store.t("annotation").get(a))
+                .and_then(|a| a.str("text").map(str::to_owned));
+            out.insert("annotation".into(), text.map_or(Value::Null, Value::String));
         }
         out.insert("id".into(), Value::String(c.gid));
-        if o.toplevel {
-            let codes = match c.kind {
-                Kind::Artist => Some((q::ARTIST_IPIS, q::ARTIST_ISNIS)),
-                Kind::Label => Some((q::LABEL_IPIS, q::LABEL_ISNIS)),
-                _ => None,
-            };
-            if let Some((ipis, isnis)) = codes {
-                out.insert("ipis".into(), json!(self.strings(ipis, c.id)?));
-                out.insert("isnis".into(), json!(self.strings(isnis, c.id)?));
+        if o.toplevel && matches!(c.kind, Kind::Artist | Kind::Label) {
+            let t = c.kind.table();
+            for (key, table, field) in [
+                ("ipis", format!("{t}_ipi"), "ipi"),
+                ("isnis", format!("{t}_isni"), "isni"),
+            ] {
+                let mut codes: Vec<&str> = self
+                    .store
+                    .t(&table)
+                    .by(t, c.id)
+                    .filter_map(|r| r.str(field))
+                    .collect();
+                codes.sort_unstable();
+                out.insert(key.into(), json!(codes));
             }
         }
-        if let Some(period) = &c.period
+        if let Some(row) = &c.period
             && (o.toplevel || c.kind == Kind::Event)
         {
             let mut span = Obj::new();
-            period.write(&mut span);
+            period(row, &mut span);
             out.insert("life-span".into(), Value::Object(span));
         }
         if c.kind.has_ratings()
@@ -275,7 +287,7 @@ impl Ctx<'_> {
             && o.with_inc
             && (inc.ratings || inc.user_ratings)
         {
-            self.rating(out, c.kind, c.id)?;
+            self.rating(out, c.kind, c.id);
         }
         if o.with_inc && inc.has_rels() && o.rels != Rels::None {
             let rels = self.relations(c.kind, c.id, o.rels == Rels::Cardinal)?;
@@ -285,9 +297,9 @@ impl Ctx<'_> {
             && o.with_inc
             && o.tags
             && inc.tags_or_genres()
-            && (self.xml || !artist_in_credits()?)
+            && (self.xml || !artist_in_credits())
         {
-            self.tags(out, c.kind, c.id)?;
+            self.tags(out, c.kind, c.id);
         }
         if let Some((table, type_id)) = c.type_ {
             self.named(out, "type", table, type_id);
@@ -295,55 +307,62 @@ impl Ctx<'_> {
         Ok(())
     }
 
-    fn aliases(&self, kind: Kind, id: i64) -> R<Value> {
-        let mut stmt = self.stmt(q::ALIASES)?;
-        let mut aliases: Vec<((String, Option<String>, String), Obj)> = stmt
-            .query_map((kind.code(), id), |r| {
-                let name: String = r.get(0)?;
-                let locale: Option<String> = r.get(2)?;
+    fn aliases(&self, kind: Kind, id: u32) -> Value {
+        let mut aliases: Vec<(AliasKey, Obj)> = self
+            .store
+            .t(&format!("{}_alias", kind.table()))
+            .by("entity", id)
+            .map(|r| {
+                let name = r.text("name");
+                let locale = r.str("locale");
                 let mut a = Obj::new();
                 a.insert("name".into(), Value::String(name.clone()));
-                a.insert("sort-name".into(), Value::String(r.get(1)?));
+                a.insert("sort-name".into(), Value::String(r.text("sort_name")));
                 a.insert(
                     "primary".into(),
                     if locale.is_some() {
-                        Value::Bool(r.get::<_, Option<bool>>(4)?.unwrap_or(false))
+                        Value::Bool(r.bool("primary_for_locale"))
                     } else {
                         Value::Null
                     },
                 );
                 a.insert("locale".into(), text(locale));
-                let type_ = self.lk.alias_type(kind, r.get(3)?);
+                let type_ = self.store.alias_type(kind, r.u32("type"));
                 a.insert(
                     "type".into(),
-                    type_.map_or(Value::Null, |t| Value::String(t.name.clone())),
+                    type_
+                        .as_ref()
+                        .map_or(Value::Null, |t| Value::String(t.0.to_owned())),
                 );
                 a.insert(
                     "type-id".into(),
-                    type_
-                        .and_then(|t| t.gid.clone())
-                        .map_or(Value::Null, Value::String),
+                    type_.and_then(|t| t.1).map_or(Value::Null, Value::String),
                 );
-                Period::from_row(r, 5)?.write(&mut a);
-                let sort_name: String = r.get(1)?;
-                let locale: Option<String> = r.get(2)?;
-                Ok(((name, locale, sort_name), a))
-            })?
-            .collect::<R<_>>()?;
+                period(&r, &mut a);
+                ((name, locale.map(str::to_owned), r.text("sort_name")), a)
+            })
+            .collect();
         aliases.sort_by(|a, b| a.0.cmp(&b.0));
-        Ok(Value::Array(
-            aliases.into_iter().map(|(_, a)| Value::Object(a)).collect(),
-        ))
+        Value::Array(aliases.into_iter().map(|(_, a)| Value::Object(a)).collect())
     }
 
-    fn tags(&self, out: &mut Obj, kind: Kind, id: i64) -> R<()> {
+    fn tags(&self, out: &mut Obj, kind: Kind, id: u32) {
         let inc = self.inc;
+        let rows: Vec<(String, u32, Option<u32>)> = self
+            .store
+            .t(&format!("{}_tag", kind.table()))
+            .by("entity", id)
+            .filter_map(|r| {
+                let count = r.u32("count").filter(|c| *c > 0 && *c < 0x8000_0000)?;
+                let tag = r.u32("tag")?;
+                let name = self.store.t("tag").get(tag)?.text("name");
+                Some((name, count, self.store.derived.tag_genre(tag)))
+            })
+            .collect();
         if inc.tags {
-            let mut tags: Vec<(String, i64)> = self
-                .stmt(q::TAGS)?
-                .query_map((kind.code(), id), |r| Ok((r.get(0)?, r.get(1)?)))?
-                .collect::<R<_>>()?;
-            tags.sort();
+            let mut tags: Vec<(&str, u32)> =
+                rows.iter().map(|(n, c, _)| (n.as_str(), *c)).collect();
+            tags.sort_unstable();
             out.insert(
                 "tags".into(),
                 Value::Array(
@@ -354,17 +373,13 @@ impl Ctx<'_> {
             );
         }
         if inc.genres {
-            let mut genres: Vec<(String, String, String, i64)> = self
-                .stmt(q::GENRES)?
-                .query_map((kind.code(), id), |r| {
-                    Ok((
-                        r.get(1)?,
-                        r.get(0)?,
-                        r.get::<_, Option<String>>(2)?.unwrap_or_default(),
-                        r.get(3)?,
-                    ))
-                })?
-                .collect::<R<_>>()?;
+            let mut genres: Vec<(String, String, String, u32)> = rows
+                .iter()
+                .filter_map(|(_, count, genre)| {
+                    let g = self.store.t("genre").get((*genre)?)?;
+                    Some((g.text("name"), g.gid(), g.text("comment"), *count))
+                })
+                .collect();
             genres.sort();
             out.insert(
                 "genres".into(),
@@ -385,22 +400,23 @@ impl Ctx<'_> {
         if inc.user_genres {
             out.insert("user-genres".into(), json!([]));
         }
-        Ok(())
     }
 
-    fn rating(&self, out: &mut Obj, kind: Kind, id: i64) -> R<()> {
+    fn rating(&self, out: &mut Obj, kind: Kind, id: u32) {
         if self.inc.ratings {
-            let row: Option<(Option<i64>, Option<i64>)> = self
-                .stmt(q::RATING)?
-                .query_row((kind.code(), id), |r| Ok((r.get(0)?, r.get(1)?)))
-                .optional()?;
-            let rating = match row {
+            let table = if kind == Kind::ReleaseGroup {
+                "release_group_meta".to_owned()
+            } else {
+                format!("{}_meta", kind.table())
+            };
+            let row = self.store.t(&table).get(id);
+            let rating = match row.map(|r| (r.u32("rating"), r.u32("rating_count"))) {
                 Some((Some(rating), Some(count))) if count > 0 => {
                     // Stored out of 100, shown out of 5: 80 is 4, 76 is 3.8.
                     let value = if rating * 5 % 100 == 0 {
                         json!(rating * 5 / 100)
                     } else {
-                        json!(f64::from(i32::try_from(rating).unwrap_or(0)) * 5.0 / 100.0)
+                        json!(f64::from(rating) * 5.0 / 100.0)
                     };
                     json!({"value": value, "votes-count": count})
                 }
@@ -411,28 +427,26 @@ impl Ctx<'_> {
         if self.inc.user_ratings {
             out.insert("user-rating".into(), json!({"value": null}));
         }
-        Ok(())
     }
 
     /// The artists of an artist credit.
-    fn credit_artists(&self, ac: i64) -> R<HashSet<i64>> {
-        self.stmt(q::ARTIST_CREDIT)?
-            .query_map([ac], |r| r.get(0))?
+    fn credit_artists(&self, ac: u32) -> Vec<u32> {
+        self.store
+            .t("artist_credit_name")
+            .by("artist_credit", ac)
+            .filter_map(|r| r.u32("artist"))
             .collect()
     }
 
     /// An artist credit, as `artist-credit`.
-    pub fn artist_credit(&self, ac: i64, o: Opts) -> R<Value> {
-        let names: Vec<(i64, String, Option<String>)> = self
-            .stmt(q::ARTIST_CREDIT)?
-            .query_map([ac], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))?
-            .collect::<R<_>>()?;
+    pub fn artist_credit(&self, ac: u32, o: Opts) -> R<Value> {
         let o = o.not_toplevel();
-        let mut out = Vec::with_capacity(names.len());
-        for (artist, name, join) in names {
+        let mut out = Vec::new();
+        for name in self.store.t("artist_credit_name").by("artist_credit", ac) {
+            let artist = name.u32("artist").ok_or(Missing("artist", ac))?;
             out.push(json!({
-                "name": name,
-                "joinphrase": join.unwrap_or_default(),
+                "name": name.text("name"),
+                "joinphrase": name.text("join_phrase"),
                 "artist": self.artist(artist, o)?,
             }));
         }
@@ -441,41 +455,31 @@ impl Ctx<'_> {
 
     // Entity types
 
-    pub fn area(&self, id: i64, o: Opts) -> R<Value> {
-        let (gid, name, period, type_id, comment): (
-            String,
-            String,
-            Period,
-            Option<i64>,
-            Option<String>,
-        ) = self.stmt(q::AREA)?.query_row([id], |r| {
-            Ok((
-                r.get(0)?,
-                r.get(1)?,
-                Period::from_row(r, 2)?,
-                r.get(9)?,
-                r.get(10)?,
-            ))
-        })?;
+    pub fn area(&self, id: u32, o: Opts) -> R<Value> {
+        let row = self.get("area", id)?;
         let mut out = Obj::new();
+        let name = row.text("name");
         out.insert("name".into(), Value::String(name.clone()));
         out.insert("sort-name".into(), Value::String(name));
-        out.insert(
-            "disambiguation".into(),
-            Value::String(comment.unwrap_or_default()),
-        );
-        for (key, sql) in [
-            ("iso-3166-1-codes", q::AREA_ISO1),
-            ("iso-3166-2-codes", q::AREA_ISO2),
-            ("iso-3166-3-codes", q::AREA_ISO3),
+        out.insert("disambiguation".into(), Value::String(row.text("comment")));
+        for (key, table) in [
+            ("iso-3166-1-codes", "iso_3166_1"),
+            ("iso-3166-2-codes", "iso_3166_2"),
+            ("iso-3166-3-codes", "iso_3166_3"),
         ] {
-            let codes = self.strings(sql, id)?;
+            let mut codes: Vec<&str> = self
+                .store
+                .t(table)
+                .by("area", id)
+                .filter_map(|r| r.str("code"))
+                .collect();
+            codes.sort_unstable();
             if !codes.is_empty() {
                 out.insert(key.into(), json!(codes));
             }
         }
         let type_id = if o.area_type || o.toplevel {
-            type_id
+            row.u32("type")
         } else {
             None
         };
@@ -484,8 +488,8 @@ impl Ctx<'_> {
             Common {
                 kind: Kind::Area,
                 id,
-                gid,
-                period: Some(period),
+                gid: row.gid(),
+                period: Some(row),
                 type_: Some(("area_type", type_id)),
             },
             o,
@@ -493,7 +497,7 @@ impl Ctx<'_> {
         Ok(Value::Object(out))
     }
 
-    fn area_or_null(&self, id: Option<i64>) -> R<Value> {
+    fn area_or_null(&self, id: Option<u32>) -> R<Value> {
         match id {
             Some(id) => self.area(id, Opts::bare()),
             None => Ok(Value::Null),
@@ -501,58 +505,34 @@ impl Ctx<'_> {
     }
 
     /// An area's own ISO 3166-1 code.
-    fn country_code(&self, area: Option<i64>) -> R<Option<String>> {
-        let Some(area) = area else { return Ok(None) };
-        Ok(self.strings(q::AREA_ISO1, area)?.into_iter().next())
+    fn country_code(&self, area: Option<u32>) -> Option<String> {
+        let area = area?;
+        let code = crate::store::derive::code(self.store, area);
+        (!code.is_empty()).then_some(code)
     }
 
-    pub fn artist(&self, id: i64, o: Opts) -> R<Value> {
-        type Row = (
-            String,
-            String,
-            String,
-            Period,
-            Option<i64>,
-            Option<i64>,
-            Option<i64>,
-            Option<String>,
-        );
-        let (gid, name, sort_name, period, type_id, area, gender, comment): Row =
-            self.stmt(q::ARTIST)?.query_row([id], |r| {
-                Ok((
-                    r.get(0)?,
-                    r.get(1)?,
-                    r.get(2)?,
-                    Period::from_row(r, 3)?,
-                    r.get(10)?,
-                    r.get(11)?,
-                    r.get(12)?,
-                    r.get(13)?,
-                ))
-            })?;
+    pub fn artist(&self, id: u32, o: Opts) -> R<Value> {
+        let row = self.get("artist", id)?;
         let mut out = Obj::new();
-        out.insert("name".into(), Value::String(name));
-        out.insert("sort-name".into(), Value::String(sort_name));
+        out.insert("name".into(), Value::String(row.text("name")));
+        out.insert("sort-name".into(), Value::String(row.text("sort_name")));
+        out.insert("disambiguation".into(), Value::String(row.text("comment")));
+        let country = row
+            .u32("area")
+            .and_then(|a| self.store.derived.area_country(a));
         out.insert(
-            "disambiguation".into(),
-            Value::String(comment.unwrap_or_default()),
+            "country".into(),
+            self.country_code(country)
+                .map_or(Value::Null, Value::String),
         );
-        let country: Option<String> = match area {
-            Some(area) => self
-                .stmt(q::AREA_COUNTRY)?
-                .query_row([area], |r| r.get(0))
-                .optional()?,
-            None => None,
-        };
-        out.insert("country".into(), text(country));
         if o.toplevel {
-            let (begin_area, end_area): (Option<i64>, Option<i64>) = self
-                .stmt(q::ARTIST)?
-                .query_row([id], |r| Ok((r.get(14)?, r.get(15)?)))?;
-            self.named(&mut out, "gender", "gender", gender);
-            out.insert("area".into(), self.area_or_null(area)?);
-            out.insert("begin-area".into(), self.area_or_null(begin_area)?);
-            out.insert("end-area".into(), self.area_or_null(end_area)?);
+            self.named(&mut out, "gender", "gender", row.u32("gender"));
+            out.insert("area".into(), self.area_or_null(row.u32("area"))?);
+            out.insert(
+                "begin-area".into(),
+                self.area_or_null(row.u32("begin_area"))?,
+            );
+            out.insert("end-area".into(), self.area_or_null(row.u32("end_area"))?);
             self.artist_lists(&mut out, id)?;
         }
         self.finish(
@@ -560,9 +540,9 @@ impl Ctx<'_> {
             Common {
                 kind: Kind::Artist,
                 id,
-                gid,
-                period: Some(period),
-                type_: Some(("artist_type", type_id)),
+                gid: row.gid(),
+                period: Some(row),
+                type_: Some(("artist_type", row.u32("type"))),
             },
             o,
         )?;
@@ -570,16 +550,16 @@ impl Ctx<'_> {
     }
 
     /// The related lists of an artist lookup (`inc=recordings`, `releases`, `release-groups`, `works`).
-    fn artist_lists(&self, out: &mut Obj, id: i64) -> R<()> {
-        use super::browse::{self, Linked};
+    fn artist_lists(&self, out: &mut Obj, id: u32) -> R<()> {
+        use super::browse::{self, Linked, Page};
         let inc = self.inc;
         let list = Opts::nested();
-        let page = browse::Page {
+        let page = Page {
             limit: MAX_ITEMS,
             offset: 0,
         };
         if inc.recordings {
-            let (ids, _) = browse::ids(self, Kind::Recording, Linked::Artist(id), page)?;
+            let (ids, _) = browse::ids(self, Kind::Recording, Linked::Artist(id), page);
             out.insert("recordings".into(), self.list(Kind::Recording, &ids, list)?);
         }
         if inc.releases {
@@ -588,98 +568,61 @@ impl Ctx<'_> {
             } else {
                 Linked::Artist(id)
             };
-            let (ids, _) = browse::ids(self, Kind::Release, linked, page)?;
+            let (ids, _) = browse::ids(self, Kind::Release, linked, page);
             out.insert("releases".into(), self.list(Kind::Release, &ids, list)?);
         }
         if inc.release_groups {
-            let (ids, _) = browse::ids(self, Kind::ReleaseGroup, Linked::Artist(id), page)?;
+            let (ids, _) = browse::ids(self, Kind::ReleaseGroup, Linked::Artist(id), page);
             out.insert(
                 "release-groups".into(),
                 self.list(Kind::ReleaseGroup, &ids, list)?,
             );
         }
         if inc.works {
-            let (ids, _) = browse::ids(self, Kind::Work, Linked::Artist(id), page)?;
+            let (ids, _) = browse::ids(self, Kind::Work, Linked::Artist(id), page);
             out.insert("works".into(), self.list(Kind::Work, &ids, list)?);
         }
         Ok(())
     }
 
-    /// Entities in the order given.
-    pub fn list(&self, kind: Kind, ids: &[i64], o: Opts) -> R<Value> {
-        ids.iter()
-            .map(|id| self.entity(kind, *id, o))
-            .collect::<R<Vec<_>>>()
-            .map(Value::Array)
-    }
-
-    pub fn event(&self, id: i64, o: Opts) -> R<Value> {
-        type Row = (
-            String,
-            String,
-            Period,
-            Option<i64>,
-            Option<String>,
-            Option<bool>,
-            Option<String>,
-            Option<String>,
-        );
-        let (gid, name, period, type_id, time, cancelled, setlist, comment): Row =
-            self.stmt(q::EVENT)?.query_row([id], |r| {
-                Ok((
-                    r.get(0)?,
-                    r.get(1)?,
-                    Period::from_row(r, 2)?,
-                    r.get(9)?,
-                    r.get(10)?,
-                    r.get(11)?,
-                    r.get(12)?,
-                    r.get(13)?,
-                ))
-            })?;
+    pub fn event(&self, id: u32, o: Opts) -> R<Value> {
+        let row = self.get("event", id)?;
         let mut out = Obj::new();
-        out.insert("name".into(), Value::String(name));
-        out.insert(
-            "disambiguation".into(),
-            Value::String(comment.unwrap_or_default()),
-        );
+        out.insert("name".into(), Value::String(row.text("name")));
+        out.insert("disambiguation".into(), Value::String(row.text("comment")));
         // HH:MM, without the seconds
-        let time = time
-            .map(|t| t.get(..5).unwrap_or(&t).to_owned())
+        let time = row
+            .str("time")
+            .map(|t| t.get(..5).unwrap_or(t).to_owned())
             .unwrap_or_default();
         out.insert("time".into(), Value::String(time));
-        out.insert("setlist".into(), Value::String(setlist.unwrap_or_default()));
-        out.insert("cancelled".into(), Value::Bool(cancelled.unwrap_or(false)));
+        out.insert("setlist".into(), Value::String(row.text("setlist")));
+        out.insert("cancelled".into(), Value::Bool(row.bool("cancelled")));
         self.finish(
             &mut out,
             Common {
                 kind: Kind::Event,
                 id,
-                gid,
-                period: Some(period),
-                type_: Some(("event_type", type_id)),
+                gid: row.gid(),
+                period: Some(row),
+                type_: Some(("event_type", row.u32("type"))),
             },
             o,
         )?;
         Ok(Value::Object(out))
     }
 
-    pub fn genre(&self, id: i64, o: Opts) -> R<Value> {
-        let (gid, name, comment): (String, String, Option<String>) = self
-            .stmt(q::GENRE)?
-            .query_row([id], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))?;
+    pub fn genre(&self, id: u32, o: Opts) -> R<Value> {
+        let row = self.get("genre", id)?;
         let mut out = Obj::new();
-        out.insert("name".into(), Value::String(name));
-        out.insert(
-            "disambiguation".into(),
-            Value::String(comment.unwrap_or_default()),
-        );
+        out.insert("name".into(), Value::String(row.text("name")));
+        out.insert("disambiguation".into(), Value::String(row.text("comment")));
         self.finish(
             &mut out,
             Common {
                 kind: Kind::Genre,
                 id,
-                gid,
+                gid: row.gid(),
                 period: None,
                 type_: None,
             },
@@ -688,80 +631,53 @@ impl Ctx<'_> {
         Ok(Value::Object(out))
     }
 
-    pub fn instrument(&self, id: i64, o: Opts) -> R<Value> {
-        let (gid, name, type_id, comment, description): (
-            String,
-            String,
-            Option<i64>,
-            Option<String>,
-            Option<String>,
-        ) = self.stmt(q::INSTRUMENT)?.query_row([id], |r| {
-            Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?))
-        })?;
+    pub fn instrument(&self, id: u32, o: Opts) -> R<Value> {
+        let row = self.get("instrument", id)?;
         let mut out = Obj::new();
-        out.insert("name".into(), Value::String(name));
-        out.insert(
-            "disambiguation".into(),
-            Value::String(comment.unwrap_or_default()),
-        );
-        out.insert(
-            "description".into(),
-            Value::String(description.unwrap_or_default()),
-        );
+        out.insert("name".into(), Value::String(row.text("name")));
+        out.insert("disambiguation".into(), Value::String(row.text("comment")));
+        out.insert("description".into(), Value::String(row.text("description")));
+        let type_ = Some(("instrument_type", row.u32("type")));
         self.finish(
             &mut out,
             Common {
                 kind: Kind::Instrument,
                 id,
-                gid,
+                gid: row.gid(),
                 period: None,
-                type_: Some(("instrument_type", type_id)),
+                type_,
             },
             o,
         )?;
         Ok(Value::Object(out))
     }
 
-    pub fn label(&self, id: i64, o: Opts) -> R<Value> {
-        type Row = (
-            String,
-            String,
-            Period,
-            Option<i64>,
-            Option<i64>,
-            Option<i64>,
-            Option<String>,
-        );
-        let (gid, name, period, type_id, label_code, area, comment): Row =
-            self.stmt(q::LABEL)?.query_row([id], |r| {
-                Ok((
-                    r.get(0)?,
-                    r.get(1)?,
-                    Period::from_row(r, 2)?,
-                    r.get(9)?,
-                    r.get(10)?,
-                    r.get(11)?,
-                    r.get(12)?,
-                ))
-            })?;
+    pub fn label(&self, id: u32, o: Opts) -> R<Value> {
+        let row = self.get("label", id)?;
         let mut out = Obj::new();
+        let name = row.text("name");
         out.insert("name".into(), Value::String(name.clone()));
         out.insert("sort-name".into(), Value::String(name));
-        out.insert("label-code".into(), int(label_code));
-        out.insert(
-            "disambiguation".into(),
-            Value::String(comment.unwrap_or_default()),
-        );
+        out.insert("label-code".into(), int(row.u32("label_code")));
+        out.insert("disambiguation".into(), Value::String(row.text("comment")));
         if o.toplevel {
-            out.insert("country".into(), text(self.country_code(area)?));
-            out.insert("area".into(), self.area_or_null(area)?);
+            out.insert(
+                "country".into(),
+                self.country_code(row.u32("area"))
+                    .map_or(Value::Null, Value::String),
+            );
+            out.insert("area".into(), self.area_or_null(row.u32("area"))?);
             if self.inc.releases {
-                use super::browse::{self, Linked};
-                let page = browse::Page {
-                    limit: MAX_ITEMS,
-                    offset: 0,
-                };
-                let (ids, _) = browse::ids(self, Kind::Release, Linked::Label(id), page)?;
+                use super::browse::{self, Linked, Page};
+                let (ids, _) = browse::ids(
+                    self,
+                    Kind::Release,
+                    Linked::Label(id),
+                    Page {
+                        limit: MAX_ITEMS,
+                        offset: 0,
+                    },
+                );
                 out.insert(
                     "releases".into(),
                     self.list(Kind::Release, &ids, Opts::nested())?,
@@ -773,48 +689,23 @@ impl Ctx<'_> {
             Common {
                 kind: Kind::Label,
                 id,
-                gid,
-                period: Some(period),
-                type_: Some(("label_type", type_id)),
+                gid: row.gid(),
+                period: Some(row),
+                type_: Some(("label_type", row.u32("type"))),
             },
             o,
         )?;
         Ok(Value::Object(out))
     }
 
-    pub fn place(&self, id: i64, o: Opts) -> R<Value> {
-        type Row = (
-            String,
-            String,
-            Period,
-            Option<i64>,
-            Option<String>,
-            Option<i64>,
-            Option<String>,
-            Option<String>,
-        );
-        let (gid, name, period, type_id, address, area, coordinates, comment): Row =
-            self.stmt(q::PLACE)?.query_row([id], |r| {
-                Ok((
-                    r.get(0)?,
-                    r.get(1)?,
-                    Period::from_row(r, 2)?,
-                    r.get(9)?,
-                    r.get(10)?,
-                    r.get(11)?,
-                    r.get(12)?,
-                    r.get(13)?,
-                ))
-            })?;
+    pub fn place(&self, id: u32, o: Opts) -> R<Value> {
+        let row = self.get("place", id)?;
         let mut out = Obj::new();
-        out.insert("name".into(), Value::String(name));
-        out.insert(
-            "disambiguation".into(),
-            Value::String(comment.unwrap_or_default()),
-        );
-        out.insert("address".into(), Value::String(address.unwrap_or_default()));
+        out.insert("name".into(), Value::String(row.text("name")));
+        out.insert("disambiguation".into(), Value::String(row.text("comment")));
+        out.insert("address".into(), Value::String(row.text("address")));
         // A place that is a relationship target has its area's type loaded, one at the top level not.
-        let area = match area {
+        let area = match row.u32("area") {
             Some(area) => self.area(
                 area,
                 Opts {
@@ -827,8 +718,7 @@ impl Ctx<'_> {
         out.insert("area".into(), area);
         out.insert(
             "coordinates".into(),
-            coordinates
-                .as_deref()
+            row.str("coordinates")
                 .and_then(parse_point)
                 .unwrap_or(Value::Null),
         );
@@ -837,80 +727,56 @@ impl Ctx<'_> {
             Common {
                 kind: Kind::Place,
                 id,
-                gid,
-                period: Some(period),
-                type_: Some(("place_type", type_id)),
+                gid: row.gid(),
+                period: Some(row),
+                type_: Some(("place_type", row.u32("type"))),
             },
             o,
         )?;
         Ok(Value::Object(out))
     }
 
-    pub fn recording(&self, id: i64, o: Opts) -> R<Value> {
-        self.recording_with(id, o, None)
-    }
-
-    /// A recording; `releases` replaces the list of releases a lookup has (`inc=releases`).
-    fn recording_with(&self, id: i64, o: Opts, releases: Option<Value>) -> R<Value> {
-        type Row = (
-            String,
-            String,
-            i64,
-            Option<i64>,
-            Option<String>,
-            Option<bool>,
-        );
-        let (gid, name, ac, length, comment, video): Row =
-            self.stmt(q::RECORDING)?.query_row([id], |r| {
-                Ok((
-                    r.get(0)?,
-                    r.get(1)?,
-                    r.get(2)?,
-                    r.get(3)?,
-                    r.get(4)?,
-                    r.get(5)?,
-                ))
-            })?;
+    pub fn recording(&self, id: u32, o: Opts) -> R<Value> {
+        let row = self.get("recording", id)?;
         let inc = self.inc;
         let mut out = Obj::new();
-        out.insert("title".into(), Value::String(name));
-        out.insert(
-            "disambiguation".into(),
-            Value::String(comment.unwrap_or_default()),
-        );
-        out.insert("length".into(), int(length));
-        out.insert("video".into(), Value::Bool(video.unwrap_or(false)));
-        if o.with_inc && inc.artist_credits {
+        out.insert("title".into(), Value::String(row.text("name")));
+        out.insert("disambiguation".into(), Value::String(row.text("comment")));
+        out.insert("length".into(), int(row.u32("length")));
+        out.insert("video".into(), Value::Bool(row.bool("video")));
+        if o.with_inc
+            && inc.artist_credits
+            && let Some(ac) = row.u32("artist_credit")
+        {
             out.insert("artist-credit".into(), self.artist_credit(ac, o)?);
         }
         if o.toplevel && inc.releases {
-            let releases = match releases {
-                Some(r) => r,
-                None => self.recording_releases(id)?,
-            };
-            out.insert("releases".into(), releases);
+            out.insert("releases".into(), self.recording_releases(id)?);
         }
         if o.with_inc && inc.isrcs {
-            out.insert("isrcs".into(), json!(self.strings(q::RECORDING_ISRCS, id)?));
+            let mut isrcs: Vec<&str> = self
+                .store
+                .t("isrc")
+                .by("recording", id)
+                .filter_map(|r| r.str("isrc"))
+                .collect();
+            isrcs.sort_unstable();
+            out.insert("isrcs".into(), json!(isrcs));
         }
-        if o.first_release_date {
-            let first: Option<i64> = self
-                .stmt(q::RECORDING_FIRST_RELEASE_DATE)?
-                .query_row([id], |r| r.get(0))
-                .optional()?;
-            if let Some(first) = first {
-                out.insert(
-                    "first-release-date".into(),
-                    Value::String(date::format_packed(first)),
-                );
-            }
+        if o.first_release_date
+            && let Some(first) = self.store.derived.recording_first_date(id)
+        {
+            out.insert(
+                "first-release-date".into(),
+                Value::String(date::format_packed(i64::from(first))),
+            );
         }
         self.finish(
             &mut out,
             Common {
                 kind: Kind::Recording,
                 id,
-                gid,
+                gid: row.gid(),
                 period: None,
                 type_: None,
             },
@@ -920,26 +786,37 @@ impl Ctx<'_> {
     }
 
     /// The releases of a recording lookup: with `inc=media`, each with only the medium and track of the recording.
-    fn recording_releases(&self, id: i64) -> R<Value> {
-        use super::browse::{self, Linked};
-        let page = browse::Page {
-            limit: MAX_ITEMS,
-            offset: 0,
-        };
-        let (ids, _) = browse::ids(self, Kind::Release, Linked::Recording(id), page)?;
+    fn recording_releases(&self, id: u32) -> R<Value> {
+        use super::browse::{self, Linked, Page};
+        let (ids, _) = browse::ids(
+            self,
+            Kind::Release,
+            Linked::Recording(id),
+            Page {
+                limit: MAX_ITEMS,
+                offset: 0,
+            },
+        );
         let o = Opts::nested();
         let mut releases = Vec::with_capacity(ids.len());
         for release in ids {
-            let mut value = self.release(release, Opts { ..o })?;
+            let mut value = self.release(release, o)?;
             if self.inc.media
                 && let Value::Object(obj) = &mut value
             {
-                let track: Option<(i64, i64)> = self
-                    .stmt(q::RECORDING_TRACK_ON_RELEASE)?
-                    .query_row((id, release), |r| Ok((r.get(0)?, r.get(1)?)))
-                    .optional()?;
+                // The recording's first track on this release.
+                let track = self
+                    .store
+                    .t("track")
+                    .by("recording", id)
+                    .filter_map(|t| {
+                        let medium = self.store.t("medium").get(t.u32("medium")?)?;
+                        (medium.u32("release") == Some(release))
+                            .then(|| (medium.u32("position"), t.u32("position"), medium.id, t.id))
+                    })
+                    .min();
                 let media = match track {
-                    Some((medium, track)) => vec![self.medium(medium, o, Some(&[track]))?],
+                    Some((_, _, medium, track)) => vec![self.medium(medium, o, Some(&[track]))?],
                     None => Vec::new(),
                 };
                 obj.insert("media".into(), Value::Array(media));
@@ -949,68 +826,58 @@ impl Ctx<'_> {
         Ok(Value::Array(releases))
     }
 
+    /// A release's events, earliest first (missing parts last, then by country name): (country area, date).
+    #[must_use]
+    pub fn release_events(&self, id: u32) -> Vec<(Option<u32>, String)> {
+        let mut events: Vec<(u32, String, Option<u32>, String)> = Vec::new();
+        for e in self.store.t("release_country").by("release", id) {
+            let country = e.u32("country");
+            let name = country
+                .and_then(|c| self.store.t("area").get(c))
+                .map(|a| collation_key(&a.text("name")));
+            let (y, m, d) = e.date("date");
+            events.push((
+                crate::store::derive::pack((y, m, d)),
+                name.unwrap_or_default(),
+                country,
+                date::format(y, m, d),
+            ));
+        }
+        for e in self.store.t("release_unknown_country").by("release", id) {
+            let (y, m, d) = e.date("date");
+            // no country sorts last
+            events.push((
+                crate::store::derive::pack((y, m, d)),
+                "\u{10ffff}".into(),
+                None,
+                date::format(y, m, d),
+            ));
+        }
+        events.sort();
+        events
+            .into_iter()
+            .map(|(_, _, country, date)| (country, date))
+            .collect()
+    }
+
     #[allow(clippy::too_many_lines)]
-    pub fn release(&self, id: i64, o: Opts) -> R<Value> {
-        type Row = (
-            String,
-            String,
-            i64,
-            i64,
-            Option<i64>,
-            Option<i64>,
-            Option<i64>,
-            Option<i64>,
-            Option<String>,
-            Option<String>,
-            Option<i64>,
-            Option<String>,
-            Option<String>,
-        );
-        let row: Row = self.stmt(q::RELEASE)?.query_row([id], |r| {
-            Ok((
-                r.get(0)?,
-                r.get(1)?,
-                r.get(2)?,
-                r.get(3)?,
-                r.get(4)?,
-                r.get(5)?,
-                r.get(6)?,
-                r.get(7)?,
-                r.get(8)?,
-                r.get(9)?,
-                r.get(10)?,
-                r.get(11)?,
-                r.get(12)?,
-            ))
-        })?;
-        let (
-            gid,
-            name,
-            ac,
-            rg,
-            status,
-            packaging,
-            language,
-            script,
-            barcode,
-            comment,
-            quality,
-            asin,
-            presence,
-        ) = row;
+    pub fn release(&self, id: u32, o: Opts) -> R<Value> {
+        let row = self.get("release", id)?;
+        let meta = self.store.t("release_meta").get(id);
+        let presence = meta.and_then(|m| m.str("cover_art_presence"));
+        let ac = row.u32("artist_credit");
         let inc = self.inc;
         let mut out = Obj::new();
-        out.insert("title".into(), Value::String(name));
+        out.insert("title".into(), Value::String(row.text("name")));
 
-        let events: Vec<(Option<i64>, String)> = self
-            .stmt(q::RELEASE_EVENTS)?
-            .query_map([id], |r| {
-                Ok((r.get(0)?, date::format(r.get(1)?, r.get(2)?, r.get(3)?)))
-            })?
-            .collect::<R<_>>()?;
+        let events = self.release_events(id);
         if let Some((country, first_date)) = events.first() {
             out.insert("date".into(), Value::String(first_date.clone()));
-            out.insert("country".into(), text(self.country_code(*country)?));
+            out.insert(
+                "country".into(),
+                self.country_code(*country)
+                    .map_or(Value::Null, Value::String),
+            );
             let mut list = Vec::with_capacity(events.len());
             for (country, date) in &events {
                 list.push(json!({"date": date, "area": self.area_or_null(*country)?}));
@@ -1018,33 +885,34 @@ impl Ctx<'_> {
             out.insert("release-events".into(), Value::Array(list));
         }
         if o.toplevel {
-            out.insert("asin".into(), text(asin));
+            out.insert("asin".into(), text(meta.and_then(|m| m.str("amazon_asin"))));
         }
-        out.insert("barcode".into(), text(barcode));
-        out.insert(
-            "disambiguation".into(),
-            Value::String(comment.unwrap_or_default()),
-        );
-        self.named(&mut out, "status", "release_status", status);
-        let quality = match quality.unwrap_or(-1) {
-            0 => "low",
-            2 => "high",
+        out.insert("barcode".into(), text(row.str("barcode")));
+        out.insert("disambiguation".into(), Value::String(row.text("comment")));
+        self.named(&mut out, "status", "release_status", row.u32("status"));
+        let quality = match row.u32("quality") {
+            Some(0) => "low",
+            Some(2) => "high",
             _ => "normal",
         };
         out.insert("quality".into(), Value::String(quality.into()));
-        self.named(&mut out, "packaging", "release_packaging", packaging);
+        self.named(
+            &mut out,
+            "packaging",
+            "release_packaging",
+            row.u32("packaging"),
+        );
         if o.toplevel {
-            let (count, front, back) = if presence.as_deref() == Some("present") {
-                self.stmt(q::COVER_ART_STATS)?
-                    .query_row([id], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))?
+            let (count, front, back) = if presence == Some("present") {
+                self.cover_art_stats(id)
             } else {
-                (0i64, false, false)
+                (0, false, false)
             };
             out.insert(
                 "cover-art-archive".into(),
                 json!({
-                    "artwork": presence.as_deref() == Some("present"),
-                    "darkened": presence.as_deref() == Some("darkened"),
+                    "artwork": presence == Some("present"),
+                    "darkened": presence == Some("darkened"),
                     "count": count,
                     "front": front,
                     "back": back,
@@ -1054,8 +922,8 @@ impl Ctx<'_> {
         out.insert(
             "text-representation".into(),
             json!({
-                "script": script.and_then(|s| self.lk.scripts.get(&s)),
-                "language": language.and_then(|l| self.lk.languages.get(&l)),
+                "script": self.store.script(row.u32("script")),
+                "language": self.store.language(row.u32("language")),
             }),
         );
         if o.with_inc && (inc.collections || inc.user_collections) {
@@ -1063,10 +931,13 @@ impl Ctx<'_> {
         }
         let in_release = Opts {
             sublevel_ratings: true,
-            release_ac: Some(ac),
+            release_ac: ac,
             ..o.not_toplevel()
         };
-        if o.with_inc && inc.release_groups {
+        if o.with_inc
+            && inc.release_groups
+            && let Some(rg) = row.u32("release_group")
+        {
             let rels = if o.toplevel && inc.release_group_level_rels {
                 Rels::All
             } else {
@@ -1077,17 +948,43 @@ impl Ctx<'_> {
                 self.release_group(rg, Opts { rels, ..in_release })?,
             );
         }
-        if o.with_inc && inc.artist_credits {
+        if o.with_inc
+            && inc.artist_credits
+            && let Some(ac) = ac
+        {
             out.insert("artist-credit".into(), self.artist_credit(ac, o)?);
         }
         if o.toplevel && inc.labels {
-            let labels: Vec<(Option<i64>, Option<String>)> = self
-                .stmt(q::RELEASE_LABELS)?
-                .query_map([id], |r| Ok((r.get(0)?, r.get(1)?)))?
-                .collect::<R<_>>()?;
+            let mut labels: Vec<(Option<String>, Option<String>, u32, Row<'_>)> = self
+                .store
+                .t("release_label")
+                .by("release", id)
+                .map(|rl| {
+                    let name = rl
+                        .u32("label")
+                        .and_then(|l| self.store.t("label").get(l))
+                        .map(|l| l.text("name").to_lowercase());
+                    (
+                        rl.str("catalog_number").map(str::to_owned),
+                        name,
+                        rl.u32("id").unwrap_or(0),
+                        rl,
+                    )
+                })
+                .collect();
+            // catalog number, then label name (missing ones last), then id
+            labels.sort_by(|a, b| {
+                (a.0.is_none(), &a.0, a.1.is_none(), &a.1, a.2).cmp(&(
+                    b.0.is_none(),
+                    &b.0,
+                    b.1.is_none(),
+                    &b.1,
+                    b.2,
+                ))
+            });
             let mut list = Vec::with_capacity(labels.len());
-            for (label, catno) in labels {
-                let label = match label {
+            for (catno, _, _, rl) in labels {
+                let label = match rl.u32("label") {
                     Some(l) => self.label(l, o.not_toplevel())?,
                     None => Value::Null,
                 };
@@ -1096,10 +993,12 @@ impl Ctx<'_> {
             out.insert("label-info".into(), Value::Array(list));
         }
         if o.with_inc && (inc.media || inc.discids || inc.recordings) {
-            let mediums: Vec<i64> = self
-                .stmt(q::RELEASE_MEDIUMS)?
-                .query_map([id], |r| r.get(0))?
-                .collect::<R<_>>()?;
+            let mediums: Vec<u32> = self
+                .store
+                .t("medium")
+                .by("release", id)
+                .map(|m| m.id)
+                .collect();
             let mut list = Vec::with_capacity(mediums.len());
             for medium in mediums {
                 list.push(self.medium(medium, in_release, None)?);
@@ -1111,7 +1010,7 @@ impl Ctx<'_> {
             Common {
                 kind: Kind::Release,
                 id,
-                gid,
+                gid: row.gid(),
                 period: None,
                 type_: None,
             },
@@ -1120,144 +1019,140 @@ impl Ctx<'_> {
         Ok(Value::Object(out))
     }
 
+    /// A release's cover art: how many images, whether one is the front, the back.
+    #[must_use]
+    pub fn cover_art_stats(&self, release: u32) -> (usize, bool, bool) {
+        let front = self.store.id_by_name("art_type", "Front");
+        let back = self.store.id_by_name("art_type", "Back");
+        let mut count = 0;
+        let (mut has_front, mut has_back) = (false, false);
+        for image in self.store.t("cover_art").by("release", release) {
+            count += 1;
+            let types = self.store.derived.cover_art_types(image.id);
+            has_front |= front.is_some_and(|f| f < 32 && types & (1 << f) != 0);
+            has_back |= back.is_some_and(|b| b < 32 && types & (1 << b) != 0);
+        }
+        (count, has_front, has_back)
+    }
+
+    /// A track's title (its own, or its recording's).
+    #[must_use]
+    pub fn track_title(&self, track: &Row<'_>) -> String {
+        if track.str_offset("name") == SAME_AS_RECORDING {
+            return track
+                .u32("recording")
+                .and_then(|r| self.store.t("recording").get(r))
+                .map(|r| r.text("name"))
+                .unwrap_or_default();
+        }
+        track.text("name")
+    }
+
     /// A medium; `only` limits its tracks to these (a recording's releases with `inc=media`).
-    #[allow(clippy::too_many_lines)]
-    fn medium(&self, id: i64, o: Opts, only: Option<&[i64]>) -> R<Value> {
-        type Row = (i64, Option<String>, i64, Option<i64>, Option<String>, i64);
-        let (_, gid, position, format, name, _track_count): Row =
-            self.stmt(q::MEDIUM)?.query_row([id], |r| {
-                Ok((
-                    r.get(0)?,
-                    r.get(1)?,
-                    r.get(2)?,
-                    r.get(3)?,
-                    r.get(4)?,
-                    r.get(5)?,
-                ))
-            })?;
+    #[allow(clippy::too_many_lines)] // the fields of a medium and its tracks
+    fn medium(&self, id: u32, o: Opts, only: Option<&[u32]>) -> R<Value> {
+        let row = self.get("medium", id)?;
         let inc = self.inc;
         let mut out = Obj::new();
-        out.insert("title".into(), Value::String(name.unwrap_or_default()));
-        self.named(&mut out, "format", "medium_format", format);
-        out.insert("position".into(), json!(position));
+        out.insert("title".into(), Value::String(row.text("name")));
+        self.named(&mut out, "format", "medium_format", row.u32("format"));
+        out.insert("position".into(), int(row.u32("position")));
         if inc.discids {
-            let mut stmt = self.stmt(q::MEDIUM_CDTOCS)?;
-            let discs = stmt
-                .query_map([id], |r| {
-                    Ok(cdtoc_json(
-                        r.get(0)?,
-                        r.get(1)?,
-                        r.get(2)?,
-                        r.get::<_, Option<String>>(3)?.as_deref(),
-                    ))
-                })?
-                .collect::<R<Vec<_>>>()?;
-            out.insert("discs".into(), Value::Array(discs));
-        }
-        let cdtoc_count: i64 = self
-            .stmt(q::MEDIUM_CDTOC_TRACK_COUNT)?
-            .query_row([id], |r| r.get(0))?;
-        out.insert("track-count".into(), json!(cdtoc_count));
-        if let Some(gid) = gid {
-            out.insert("id".into(), Value::String(gid));
-        }
-
-        let with_tracks = inc.recordings || only.is_some();
-        if with_tracks {
-            type Track = (
-                i64,
-                String,
-                i64,
-                i64,
-                Option<String>,
-                String,
-                i64,
-                Option<i64>,
-                Option<bool>,
+            let mut discs: Vec<(String, Value)> = self
+                .store
+                .t("medium_cdtoc")
+                .by("medium", id)
+                .filter_map(|mc| self.store.t("cdtoc").get(mc.u32("cdtoc")?))
+                .map(|c| (c.text("discid"), cdtoc_json(&c)))
+                .collect();
+            discs.sort_by(|a, b| a.0.cmp(&b.0));
+            out.insert(
+                "discs".into(),
+                Value::Array(discs.into_iter().map(|d| d.1).collect()),
             );
-            let mut tracks: Vec<Track> = self
-                .stmt(q::MEDIUM_TRACKS)?
-                .query_map([id], |r| {
-                    Ok((
-                        r.get(0)?,
-                        r.get(1)?,
-                        r.get(2)?,
-                        r.get(3)?,
-                        r.get(4)?,
-                        r.get(5)?,
-                        r.get(6)?,
-                        r.get(7)?,
-                        r.get(8)?,
-                    ))
-                })?
-                .collect::<R<_>>()?;
-            if let Some(only) = only {
-                tracks.retain(|t| only.contains(&t.0));
-            }
-            let has_pregap: bool = self
-                .stmt(q::MEDIUM_HAS_PREGAP)?
-                .query_row([id], |r| r.get(0))?;
-            let serialize = |t: &Track| -> R<Value> {
-                let (_, gid, recording, position, number, name, ac, length, _) = t;
+        }
+        let tracks: Vec<Row<'_>> = self.store.t("track").by("medium", id).collect();
+        let cdtoc_count = tracks
+            .iter()
+            .filter(|t| t.u32("position").is_some_and(|p| p > 0) && !t.bool("is_data_track"))
+            .count();
+        out.insert("track-count".into(), json!(cdtoc_count));
+        if row.u32("gid").is_none() || !row.gid().is_empty() {
+            out.insert("id".into(), Value::String(row.gid()));
+        }
+        if inc.recordings || only.is_some() {
+            let has_pregap = tracks.iter().any(|t| t.u32("position") == Some(0));
+            let shown: Vec<&Row<'_>> = tracks
+                .iter()
+                .filter(|t| only.is_none_or(|o| o.contains(&t.id)))
+                .collect();
+            let serialize = |t: &Row<'_>| -> R<Value> {
                 let mut track = Obj::new();
-                track.insert("id".into(), Value::String(gid.clone()));
-                track.insert("length".into(), int(*length));
-                track.insert("number".into(), text(number.clone()));
-                track.insert("position".into(), json!(position));
-                track.insert("title".into(), Value::String(name.clone()));
-                if inc.recordings {
+                track.insert("id".into(), Value::String(t.gid()));
+                track.insert("length".into(), int(t.u32("length")));
+                track.insert("number".into(), text(t.str("number")));
+                track.insert("position".into(), int(t.u32("position")));
+                track.insert("title".into(), Value::String(self.track_title(t)));
+                let ac = t.u32("artist_credit");
+                if inc.recordings
+                    && let Some(recording) = t.u32("recording")
+                {
                     let rels = if inc.recording_level_rels {
                         Rels::All
                     } else {
                         Rels::None
                     };
                     let recording_opts = Opts {
-                        track_ac: Some(*ac),
+                        track_ac: ac,
                         rels,
                         first_release_date: true,
                         ..o
                     };
                     track.insert(
                         "recording".into(),
-                        self.recording(*recording, recording_opts)?,
+                        self.recording(recording, recording_opts)?,
                     );
                 }
-                if inc.artist_credits {
-                    track.insert("artist-credit".into(), self.artist_credit(*ac, o)?);
+                if inc.artist_credits
+                    && let Some(ac) = ac
+                {
+                    track.insert("artist-credit".into(), self.artist_credit(ac, o)?);
                 }
                 Ok(Value::Object(track))
             };
-            let min = tracks.first().map_or(0, |t| t.3);
-            if has_pregap && let Some(first) = tracks.first().filter(|t| t.3 == 0) {
+            let min = shown.first().and_then(|t| t.u32("position")).unwrap_or(0);
+            if has_pregap
+                && let Some(first) = shown.first().filter(|t| t.u32("position") == Some(0))
+            {
                 out.insert("pregap".into(), serialize(first)?);
             }
-            let audio: Vec<&Track> = tracks
+            let audio: Vec<&&Row<'_>> = shown
                 .iter()
-                .filter(|t| t.3 > 0 && !t.8.unwrap_or(false))
+                .filter(|t| t.u32("position").is_some_and(|p| p > 0) && !t.bool("is_data_track"))
                 .collect();
             if !audio.is_empty() {
                 out.insert(
                     "tracks".into(),
                     audio
                         .into_iter()
-                        .map(serialize)
+                        .map(|t| serialize(t))
                         .collect::<R<Vec<_>>>()?
                         .into(),
                 );
                 out.insert(
                     "track-offset".into(),
-                    json!(if has_pregap { 0 } else { min - 1 }),
+                    json!(if has_pregap { 0 } else { i64::from(min) - 1 }),
                 );
             }
-            let data: Vec<&Track> = tracks
+            let data: Vec<&&Row<'_>> = shown
                 .iter()
-                .filter(|t| t.3 > 0 && t.8.unwrap_or(false))
+                .filter(|t| t.u32("position").is_some_and(|p| p > 0) && t.bool("is_data_track"))
                 .collect();
             if !data.is_empty() {
                 out.insert(
                     "data-tracks".into(),
                     data.into_iter()
-                        .map(serialize)
+                        .map(|t| serialize(t))
                         .collect::<R<Vec<_>>>()?
                         .into(),
                 );
@@ -1266,62 +1161,62 @@ impl Ctx<'_> {
         Ok(Value::Object(out))
     }
 
-    pub fn release_group(&self, id: i64, o: Opts) -> R<Value> {
-        type Row = (String, String, i64, Option<i64>, Option<String>, String);
-        let (gid, name, ac, type_id, comment, first): Row =
-            self.stmt(q::RELEASE_GROUP)?.query_row([id], |r| {
-                Ok((
-                    r.get(0)?,
-                    r.get(1)?,
-                    r.get(2)?,
-                    r.get(3)?,
-                    r.get(4)?,
-                    date::format(r.get(5)?, r.get(6)?, r.get(7)?),
-                ))
-            })?;
+    pub fn release_group(&self, id: u32, o: Opts) -> R<Value> {
+        let row = self.get("release_group", id)?;
+        let meta = self.store.t("release_group_meta").get(id);
         let inc = self.inc;
         let mut out = Obj::new();
-        out.insert("title".into(), Value::String(name));
+        out.insert("title".into(), Value::String(row.text("name")));
         self.named(
             &mut out,
             "primary-type",
             "release_group_primary_type",
-            type_id,
+            row.u32("type"),
         );
-        let secondary: Vec<i64> = self
-            .stmt(q::RELEASE_GROUP_SECONDARY_TYPES)?
-            .query_map([id], |r| r.get(0))?
-            .collect::<R<_>>()?;
-        let names: Vec<_> = secondary
-            .iter()
-            .filter_map(|t| self.lk.named("release_group_secondary_type", Some(*t)))
+        let mut secondary: Vec<(&str, Option<String>)> = self
+            .store
+            .t("release_group_secondary_type_join")
+            .by("release_group", id)
+            .filter_map(|j| {
+                self.store
+                    .named("release_group_secondary_type", j.u32("secondary_type"))
+            })
             .collect();
+        secondary.sort_by(|a, b| a.0.cmp(b.0));
         out.insert(
             "secondary-types".into(),
-            json!(names.iter().map(|n| &n.name).collect::<Vec<_>>()),
+            json!(secondary.iter().map(|s| s.0).collect::<Vec<_>>()),
         );
         out.insert(
             "secondary-type-ids".into(),
-            json!(names.iter().map(|n| &n.gid).collect::<Vec<_>>()),
+            json!(secondary.iter().map(|s| &s.1).collect::<Vec<_>>()),
         );
-        out.insert("first-release-date".into(), Value::String(first));
+        let first = meta.map_or((None, None, None), |m| m.date("first_release_date"));
         out.insert(
-            "disambiguation".into(),
-            Value::String(comment.unwrap_or_default()),
+            "first-release-date".into(),
+            Value::String(date::format(first.0, first.1, first.2)),
         );
-        if o.with_inc && inc.artist_credits {
+        out.insert("disambiguation".into(), Value::String(row.text("comment")));
+        if o.with_inc
+            && inc.artist_credits
+            && let Some(ac) = row.u32("artist_credit")
+        {
             out.insert("artist-credit".into(), self.artist_credit(ac, o)?);
         }
         // Only a release group of the request has its releases loaded; a nested one shows an empty list.
         if o.with_inc && inc.releases && !o.toplevel {
             out.insert("releases".into(), json!([]));
         } else if o.with_inc && inc.releases {
-            use super::browse::{self, Linked};
-            let page = browse::Page {
-                limit: MAX_ITEMS,
-                offset: 0,
-            };
-            let (ids, _) = browse::ids(self, Kind::Release, Linked::ReleaseGroup(id), page)?;
+            use super::browse::{self, Linked, Page};
+            let (ids, _) = browse::ids(
+                self,
+                Kind::Release,
+                Linked::ReleaseGroup(id),
+                Page {
+                    limit: MAX_ITEMS,
+                    offset: 0,
+                },
+            );
             out.insert(
                 "releases".into(),
                 self.list(Kind::Release, &ids, Opts::nested())?,
@@ -1332,7 +1227,7 @@ impl Ctx<'_> {
             Common {
                 kind: Kind::ReleaseGroup,
                 id,
-                gid,
+                gid: row.gid(),
                 period: None,
                 type_: None,
             },
@@ -1341,42 +1236,36 @@ impl Ctx<'_> {
         Ok(Value::Object(out))
     }
 
-    pub fn series(&self, id: i64, o: Opts) -> R<Value> {
-        let (gid, name, comment, type_id): (String, String, Option<String>, Option<i64>) = self
-            .stmt(q::SERIES)?
-            .query_row([id], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?)))?;
+    pub fn series(&self, id: u32, o: Opts) -> R<Value> {
+        let row = self.get("series", id)?;
         let mut out = Obj::new();
-        out.insert("name".into(), Value::String(name));
-        out.insert(
-            "disambiguation".into(),
-            Value::String(comment.unwrap_or_default()),
-        );
+        out.insert("name".into(), Value::String(row.text("name")));
+        out.insert("disambiguation".into(), Value::String(row.text("comment")));
+        let type_ = Some(("series_type", row.u32("type")));
         self.finish(
             &mut out,
             Common {
                 kind: Kind::Series,
                 id,
-                gid,
+                gid: row.gid(),
                 period: None,
-                type_: Some(("series_type", type_id)),
+                type_,
             },
             o,
         )?;
         Ok(Value::Object(out))
     }
 
-    pub fn url(&self, id: i64, o: Opts) -> R<Value> {
-        let (gid, url): (String, String) = self
-            .stmt(q::URL)?
-            .query_row([id], |r| Ok((r.get(0)?, r.get(1)?)))?;
+    pub fn url(&self, id: u32, o: Opts) -> R<Value> {
+        let row = self.get("url", id)?;
         let mut out = Obj::new();
-        out.insert("resource".into(), Value::String(url));
+        out.insert("resource".into(), Value::String(row.text("url")));
         self.finish(
             &mut out,
             Common {
                 kind: Kind::Url,
                 id,
-                gid,
+                gid: row.gid(),
                 period: None,
                 type_: None,
             },
@@ -1385,51 +1274,52 @@ impl Ctx<'_> {
         Ok(Value::Object(out))
     }
 
-    pub fn work(&self, id: i64, o: Opts) -> R<Value> {
-        let (gid, name, type_id, comment): (String, String, Option<i64>, Option<String>) = self
-            .stmt(q::WORK)?
-            .query_row([id], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?)))?;
+    pub fn work(&self, id: u32, o: Opts) -> R<Value> {
+        let row = self.get("work", id)?;
         let mut out = Obj::new();
-        out.insert("title".into(), Value::String(name));
-        out.insert(
-            "disambiguation".into(),
-            Value::String(comment.unwrap_or_default()),
-        );
-        let iswcs = if o.work_details {
-            self.strings(q::WORK_ISWCS, id)?
+        out.insert("title".into(), Value::String(row.text("name")));
+        out.insert("disambiguation".into(), Value::String(row.text("comment")));
+        let mut iswcs: Vec<&str> = if o.work_details {
+            self.store
+                .t("iswc")
+                .by("work", id)
+                .filter_map(|r| r.str("iswc"))
+                .collect()
         } else {
             Vec::new()
         };
+        iswcs.sort_unstable();
         out.insert("iswcs".into(), json!(iswcs));
         // Only the works of the request have their attributes loaded.
         let mut attributes = Vec::new();
         if o.toplevel {
-            let rows: Vec<(i64, Option<i64>, Option<String>)> = self
-                .stmt(q::WORK_ATTRIBUTES)?
-                .query_map([id], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))?
-                .collect::<R<_>>()?;
-            for (type_id, allowed, free_text) in rows {
+            for a in self.store.t("work_attribute").by("work", id) {
                 let mut attribute = Obj::new();
-                let allowed = allowed.and_then(|a| self.lk.work_attribute_values.get(&a));
+                let allowed = a
+                    .u32("work_attribute_type_allowed_value")
+                    .and_then(|v| self.store.t("work_attribute_type_allowed_value").get(v));
                 let value = allowed
-                    .map(|a| a.0.clone())
-                    .or(free_text)
-                    .unwrap_or_default();
-                attribute.insert("value".into(), Value::String(value));
-                if let Some(gid) = allowed.and_then(|a| a.1.clone()) {
-                    attribute.insert("value-id".into(), Value::String(gid));
+                    .map(|v| v.text("value"))
+                    .or_else(|| a.str("work_attribute_text").map(str::to_owned));
+                attribute.insert("value".into(), Value::String(value.unwrap_or_default()));
+                if let Some(v) = allowed {
+                    attribute.insert("value-id".into(), Value::String(v.gid()));
                 }
-                self.named(&mut attribute, "type", "work_attribute_type", Some(type_id));
+                self.named(
+                    &mut attribute,
+                    "type",
+                    "work_attribute_type",
+                    a.u32("work_attribute_type"),
+                );
                 attributes.push(Value::Object(attribute));
             }
         }
         out.insert("attributes".into(), Value::Array(attributes));
         let languages: Vec<String> = if o.work_details {
-            self.stmt(q::WORK_LANGUAGES)?
-                .query_map([id], |r| r.get::<_, i64>(0))?
-                .collect::<R<Vec<_>>>()?
-                .into_iter()
-                .filter_map(|l| self.lk.languages.get(&l).cloned())
+            self.store
+                .t("work_language")
+                .by("work", id)
+                .filter_map(|l| self.store.language(l.u32("language")).map(str::to_owned))
                 .collect()
         } else {
             Vec::new()
@@ -1441,14 +1331,15 @@ impl Ctx<'_> {
         };
         out.insert("languages".into(), json!(languages));
         out.insert("language".into(), language);
+        let type_ = Some(("work_type", row.u32("type")));
         self.finish(
             &mut out,
             Common {
                 kind: Kind::Work,
                 id,
-                gid,
+                gid: row.gid(),
                 period: None,
-                type_: Some(("work_type", type_id)),
+                type_,
             },
             o,
         )?;
@@ -1457,52 +1348,60 @@ impl Ctx<'_> {
 
     // Relationships
 
+    /// The relationship table between two entity types, and whether `kind` is its entity0.
+    fn rel_table(kind: Kind, target: Kind) -> String {
+        let (a, b) = if kind.table() <= target.table() {
+            (kind, target)
+        } else {
+            (target, kind)
+        };
+        format!("l_{}_{}", a.table(), b.table())
+    }
+
     #[allow(clippy::too_many_lines)]
-    fn relations(&self, kind: Kind, id: i64, cardinal: bool) -> R<Vec<Value>> {
+    fn relations(&self, kind: Kind, id: u32, cardinal: bool) -> R<Vec<Value>> {
         let mut out = Vec::new();
         for target in self.inc.rels.iter().copied() {
+            let table = self.store.t(&Self::rel_table(kind, target));
             let mut rels = Vec::new();
-            for (sql, backward, applies) in [
-                (q::RELS_FORWARD, false, kind.table() <= target.table()),
-                (q::RELS_BACKWARD, true, kind.table() >= target.table()),
+            for (key, backward, applies) in [
+                ("entity0", false, kind.table() <= target.table()),
+                ("entity1", true, kind.table() >= target.table()),
             ] {
                 if !applies {
                     continue;
                 }
-                let mut stmt = self.stmt(sql)?;
-                let rows = stmt.query_map((kind.code(), id, target.code()), |r| {
-                    Ok(Rel {
-                        rowid: r.get(0)?,
-                        target: r.get(1)?,
-                        link: r.get(2)?,
-                        link_order: r.get(3)?,
-                        source_credit: r.get(4)?,
-                        target_credit: r.get(5)?,
-                        link_type: r.get(6)?,
-                        begin: (r.get(7)?, r.get(8)?, r.get(9)?),
-                        end: (r.get(10)?, r.get(11)?, r.get(12)?),
-                        ended: r.get::<_, Option<bool>>(13)?.unwrap_or(false),
-                        backward,
-                    })
-                })?;
-                for rel in rows {
-                    let rel = rel?;
-                    let link_type = self.lk.link_types.get(&rel.link_type);
+                for row in table.by(key, id) {
+                    let other = row
+                        .u32(if backward { "entity0" } else { "entity1" })
+                        .ok_or(Missing("relationship", row.id))?;
+                    let link = self.get("link", row.u32("link").unwrap_or(u32::MAX))?;
+                    let link_type = self
+                        .store
+                        .t("link_type")
+                        .get(link.u32("link_type").unwrap_or(u32::MAX));
                     // From a work reached through work-level-rels, only relationships where the work's side is
                     // "one" (so not all its recordings).
                     if cardinal {
-                        let cardinality = link_type.map_or(0, |t| {
-                            if rel.backward {
-                                t.cardinality1
-                            } else {
-                                t.cardinality0
-                            }
-                        });
+                        let cardinality = link_type
+                            .and_then(|t| {
+                                t.u32(if backward {
+                                    "entity1_cardinality"
+                                } else {
+                                    "entity0_cardinality"
+                                })
+                            })
+                            .unwrap_or(0);
                         if cardinality != 0 {
                             continue;
                         }
                     }
-                    rels.push(rel);
+                    rels.push(Rel {
+                        row,
+                        target: other,
+                        link,
+                        backward,
+                    });
                 }
             }
             if rels.is_empty() {
@@ -1534,6 +1433,22 @@ impl Ctx<'_> {
                     .unwrap_or_default();
                 items.push((rel, value, sort_name));
             }
+            // As musicbrainz-server's query orders them: link type name (its database collation ignores case),
+            // dates, then the name and id of the entity it joins as the target. For relationships between two
+            // entities of the same type that is entity0 (the query's join ends up on it), so forward ones keep
+            // their row order.
+            let source_key = if kind == target {
+                Some(self.sort_key(kind, id))
+            } else {
+                None
+            };
+            let type_name = |r: &Rel<'_>| {
+                self.store
+                    .t("link_type")
+                    .get(r.link.u32("link_type").unwrap_or(u32::MAX))
+                    .map(|t| t.text("name").to_lowercase())
+                    .unwrap_or_default()
+            };
             let nulls_last = |d: (Option<i64>, Option<i64>, Option<i64>)| {
                 (
                     d.0.unwrap_or(i64::MAX),
@@ -1541,97 +1456,99 @@ impl Ctx<'_> {
                     d.2.unwrap_or(i64::MAX),
                 )
             };
-            // As musicbrainz-server's query orders them: link type name (its database collation ignores case),
-            // dates, then the name and id of the entity it joins as the target. For relationships between two
-            // entities of the same type that is entity0 (the query's join ends up on it), so forward ones keep
-            // their row order.
-            let source_key = if kind == target {
-                Some(self.sort_key(kind, id)?)
-            } else {
-                None
-            };
             items.sort_by(|(a, _, an), (b, _, bn)| {
-                let name = |r: &Rel| {
-                    self.lk
-                        .link_types
-                        .get(&r.link_type)
-                        .map(|t| t.name.to_lowercase())
-                        .unwrap_or_default()
-                };
-                let joined = |r: &Rel, n: &'_ String| -> (String, i64) {
+                let joined = |r: &Rel<'_>, n: &String| -> (String, u32) {
                     match &source_key {
                         Some(source) if !r.backward => (source.clone(), id),
                         _ => (n.clone(), r.target),
                     }
                 };
-                name(a)
-                    .cmp(&name(b))
-                    .then(nulls_last(a.begin).cmp(&nulls_last(b.begin)))
-                    .then(nulls_last(a.end).cmp(&nulls_last(b.end)))
-                    .then(a.ended.cmp(&b.ended))
+                type_name(a)
+                    .cmp(&type_name(b))
+                    .then(nulls_last(a.link.date("begin")).cmp(&nulls_last(b.link.date("begin"))))
+                    .then(nulls_last(a.link.date("end")).cmp(&nulls_last(b.link.date("end"))))
+                    .then(a.link.bool("ended").cmp(&b.link.bool("ended")))
                     .then(joined(a, an).cmp(&joined(b, bn)))
-                    .then(a.rowid.cmp(&b.rowid))
+                    .then(a.row.id.cmp(&b.row.id))
             });
             for (rel, value, _) in items {
-                out.push(self.relation(target, &rel, value)?);
+                out.push(self.relation(target, &rel, value));
             }
         }
         Ok(out)
     }
 
-    /// What relationships to an entity sort by: its sort name, URL or name, lowercased.
-    fn sort_key(&self, kind: Kind, id: i64) -> R<String> {
-        let name: Option<String> = self
-            .stmt(&q::sort_key(kind))?
-            .query_row([id], |r| r.get(0))
-            .optional()?;
-        Ok(collation_key(&name.unwrap_or_default()))
+    /// What relationships to an entity sort by: its sort name, URL or name.
+    fn sort_key(&self, kind: Kind, id: u32) -> String {
+        let field = match kind {
+            Kind::Artist => "sort_name",
+            Kind::Url => "url",
+            _ => "name",
+        };
+        collation_key(
+            &self
+                .store
+                .entity(kind, id)
+                .map(|r| r.text(field))
+                .unwrap_or_default(),
+        )
     }
 
-    fn relation(&self, target: Kind, rel: &Rel, value: Value) -> R<Value> {
+    fn relation(&self, target: Kind, rel: &Rel<'_>, value: Value) -> Value {
         let mut out = Obj::new();
-        let link_type = self.lk.link_types.get(&rel.link_type);
+        let link_type = self
+            .store
+            .t("link_type")
+            .get(rel.link.u32("link_type").unwrap_or(u32::MAX));
         out.insert(
             "type".into(),
-            link_type.map_or(Value::Null, |t| Value::String(t.name.clone())),
+            link_type.map_or(Value::Null, |t| Value::String(t.text("name"))),
         );
         out.insert(
             "type-id".into(),
-            link_type
-                .and_then(|t| t.gid.clone())
-                .map_or(Value::Null, Value::String),
+            link_type.map_or(Value::Null, |t| Value::String(t.gid())),
         );
         out.insert(
             "direction".into(),
             Value::String(if rel.backward { "backward" } else { "forward" }.into()),
         );
-        if let Some(order) = rel.link_order.filter(|o| *o != 0) {
+        if let Some(order) = rel.row.u32("link_order").filter(|o| *o != 0) {
             out.insert("ordering-key".into(), json!(order));
         }
-        out.insert(
-            "begin".into(),
-            opt_str(&date::format(rel.begin.0, rel.begin.1, rel.begin.2)),
-        );
-        out.insert(
-            "end".into(),
-            opt_str(&date::format(rel.end.0, rel.end.1, rel.end.2)),
-        );
-        out.insert("ended".into(), Value::Bool(rel.ended));
+        let (by, bm, bd) = rel.link.date("begin");
+        let (ey, em, ed) = rel.link.date("end");
+        out.insert("begin".into(), opt_str(&date::format(by, bm, bd)));
+        out.insert("end".into(), opt_str(&date::format(ey, em, ed)));
+        out.insert("ended".into(), Value::Bool(rel.link.bool("ended")));
 
-        let mut attributes: Vec<(String, Option<String>, Option<String>, Option<String>, bool)> =
-            self.stmt(q::LINK_ATTRIBUTES)?
-                .query_map([rel.link], |r| {
-                    let type_id: i64 = r.get(0)?;
-                    let t = self.lk.attribute_types.get(&type_id);
-                    Ok((
-                        t.map(|t| t.name.clone()).unwrap_or_default(),
-                        t.and_then(|t| t.gid.clone()),
-                        r.get(1)?,
-                        r.get(2)?,
-                        t.is_some_and(|t| t.creditable),
-                    ))
-                })?
-                .collect::<R<_>>()?;
+        let link = rel.link.id;
+        let mut attributes: Vec<Attribute> = self
+            .store
+            .t("link_attribute")
+            .by("link", link)
+            .filter_map(|a| {
+                let type_id = a.u32("attribute_type")?;
+                let t = self.store.t("link_attribute_type").get(type_id)?;
+                let value = self
+                    .store
+                    .t("link_attribute_text_value")
+                    .by("link", link)
+                    .find(|v| v.u32("attribute_type") == Some(type_id))
+                    .and_then(|v| v.str("text_value").map(str::to_owned));
+                let credit = self
+                    .store
+                    .t("link_attribute_credit")
+                    .by("link", link)
+                    .find(|v| v.u32("attribute_type") == Some(type_id))
+                    .and_then(|v| v.str("credited_as").map(str::to_owned));
+                let creditable = self
+                    .store
+                    .t("link_creditable_attribute_type")
+                    .get(type_id)
+                    .is_some();
+                Some((t.text("name"), Some(t.gid()), value, credit, creditable))
+            })
+            .collect();
         attributes.sort_by(|a, b| a.0.cmp(&b.0));
         out.insert(
             "attributes".into(),
@@ -1664,47 +1581,21 @@ impl Ctx<'_> {
         }
         out.insert("target-type".into(), Value::String(target.table().into()));
         out.insert(target.table().into(), value);
+        let (source_credit, target_credit) = if rel.backward {
+            ("entity1_credit", "entity0_credit")
+        } else {
+            ("entity0_credit", "entity1_credit")
+        };
         out.insert(
             "source-credit".into(),
-            Value::String(rel.source_credit.clone().unwrap_or_default()),
+            Value::String(rel.row.text(source_credit)),
         );
         out.insert(
             "target-credit".into(),
-            Value::String(rel.target_credit.clone().unwrap_or_default()),
+            Value::String(rel.row.text(target_credit)),
         );
-        Ok(Value::Object(out))
+        Value::Object(out)
     }
-}
-
-/// A relationship of the entity being serialized, as read.
-struct Rel {
-    rowid: i64,
-    target: i64,
-    link: i64,
-    link_order: Option<i64>,
-    source_credit: Option<String>,
-    target_credit: Option<String>,
-    link_type: i64,
-    begin: (Option<i64>, Option<i64>, Option<i64>),
-    end: (Option<i64>, Option<i64>, Option<i64>),
-    ended: bool,
-    backward: bool,
-}
-
-/// A sort key close to musicbrainz-server's ICU collation: case only decides between otherwise equal strings, and
-/// then lowercase comes first.
-fn collation_key(s: &str) -> String {
-    let swapped: String = s
-        .chars()
-        .map(|c| {
-            if c.is_uppercase() {
-                c.to_lowercase().next().unwrap_or(c)
-            } else {
-                c.to_uppercase().next().unwrap_or(c)
-            }
-        })
-        .collect();
-    format!("{}\u{0}{swapped}", s.to_lowercase())
 }
 
 /// A place's coordinates, `(latitude,longitude)` in the dump.
@@ -1718,19 +1609,15 @@ fn parse_point(point: &str) -> Option<Value> {
 }
 
 /// A disc ID's table of contents.
-pub fn cdtoc_json(
-    discid: String,
-    track_count: Option<i64>,
-    leadout: Option<i64>,
-    offsets: Option<&str>,
-) -> Value {
-    let offsets = offsets
-        .map(crate::import::copy::parse_int_array)
+pub fn cdtoc_json(cdtoc: &Row<'_>) -> Value {
+    let offsets = cdtoc
+        .str("track_offset")
+        .map(crate::store::copy::parse_int_array)
         .unwrap_or_default();
     let mut out = Obj::new();
-    out.insert("id".into(), Value::String(discid));
-    out.insert("offset-count".into(), int(track_count));
-    out.insert("sectors".into(), int(leadout));
+    out.insert("id".into(), Value::String(cdtoc.text("discid")));
+    out.insert("offset-count".into(), int(cdtoc.u32("track_count")));
+    out.insert("sectors".into(), int(cdtoc.u32("leadout_offset")));
     if !offsets.is_empty() {
         out.insert("offsets".into(), json!(offsets));
     }

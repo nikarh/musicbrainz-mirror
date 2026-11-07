@@ -114,7 +114,7 @@ pub async fn fetch(
         }
         let _ = tokio::fs::remove_file(dest).await;
     }
-    let partial = crate::import::side_file(dest, ".partial");
+    let partial = crate::store::file::with_ext(dest, "partial");
     let have = tokio::fs::metadata(&partial).await.map_or(0, |m| m.len());
     let mut request = client.get(url);
     if have > 0 {

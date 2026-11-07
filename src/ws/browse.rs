@@ -1,37 +1,41 @@
 //! Browsing: the entities linked to another one (`/ws/2/release?artist=<mbid>`), a page at a time, in the order of
-//! musicbrainz-server's `find_by_*` queries (where it matters: which entities are on which page).
+//! musicbrainz-server's `find_by_*` queries (where it matters: which entities are on which page). The linked
+//! entities are found through the store's indexes, then ordered and cut.
 
-use super::entity::{Ctx, Filter};
+use std::collections::BTreeSet;
+
+use super::entity::{Ctx, Filter, collation_key};
 use crate::kind::Kind;
+use crate::store::Store;
+use crate::store::derive::pack;
+use crate::store::file::NONE;
 
-type R<T> = rusqlite::Result<T>;
-
-/// What entities are browsed by. The id is the database id of the linked entity.
+/// What entities are browsed by. The id is the linked entity's.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Linked {
-    Area(i64),
-    Artist(i64),
+    Area(u32),
+    Artist(u32),
     /// Releases with the artist in a track's credit but not in the release's (`track_artist=`).
-    TrackArtist(i64),
-    Event(i64),
-    Label(i64),
-    Place(i64),
-    Recording(i64),
-    Release(i64),
-    ReleaseGroup(i64),
-    Series(i64),
-    Track(i64),
-    Work(i64),
+    TrackArtist(u32),
+    Event(u32),
+    Label(u32),
+    Place(u32),
+    Recording(u32),
+    Release(u32),
+    ReleaseGroup(u32),
+    Series(u32),
+    Track(u32),
+    Work(u32),
 }
 
 #[derive(Debug, Clone, Copy)]
 pub struct Page {
-    pub limit: i64,
-    pub offset: i64,
+    pub limit: usize,
+    pub offset: usize,
 }
 
 /// What a browse parameter stands for: see [`Linked::parse`].
-pub type LinkedParam = (&'static str, Option<Kind>, fn(i64) -> Linked);
+pub type LinkedParam = (&'static str, Option<Kind>, fn(u32) -> Linked);
 
 impl Linked {
     /// A browse parameter: the table of the linked entity (to find it by MBID), its kind (for MBIDs it replaced;
@@ -94,271 +98,379 @@ pub fn params(kind: Kind) -> &'static [&'static str] {
     }
 }
 
-/// Areas: the area and the areas in it.
-const IN_AREA: &str = "(SELECT ?1 UNION SELECT descendant FROM area_containment WHERE parent = ?1)";
-
-/// Releases ordered as musicbrainz-server orders an artist's: first release date, catalog number, barcode, name.
-const RELEASE_ORDER: &str = "(SELECT date FROM release_first_release_date WHERE release = e.id) NULLS LAST, \
-    (SELECT min(catalog_number) FROM release_label WHERE release = e.id) NULLS LAST, \
-    e.barcode NULLS LAST, e.name, e.id";
-/// Releases by their earliest event, then name (musicbrainz-server's `find_by_recording`).
-const RELEASE_DATE_ORDER: &str = "(SELECT min(coalesce(date_year, 9999) * 10000 + coalesce(date_month, 99) * 100 \
-    + coalesce(date_day, 99)) FROM (SELECT date_year, date_month, date_day FROM release_country WHERE release = e.id \
-    UNION ALL SELECT date_year, date_month, date_day FROM release_unknown_country WHERE release = e.id)) NULLS LAST, \
-    e.name, e.id";
-const EVENT_ORDER: &str = "e.begin_date_year DESC NULLS LAST, e.begin_date_month DESC NULLS LAST, \
-    e.begin_date_day DESC NULLS LAST, e.time DESC NULLS LAST, e.name, e.id";
-
-/// The query selecting the browsed entities' ids (`?1`: the linked entity's id), and their order (over `e`, the
-/// entity's table). `None`: not a browse musicbrainz-server has.
-#[allow(clippy::too_many_lines)] // a table
-#[must_use]
-pub fn query(kind: Kind, linked: Linked) -> Option<(String, &'static str)> {
-    use Linked as L;
-    let rel = |k0: Kind, k1: Kind, linked_side: u8| {
-        let (mine, theirs) = if linked_side == 0 {
-            ("entity1", "entity0")
-        } else {
-            ("entity0", "entity1")
-        };
-        format!(
-            "SELECT {mine} FROM rel WHERE kind{s} = {} AND {theirs} = ?1 AND kind{o} = {}",
-            if linked_side == 0 {
-                k0.code()
-            } else {
-                k1.code()
-            },
-            if linked_side == 0 {
-                k1.code()
-            } else {
-                k0.code()
-            },
-            s = linked_side,
-            o = 1 - linked_side,
-        )
-    };
-    let credited = |table: &str| {
-        format!(
-            "SELECT x.id FROM artist_credit_name acn JOIN {table} x ON x.artist_credit = acn.artist_credit \
-             WHERE acn.artist = ?1"
-        )
-    };
-    Some(match (kind, linked) {
-        (Kind::Artist, L::Area(_)) => (
-            format!(
-                "SELECT id FROM artist WHERE area IN {IN_AREA} UNION SELECT id FROM artist WHERE begin_area IN \
-                 {IN_AREA} UNION SELECT id FROM artist WHERE end_area IN {IN_AREA}"
-            ),
-            "e.name, e.id",
-        ),
-        (Kind::Artist, L::Recording(_)) => (
-            "SELECT acn.artist FROM recording r JOIN artist_credit_name acn ON acn.artist_credit = r.artist_credit \
-             WHERE r.id = ?1"
-                .into(),
-            "e.name, e.id",
-        ),
-        (Kind::Artist, L::Release(_)) => (
-            "SELECT acn.artist FROM release r JOIN artist_credit_name acn ON acn.artist_credit = r.artist_credit \
-             WHERE r.id = ?1 UNION SELECT acn.artist FROM medium m JOIN track t ON t.medium = m.id \
-             JOIN artist_credit_name acn ON acn.artist_credit = t.artist_credit WHERE m.release = ?1"
-                .into(),
-            "e.name, e.id",
-        ),
-        (Kind::Artist, L::ReleaseGroup(_)) => (
-            "SELECT acn.artist FROM release_group rg JOIN artist_credit_name acn \
-             ON acn.artist_credit = rg.artist_credit WHERE rg.id = ?1 UNION SELECT acn.artist FROM release r \
-             JOIN artist_credit_name acn ON acn.artist_credit = r.artist_credit WHERE r.release_group = ?1"
-                .into(),
-            "e.name, e.id",
-        ),
-        (Kind::Artist, L::Work(_)) => (
-            format!(
-                "{} UNION SELECT acn.artist FROM rel JOIN recording r ON r.id = rel.entity0 \
-                 JOIN artist_credit_name acn ON acn.artist_credit = r.artist_credit \
-                 WHERE rel.kind1 = 13 AND rel.entity1 = ?1 AND rel.kind0 = 8",
-                rel(Kind::Artist, Kind::Work, 1)
-            ),
-            "e.name, e.id",
-        ),
-        (Kind::Event, L::Area(_)) => (rel(Kind::Area, Kind::Event, 0), EVENT_ORDER),
-        (Kind::Event, L::Artist(_)) => (rel(Kind::Artist, Kind::Event, 0), EVENT_ORDER),
-        (Kind::Event, L::Place(_)) => (rel(Kind::Event, Kind::Place, 1), EVENT_ORDER),
-        (Kind::Event, L::Event(_)) => (
-            format!("{} UNION {}", rel(Kind::Event, Kind::Event, 0), rel(Kind::Event, Kind::Event, 1)),
-            EVENT_ORDER,
-        ),
-        (Kind::Event, L::Series(_)) => (rel(Kind::Event, Kind::Series, 1), EVENT_ORDER),
-        (Kind::Label, L::Area(_)) => (format!("SELECT id FROM label WHERE area IN {IN_AREA}"), "e.name, e.id"),
-        (Kind::Label, L::Release(_)) => (
-            "SELECT label FROM release_label WHERE release = ?1 AND label IS NOT NULL".into(),
-            "e.name, e.id",
-        ),
-        (Kind::Place, L::Area(_)) => (format!("SELECT id FROM place WHERE area IN {IN_AREA}"), "e.name, e.id"),
-        (Kind::Recording, L::Artist(_)) => (credited("recording"), "e.name, e.comment, e.id"),
-        (Kind::Recording, L::Release(_)) => (
-            "SELECT t.recording FROM medium m JOIN track t ON t.medium = m.id WHERE m.release = ?1".into(),
-            "e.name, e.id",
-        ),
-        (Kind::Recording, L::Work(_)) => (rel(Kind::Recording, Kind::Work, 1), "e.name, e.id"),
-        (Kind::Release, L::Area(_)) => {
-            ("SELECT release FROM release_country WHERE country = ?1".into(), "e.name, e.id")
-        }
-        (Kind::Release, L::Artist(_)) => (credited("release"), RELEASE_ORDER),
-        (Kind::Release, L::TrackArtist(_)) => (
-            "SELECT m.release FROM artist_credit_name acn JOIN track t ON t.artist_credit = acn.artist_credit \
-             JOIN medium m ON m.id = t.medium WHERE acn.artist = ?1 \
-             EXCEPT SELECT x.id FROM artist_credit_name acn JOIN release x ON x.artist_credit = acn.artist_credit \
-             WHERE acn.artist = ?1"
-                .into(),
-            RELEASE_ORDER,
-        ),
-        (Kind::Release, L::Label(_)) => ("SELECT release FROM release_label WHERE label = ?1".into(), RELEASE_ORDER),
-        (Kind::Release, L::Recording(_)) => (
-            "SELECT m.release FROM track t JOIN medium m ON m.id = t.medium WHERE t.recording = ?1".into(),
-            RELEASE_DATE_ORDER,
-        ),
-        (Kind::Release, L::ReleaseGroup(_)) => {
-            ("SELECT id FROM release WHERE release_group = ?1".into(), RELEASE_ORDER)
-        }
-        (Kind::Release, L::Track(_)) => (
-            "SELECT m.release FROM track t JOIN medium m ON m.id = t.medium WHERE t.id = ?1".into(),
-            "e.id",
-        ),
-        (Kind::ReleaseGroup, L::Artist(_)) => (
-            credited("release_group"),
-            "e.type NULLS LAST, (SELECT first_release_date_year FROM release_group_meta WHERE id = e.id) NULLS LAST, \
-             (SELECT first_release_date_month FROM release_group_meta WHERE id = e.id) NULLS LAST, \
-             (SELECT first_release_date_day FROM release_group_meta WHERE id = e.id) NULLS LAST, e.name, e.id",
-        ),
-        (Kind::ReleaseGroup, L::Release(_)) => {
-            ("SELECT release_group FROM release WHERE id = ?1".into(), "e.name, e.id")
-        }
-        (Kind::Work, L::Artist(_)) => (
-            format!(
-                "{} UNION SELECT rel.entity1 FROM artist_credit_name acn \
-                 JOIN recording r ON r.artist_credit = acn.artist_credit \
-                 JOIN rel ON rel.kind0 = 8 AND rel.entity0 = r.id AND rel.kind1 = 13 WHERE acn.artist = ?1",
-                rel(Kind::Artist, Kind::Work, 0)
-            ),
-            "e.name, e.id",
-        ),
-        _ => return None,
-    })
-}
-
-/// The filter conditions (over `e`) for `status=` and `type=`.
-fn filter_sql(kind: Kind, filter: &Filter) -> String {
-    let list = |ids: &[i64]| {
-        ids.iter()
-            .map(i64::to_string)
-            .collect::<Vec<_>>()
-            .join(", ")
-    };
-    let mut conditions = Vec::new();
-    match kind {
-        Kind::Release => {
-            if !filter.status.is_empty() {
-                conditions.push(format!("e.status IN ({})", list(&filter.status)));
-            }
-            if !filter.primary_types.is_empty() {
-                conditions.push(format!(
-                    "EXISTS (SELECT 1 FROM release_group rg WHERE rg.id = e.release_group AND rg.type IN ({}))",
-                    list(&filter.primary_types)
-                ));
-            }
-            if !filter.secondary_types.is_empty() {
-                conditions.push(format!(
-                    "EXISTS (SELECT 1 FROM release_group_secondary_type_join st \
-                     WHERE st.release_group = e.release_group AND st.secondary_type IN ({}))",
-                    list(&filter.secondary_types)
-                ));
-            }
-        }
-        Kind::ReleaseGroup => {
-            if !filter.primary_types.is_empty() {
-                conditions.push(format!("e.type IN ({})", list(&filter.primary_types)));
-            }
-            if !filter.secondary_types.is_empty() {
-                conditions.push(format!(
-                    "EXISTS (SELECT 1 FROM release_group_secondary_type_join st \
-                     WHERE st.release_group = e.id AND st.secondary_type IN ({}))",
-                    list(&filter.secondary_types)
-                ));
-            }
-        }
-        _ => {}
-    }
-    if conditions.is_empty() {
-        String::new()
+/// The other side of relationships: entities of `other` related to `id` (of `kind`) through `l_<a>_<b>`.
+fn related(store: &Store, kind: Kind, id: u32, other: Kind) -> Vec<u32> {
+    let (a, b) = if kind.table() <= other.table() {
+        (kind, other)
     } else {
-        format!("WHERE {}", conditions.join(" AND "))
-    }
-}
-
-/// The SQL of a page of a browse and of its count: (page with `?2` limit and `?3` offset, count).
-#[must_use]
-pub fn sql(kind: Kind, linked: Linked, filter: &Filter) -> Option<(String, String)> {
-    let (inner, order) = query(kind, linked)?;
-    let filter = filter_sql(kind, filter);
-    let table = kind.table();
-    Some((
-        format!(
-            "SELECT e.id FROM {table} e WHERE e.id IN ({inner}) {} ORDER BY {order} LIMIT ?2 OFFSET ?3",
-            filter.replacen("WHERE", "AND", 1)
-        ),
-        format!(
-            "SELECT count(*) FROM {table} e WHERE e.id IN ({inner}) {}",
-            filter.replacen("WHERE", "AND", 1)
-        ),
-    ))
-}
-
-/// A page of the entities linked to another, and how many there are in all.
-pub fn ids(ctx: &Ctx<'_>, kind: Kind, linked: Linked, page: Page) -> R<(Vec<i64>, i64)> {
-    let Some((page_sql, count_sql)) = sql(kind, linked, ctx.filter) else {
-        return Ok((Vec::new(), 0));
+        (other, kind)
     };
-    let id = match linked {
-        Linked::Area(id)
-        | Linked::Artist(id)
-        | Linked::TrackArtist(id)
-        | Linked::Event(id)
-        | Linked::Label(id)
-        | Linked::Place(id)
-        | Linked::Recording(id)
-        | Linked::Release(id)
-        | Linked::ReleaseGroup(id)
-        | Linked::Series(id)
-        | Linked::Track(id)
-        | Linked::Work(id) => id,
-    };
-    let ids = ctx
-        .conn
-        .prepare_cached(&page_sql)?
-        .query_map((id, page.limit, page.offset), |r| r.get(0))?
-        .collect::<R<Vec<i64>>>()?;
-    let total = ctx
-        .conn
-        .prepare_cached(&count_sql)?
-        .query_row([id], |r| r.get(0))?;
-    Ok((ids, total))
-}
-
-/// Every browse there is, for the query plan tests.
-#[cfg(test)]
-#[must_use]
-pub fn all() -> Vec<(Kind, Linked)> {
+    let table = store.t(&format!("l_{}_{}", a.table(), b.table()));
     let mut out = Vec::new();
-    for kind in Kind::ALL {
-        for param in params(kind) {
-            if let Some((_, _, make)) = Linked::parse(param) {
-                let linked = make(1);
-                if query(kind, linked).is_some() {
-                    out.push((kind, linked));
+    if kind.table() <= other.table() {
+        out.extend(table.by("entity0", id).filter_map(|r| r.u32("entity1")));
+    }
+    if kind.table() >= other.table() {
+        out.extend(table.by("entity1", id).filter_map(|r| r.u32("entity0")));
+    }
+    out
+}
+
+/// The artist credits an artist is in.
+fn credits_of(store: &Store, artist: u32) -> Vec<u32> {
+    store
+        .t("artist_credit_name")
+        .by("artist", artist)
+        .filter_map(|r| r.u32("artist_credit"))
+        .collect()
+}
+
+fn credit_artists(store: &Store, ac: Option<u32>) -> Vec<u32> {
+    store
+        .t("artist_credit_name")
+        .by("artist_credit", ac.unwrap_or(NONE))
+        .filter_map(|r| r.u32("artist"))
+        .collect()
+}
+
+/// An area and the areas in it.
+fn area_and_descendants(store: &Store, area: u32) -> Vec<u32> {
+    let mut out = vec![area];
+    out.extend(store.derived.area_descendants(area));
+    out
+}
+
+fn medium_release(store: &Store, medium: Option<u32>) -> Option<u32> {
+    store.t("medium").get(medium?)?.u32("release")
+}
+
+/// The ids of the browsed entities (in no particular order); `None`: not a browse musicbrainz-server has.
+#[allow(clippy::too_many_lines)]
+#[must_use]
+pub fn candidates(store: &Store, kind: Kind, linked: Linked) -> Option<BTreeSet<u32>> {
+    use Linked as L;
+    let mut set = BTreeSet::new();
+    match (kind, linked) {
+        (Kind::Artist, L::Area(area)) => {
+            for a in area_and_descendants(store, area) {
+                for column in ["area", "begin_area", "end_area"] {
+                    set.extend(store.t("artist").by(column, a).map(|r| r.id));
                 }
             }
         }
+        (Kind::Artist, L::Recording(r)) => {
+            set.extend(credit_artists(
+                store,
+                store.t("recording").get(r)?.u32("artist_credit"),
+            ));
+        }
+        (Kind::Artist, L::Release(r)) => {
+            set.extend(credit_artists(
+                store,
+                store.t("release").get(r)?.u32("artist_credit"),
+            ));
+            for m in store.t("medium").by("release", r) {
+                for t in store.t("track").by("medium", m.id) {
+                    set.extend(credit_artists(store, t.u32("artist_credit")));
+                }
+            }
+        }
+        (Kind::Artist, L::ReleaseGroup(rg)) => {
+            set.extend(credit_artists(
+                store,
+                store.t("release_group").get(rg)?.u32("artist_credit"),
+            ));
+            for r in store.t("release").by("release_group", rg) {
+                set.extend(credit_artists(store, r.u32("artist_credit")));
+            }
+        }
+        (Kind::Artist, L::Work(w)) => {
+            set.extend(related(store, Kind::Work, w, Kind::Artist));
+            for r in related(store, Kind::Work, w, Kind::Recording) {
+                set.extend(credit_artists(
+                    store,
+                    store
+                        .t("recording")
+                        .get(r)
+                        .and_then(|r| r.u32("artist_credit")),
+                ));
+            }
+        }
+        (Kind::Event, L::Area(id)) => set.extend(related(store, Kind::Area, id, Kind::Event)),
+        (Kind::Event, L::Artist(id)) => set.extend(related(store, Kind::Artist, id, Kind::Event)),
+        (Kind::Event, L::Place(id)) => set.extend(related(store, Kind::Place, id, Kind::Event)),
+        (Kind::Event, L::Event(id)) => set.extend(related(store, Kind::Event, id, Kind::Event)),
+        (Kind::Event, L::Series(id)) => set.extend(related(store, Kind::Series, id, Kind::Event)),
+        (Kind::Label, L::Area(area)) => {
+            for a in area_and_descendants(store, area) {
+                set.extend(store.t("label").by("area", a).map(|r| r.id));
+            }
+        }
+        (Kind::Label, L::Release(r)) => {
+            set.extend(
+                store
+                    .t("release_label")
+                    .by("release", r)
+                    .filter_map(|rl| rl.u32("label")),
+            );
+        }
+        (Kind::Place, L::Area(area)) => {
+            for a in area_and_descendants(store, area) {
+                set.extend(store.t("place").by("area", a).map(|r| r.id));
+            }
+        }
+        (Kind::Recording, L::Artist(a)) => {
+            for ac in credits_of(store, a) {
+                set.extend(store.t("recording").by("artist_credit", ac).map(|r| r.id));
+            }
+        }
+        (Kind::Recording, L::Release(r)) => {
+            for m in store.t("medium").by("release", r) {
+                set.extend(
+                    store
+                        .t("track")
+                        .by("medium", m.id)
+                        .filter_map(|t| t.u32("recording")),
+                );
+            }
+        }
+        (Kind::Recording, L::Work(w)) => set.extend(related(store, Kind::Work, w, Kind::Recording)),
+        (Kind::Release, L::Area(area)) => {
+            set.extend(
+                store
+                    .t("release_country")
+                    .by("country", area)
+                    .filter_map(|e| e.u32("release")),
+            );
+        }
+        (Kind::Release, L::Artist(a)) => {
+            for ac in credits_of(store, a) {
+                set.extend(store.t("release").by("artist_credit", ac).map(|r| r.id));
+            }
+        }
+        (Kind::Release, L::TrackArtist(a)) => {
+            let credits = credits_of(store, a);
+            for ac in &credits {
+                for t in store.t("track").by("artist_credit", *ac) {
+                    set.extend(medium_release(store, t.u32("medium")));
+                }
+            }
+            for ac in &credits {
+                for r in store.t("release").by("artist_credit", *ac) {
+                    set.remove(&r.id);
+                }
+            }
+        }
+        (Kind::Release, L::Label(l)) => {
+            set.extend(
+                store
+                    .t("release_label")
+                    .by("label", l)
+                    .filter_map(|rl| rl.u32("release")),
+            );
+        }
+        (Kind::Release, L::Recording(r)) => {
+            for t in store.t("track").by("recording", r) {
+                set.extend(medium_release(store, t.u32("medium")));
+            }
+        }
+        (Kind::Release, L::ReleaseGroup(rg)) => {
+            set.extend(store.t("release").by("release_group", rg).map(|r| r.id));
+        }
+        (Kind::Release, L::Track(t)) => {
+            set.extend(medium_release(
+                store,
+                store.t("track").get(t)?.u32("medium"),
+            ));
+        }
+        (Kind::ReleaseGroup, L::Artist(a)) => {
+            for ac in credits_of(store, a) {
+                set.extend(
+                    store
+                        .t("release_group")
+                        .by("artist_credit", ac)
+                        .map(|r| r.id),
+                );
+            }
+        }
+        (Kind::ReleaseGroup, L::Release(r)) => {
+            set.extend(store.t("release").get(r)?.u32("release_group"));
+        }
+        (Kind::Work, L::Artist(a)) => {
+            set.extend(related(store, Kind::Artist, a, Kind::Work));
+            for ac in credits_of(store, a) {
+                for r in store.t("recording").by("artist_credit", ac) {
+                    set.extend(related(store, Kind::Recording, r.id, Kind::Work));
+                }
+            }
+        }
+        _ => return None,
     }
-    out.push((Kind::Release, Linked::TrackArtist(1)));
-    out
+    Some(set)
+}
+
+fn passes(store: &Store, kind: Kind, id: u32, filter: &Filter) -> bool {
+    let rg = match kind {
+        Kind::Release => {
+            let Some(r) = store.t("release").get(id) else {
+                return false;
+            };
+            if !filter.status.is_empty()
+                && !r.u32("status").is_some_and(|s| filter.status.contains(&s))
+            {
+                return false;
+            }
+            r.u32("release_group")
+        }
+        Kind::ReleaseGroup => Some(id),
+        _ => return true,
+    };
+    let rg = rg.and_then(|g| store.t("release_group").get(g));
+    if !filter.primary_types.is_empty()
+        && !rg
+            .and_then(|g| g.u32("type"))
+            .is_some_and(|t| filter.primary_types.contains(&t))
+    {
+        return false;
+    }
+    if !filter.secondary_types.is_empty() {
+        let has = rg.is_some_and(|g| {
+            store
+                .t("release_group_secondary_type_join")
+                .by("release_group", g.id)
+                .any(|j| {
+                    j.u32("secondary_type")
+                        .is_some_and(|t| filter.secondary_types.contains(&t))
+                })
+        });
+        if !has {
+            return false;
+        }
+    }
+    true
+}
+
+/// A sort key: nulls last.
+fn last<T: Ord>(v: Option<T>) -> (bool, Option<T>) {
+    (v.is_none(), v)
+}
+
+type ReleaseKey = (
+    (bool, Option<u32>),
+    (bool, Option<String>),
+    (bool, Option<String>),
+    String,
+    u32,
+);
+
+/// Releases as musicbrainz-server orders an artist's: first release date, catalog number, barcode, name.
+fn release_key(store: &Store, id: u32) -> ReleaseKey {
+    let r = store.t("release").get(id);
+    let catno = store
+        .t("release_label")
+        .by("release", id)
+        .filter_map(|rl| rl.str("catalog_number").map(str::to_owned))
+        .min();
+    (
+        last(store.derived.release_first_date(id)),
+        last(catno),
+        last(r.and_then(|r| r.str("barcode").map(str::to_owned))),
+        r.map(|r| collation_key(&r.text("name")))
+            .unwrap_or_default(),
+        id,
+    )
+}
+
+/// The earliest event of a release, cancelled or not (musicbrainz-server's `find_by_recording`).
+fn release_event_date(store: &Store, id: u32) -> Option<u32> {
+    let countries = store
+        .t("release_country")
+        .by("release", id)
+        .map(|e| pack(e.date("date")));
+    let unknown = store
+        .t("release_unknown_country")
+        .by("release", id)
+        .map(|e| pack(e.date("date")));
+    countries.chain(unknown).min()
+}
+
+fn name_key(store: &Store, kind: Kind, id: u32) -> (String, u32) {
+    (
+        store
+            .entity(kind, id)
+            .map(|r| collation_key(&r.text("name")))
+            .unwrap_or_default(),
+        id,
+    )
+}
+
+/// Orders browsed entities.
+fn order(store: &Store, kind: Kind, linked: Linked, ids: &mut [u32]) {
+    use Linked as L;
+    match (kind, linked) {
+        (Kind::Release, L::Artist(_) | L::TrackArtist(_) | L::Label(_) | L::ReleaseGroup(_)) => {
+            ids.sort_by_cached_key(|id| release_key(store, *id));
+        }
+        (Kind::Release, L::Recording(_)) => {
+            ids.sort_by_cached_key(|id| {
+                (
+                    last(release_event_date(store, *id)),
+                    name_key(store, kind, *id),
+                )
+            });
+        }
+        (Kind::ReleaseGroup, L::Artist(_)) => ids.sort_by_cached_key(|id| {
+            let rg = store.t("release_group").get(*id);
+            let first = store
+                .t("release_group_meta")
+                .get(*id)
+                .map(|m| m.date("first_release_date"));
+            let first = first.map(|(y, m, d)| (last(y), last(m), last(d)));
+            (
+                last(rg.and_then(|g| g.u32("type"))),
+                first,
+                name_key(store, kind, *id),
+            )
+        }),
+        (Kind::Recording, L::Artist(_)) => ids.sort_by_cached_key(|id| {
+            let r = store.t("recording").get(*id);
+            let comment = r
+                .map(|r| collation_key(&r.text("comment")))
+                .unwrap_or_default();
+            (name_key(store, kind, *id).0, comment, *id)
+        }),
+        (Kind::Event, _) => ids.sort_by_cached_key(|id| {
+            let e = store.t("event").get(*id);
+            let (y, m, d) = e.map_or((None, None, None), |e| e.date("begin"));
+            let desc = |v: Option<i64>| std::cmp::Reverse(v.unwrap_or(i64::MIN));
+            let time = e.and_then(|e| e.str("time").map(str::to_owned));
+            (
+                desc(y),
+                desc(m),
+                desc(d),
+                std::cmp::Reverse(time),
+                name_key(store, kind, *id),
+            )
+        }),
+        _ => ids.sort_by_cached_key(|id| name_key(store, kind, *id)),
+    }
+}
+
+/// A page of the entities linked to another, and how many there are in all.
+#[must_use]
+pub fn ids(ctx: &Ctx<'_>, kind: Kind, linked: Linked, page: Page) -> (Vec<u32>, usize) {
+    let store = ctx.store;
+    let Some(set) = candidates(store, kind, linked) else {
+        return (Vec::new(), 0);
+    };
+    let mut ids: Vec<u32> = set
+        .into_iter()
+        .filter(|id| passes(store, kind, *id, ctx.filter))
+        .collect();
+    let total = ids.len();
+    order(store, kind, linked, &mut ids);
+    (
+        ids.into_iter().skip(page.offset).take(page.limit).collect(),
+        total,
+    )
 }

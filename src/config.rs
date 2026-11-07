@@ -12,7 +12,7 @@ pub const HELP: &str = "\
 musicbrainz-mirror: MusicBrainz's web service (ws/2, read-only) on a local copy of MusicBrainz's database dumps
 
 Usage: musicbrainz-mirror [serve] [OPTIONS]
-       musicbrainz-mirror import --out FILE [--dump ID] [--cache-mb MB] ARCHIVE_OR_DIR...
+       musicbrainz-mirror import --out DIR [--dump ID] [--build-threads N] ARCHIVE_OR_DIR...
        musicbrainz-mirror healthcheck [--listen ADDR]
 
 Options (each has an environment variable fallback):
@@ -23,11 +23,12 @@ Options (each has an environment variable fallback):
   --min-free-gb GB         MUSICBRAINZ_MIRROR_MIN_FREE_GB     free space an update needs before it starts [150]
   --dump-url URL           MUSICBRAINZ_MIRROR_DUMP_URL        where the full exports are [MetaBrainz's]
   --cover-art-url URL      MUSICBRAINZ_MIRROR_COVER_ART_URL   where cover art images are [https://coverartarchive.org]
-  --cache-mb MB            MUSICBRAINZ_MIRROR_CACHE_MB        SQLite page cache while importing [1024]
+  --build-threads N        MUSICBRAINZ_MIRROR_BUILD_THREADS   threads that build the search indexes [2]
+  --build-memory-mb MB     MUSICBRAINZ_MIRROR_BUILD_MEMORY_MB memory of the search index builders [1024]
   -h, --help               this help
   -V, --version            the version
 
-import builds a database from dump archives (mbdump.tar.bz2, mbdump-derived.tar.bz2,
+import builds a store (a directory) from dump archives (mbdump.tar.bz2, mbdump-derived.tar.bz2,
 mbdump-cover-art-archive.tar.bz2) or directories they were unpacked into, without serving it.
 
 Logging: RUST_LOG (default info).";
@@ -41,7 +42,8 @@ pub struct Config {
     pub min_free_bytes: u64,
     pub dump_url: String,
     pub cover_art_url: String,
-    pub cache_mb: u32,
+    pub build_threads: usize,
+    pub build_memory_mb: usize,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -87,7 +89,18 @@ impl Config {
             "MUSICBRAINZ_MIRROR_COVER_ART_URL",
             DEFAULT_COVER_ART_URL.to_owned(),
         )?;
-        let cache_mb = value(args, "--cache-mb", "MUSICBRAINZ_MIRROR_CACHE_MB", 1024)?;
+        let build_threads = value(
+            args,
+            "--build-threads",
+            "MUSICBRAINZ_MIRROR_BUILD_THREADS",
+            2,
+        )?;
+        let build_memory_mb = value(
+            args,
+            "--build-memory-mb",
+            "MUSICBRAINZ_MIRROR_BUILD_MEMORY_MB",
+            1024,
+        )?;
         finish(args)?;
         Ok(Self {
             data_dir: PathBuf::from(data_dir),
@@ -96,7 +109,8 @@ impl Config {
             min_free_bytes: min_free_gb.saturating_mul(1 << 30),
             dump_url: dump_url.trim_end_matches('/').to_owned(),
             cover_art_url: cover_art_url.trim_end_matches('/').to_owned(),
-            cache_mb,
+            build_threads,
+            build_memory_mb,
         })
     }
 }
@@ -106,7 +120,8 @@ impl Config {
 pub struct ImportArgs {
     pub out: PathBuf,
     pub dump: String,
-    pub cache_mb: u32,
+    pub build_threads: usize,
+    pub build_memory_mb: usize,
     pub sources: Vec<PathBuf>,
 }
 
@@ -116,7 +131,18 @@ impl ImportArgs {
         let dump = args
             .opt_value_from_str("--dump")?
             .unwrap_or_else(|| "local".to_owned());
-        let cache_mb = value(&mut args, "--cache-mb", "MUSICBRAINZ_MIRROR_CACHE_MB", 1024)?;
+        let build_threads = value(
+            &mut args,
+            "--build-threads",
+            "MUSICBRAINZ_MIRROR_BUILD_THREADS",
+            2,
+        )?;
+        let build_memory_mb = value(
+            &mut args,
+            "--build-memory-mb",
+            "MUSICBRAINZ_MIRROR_BUILD_MEMORY_MB",
+            1024,
+        )?;
         let sources: Vec<PathBuf> = args.finish().into_iter().map(PathBuf::from).collect();
         if sources.is_empty() {
             return Err(ConfigError::Unknown(
@@ -126,7 +152,8 @@ impl ImportArgs {
         Ok(Self {
             out,
             dump,
-            cache_mb,
+            build_threads,
+            build_memory_mb,
             sources,
         })
     }

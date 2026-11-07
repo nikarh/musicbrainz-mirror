@@ -9,7 +9,7 @@ use std::time::Duration;
 
 use musicbrainz_mirror::config::{Config, HELP, ImportArgs};
 use musicbrainz_mirror::mirror::Mirror;
-use musicbrainz_mirror::{import, ws};
+use musicbrainz_mirror::{store, ws};
 use tracing_subscriber::EnvFilter;
 
 const VERSION: &str = env!("MUSICBRAINZ_MIRROR_VERSION");
@@ -42,7 +42,13 @@ fn main() -> ExitCode {
                 Err(e) => return fail(&e),
             };
             init_logging();
-            match import::build(&args.sources, &args.dump, &args.out, args.cache_mb) {
+            match store::build::build(
+                &args.sources,
+                &args.dump,
+                &args.out,
+                args.build_threads,
+                args.build_memory_mb,
+            ) {
                 Ok(_) => ExitCode::SUCCESS,
                 Err(e) => fail(&e),
             }

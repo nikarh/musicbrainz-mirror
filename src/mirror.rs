@@ -1,11 +1,11 @@
-//! The database being served, and its replacement by a newer dump without a restart.
+//! The store being served, and its replacement by a newer dump without a restart.
 //!
 //! Data directory layout:
-//! - `musicbrainz-<dump>.sqlite`: a finished database, named by the dump it was built from. The newest is served;
-//!   its name is what keeps the same dump from being downloaded again.
+//! - `musicbrainz-<dump>/`: a finished store (it has a `meta.json`), named by the dump it was built from. The
+//!   newest is served; its name is what keeps the same dump from being downloaded again.
 //! - `import/<dump>/`: the archives of a dump being imported (kept until it is imported, so a failed or interrupted
-//!   import doesn't download them again), `import/<dump>.sqlite.partial`: the database being built, `failed` in
-//!   the dump's directory: its import failed (it isn't retried until the next start or a newer dump).
+//!   import doesn't download them again), with `failed` in it when its import failed (it isn't retried until the
+//!   next start or a newer dump); `import/<dump>.partial/`: the store being built.
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -14,27 +14,24 @@ use std::time::Duration;
 use arc_swap::ArcSwapOption;
 
 use crate::config::Config;
-use crate::db::{Db, DbError};
 use crate::dump::{self, DumpError};
-use crate::import::{self, ImportError};
-
-/// Most of a database's pages are read through mmap (the database is never written after it is built).
-const MMAP_SIZE: u64 = 1 << 40;
+use crate::store::build::BuildError;
+use crate::store::{Store, StoreError};
 
 #[derive(Debug, thiserror::Error)]
 pub enum MirrorError {
     #[error(transparent)]
     Dump(#[from] DumpError),
     #[error(transparent)]
-    Import(#[from] ImportError),
+    Build(#[from] BuildError),
     #[error(transparent)]
-    Db(#[from] DbError),
+    Store(#[from] StoreError),
     #[error("{0}: {1}")]
     Io(PathBuf, std::io::Error),
     #[error("dump {0} is out, but only {1} GB are free (at least {2} GB needed)")]
     NoSpace(String, u64, u64),
-    #[error("no database in {0} and updates are off")]
-    NoDatabase(PathBuf),
+    #[error("no store in {0} and updates are off")]
+    NoStore(PathBuf),
     #[error("the import task failed: {0}")]
     Task(String),
 }
@@ -42,23 +39,23 @@ pub enum MirrorError {
 pub struct Mirror {
     config: Config,
     client: reqwest::Client,
-    current: Arc<ArcSwapOption<Db>>,
-    /// Serializes database changes.
+    current: Arc<ArcSwapOption<Store>>,
+    /// Serializes store changes.
     lock: tokio::sync::Mutex<()>,
 }
 
 const PREFIX: &str = "musicbrainz-";
-const SUFFIX: &str = ".sqlite";
 
-/// The dump a database file was built from, by its name.
-fn file_dump(name: &str) -> Option<&str> {
+/// The dump a store directory was built from, by its name.
+fn dir_dump(name: &str) -> Option<&str> {
     name.strip_prefix(PREFIX)
-        .and_then(|n| n.strip_suffix(SUFFIX))
         .filter(|d| dump::is_dump_id(d) || *d == "local")
 }
 
 impl Mirror {
     pub fn new(config: Config) -> Result<Self, reqwest::Error> {
+        // TLS with ring (installed once; later calls keep the first)
+        let _ = rustls::crypto::ring::default_provider().install_default();
         let client = reqwest::Client::builder()
             .user_agent(concat!(
                 "musicbrainz-mirror/",
@@ -75,8 +72,9 @@ impl Mirror {
         })
     }
 
-    /// The database served (shared with the web service).
-    pub fn current(&self) -> Arc<ArcSwapOption<Db>> {
+    /// The store served (shared with the web service).
+    #[must_use]
+    pub fn current(&self) -> Arc<ArcSwapOption<Store>> {
         Arc::clone(&self.current)
     }
 
@@ -84,8 +82,8 @@ impl Mirror {
         self.config.data_dir.join("import")
     }
 
-    /// Opens the newest finished database in the data directory, if there is one, and removes leftovers
-    /// (databases being built, older databases).
+    /// Opens the newest finished store in the data directory, if there is one, and removes leftovers (stores being
+    /// built, older stores).
     pub async fn start(&self) -> Result<(), MirrorError> {
         let _guard = self.lock.lock().await;
         let dir = self.config.data_dir.clone();
@@ -102,8 +100,9 @@ impl Mirror {
             .map_err(|e| MirrorError::Io(import_dir.clone(), e))?
         {
             let name = entry.file_name().to_string_lossy().into_owned();
-            if name.ends_with(".partial") || name.contains(".partial-") {
-                tracing::info!(file = name, "removing an interrupted import");
+            if name.ends_with(".partial") || name.ends_with(".partial.tmp") {
+                tracing::info!(dir = name, "removing an interrupted import");
+                remove_dir(&entry.path()).await;
                 remove(&entry.path()).await;
             } else if entry.path().is_dir() {
                 // A failed import is retried after a restart.
@@ -111,7 +110,7 @@ impl Mirror {
             }
         }
 
-        let mut databases = Vec::new();
+        let mut stores = Vec::new();
         let mut entries = tokio::fs::read_dir(&dir)
             .await
             .map_err(|e| MirrorError::Io(dir.clone(), e))?;
@@ -121,38 +120,38 @@ impl Mirror {
             .map_err(|e| MirrorError::Io(dir.clone(), e))?
         {
             let name = entry.file_name().to_string_lossy().into_owned();
-            if file_dump(&name).is_some() {
-                databases.push(name);
+            if dir_dump(&name).is_some() && entry.path().is_dir() {
+                stores.push(name);
             }
         }
-        databases.sort();
-        while let Some(newest) = databases.pop() {
+        stores.sort();
+        while let Some(newest) = stores.pop() {
             let path = dir.join(&newest);
-            let opened = tokio::task::spawn_blocking(move || Db::open(&path, MMAP_SIZE))
+            let opened = tokio::task::spawn_blocking(move || Store::open(&path))
                 .await
                 .map_err(|e| MirrorError::Task(e.to_string()))?;
             match opened {
-                Ok(db) => {
-                    tracing::info!(dump = db.dump, "serving");
-                    self.current.store(Some(Arc::new(db)));
-                    for old in databases {
-                        tracing::info!(file = old, "removing an older database");
-                        remove_db(&dir.join(old)).await;
+                Ok(store) => {
+                    tracing::info!(dump = store.dump(), "serving");
+                    self.current.store(Some(Arc::new(store)));
+                    for old in stores {
+                        tracing::info!(dir = old, "removing an older store");
+                        remove_dir(&dir.join(old)).await;
                     }
                     return Ok(());
                 }
                 Err(e) => {
-                    // Built by another version (or broken): rebuilt from the next dump.
-                    tracing::warn!(file = newest, error = %e, "can't serve this database; removing it");
-                    remove_db(&dir.join(&newest)).await;
+                    // Built by another version (or unfinished): rebuilt from the next dump.
+                    tracing::warn!(dir = newest, error = %e, "can't serve this store; removing it");
+                    remove_dir(&dir.join(&newest)).await;
                 }
             }
         }
         if self.config.update_interval.is_none() {
-            return Err(MirrorError::NoDatabase(dir));
+            return Err(MirrorError::NoStore(dir));
         }
         tracing::info!(
-            "no database yet; the web service answers 503 until the first dump is imported"
+            "no store yet; the web service answers 503 until the first dump is imported"
         );
         Ok(())
     }
@@ -173,7 +172,7 @@ impl Mirror {
     /// Imports the newest dump when it isn't the one served, and switches to it.
     pub async fn update(&self) -> Result<(), MirrorError> {
         let id = dump::latest(&self.client, &self.config.dump_url).await?;
-        let served = self.current.load_full().map(|db| db.dump.clone());
+        let served = self.current.load_full().map(|s| s.dump().to_owned());
         if served
             .as_deref()
             .is_some_and(|s| dump::is_dump_id(s) && s >= id.as_str())
@@ -206,16 +205,15 @@ impl Mirror {
         tracing::info!(dump = id, "a new dump is out; downloading");
         let archives = dump::download(&self.client, &self.config.dump_url, &id, &work).await?;
 
-        let partial = self.import_dir().join(format!("{id}.sqlite.partial"));
+        let partial = self.import_dir().join(format!("{id}.partial"));
+        remove_dir(&partial).await;
         let built = {
-            let (archives, partial, id, cache) = (
-                archives.clone(),
-                partial.clone(),
-                id.clone(),
-                self.config.cache_mb,
-            );
-            tokio::task::spawn_blocking(move || import::build(&archives, &id, &partial, cache))
-                .await
+            let (archives, partial, id) = (archives.clone(), partial.clone(), id.clone());
+            let (threads, memory) = (self.config.build_threads, self.config.build_memory_mb);
+            tokio::task::spawn_blocking(move || {
+                crate::store::build::build(&archives, &id, &partial, threads, memory)
+            })
+            .await
         };
         let result = match built {
             Ok(Ok(_)) => self.switch(&id, &partial).await,
@@ -228,35 +226,36 @@ impl Mirror {
                 Ok(())
             }
             Err(e) => {
-                remove_db(&partial).await;
+                remove_dir(&partial).await;
                 let _ = tokio::fs::write(work.join("failed"), e.to_string()).await;
                 Err(e)
             }
         }
     }
 
-    /// Moves a built database into place, opens it and serves it; the replaced one is removed once the requests
+    /// Moves a built store into place, opens it and serves it; the replaced one is removed once the requests
     /// using it are done.
     async fn switch(&self, id: &str, partial: &Path) -> Result<(), MirrorError> {
-        let path = self.config.data_dir.join(format!("{PREFIX}{id}{SUFFIX}"));
+        let path = self.config.data_dir.join(format!("{PREFIX}{id}"));
+        remove_dir(&path).await;
         tokio::fs::rename(partial, &path)
             .await
             .map_err(|e| MirrorError::Io(path.clone(), e))?;
         let opened = {
             let path = path.clone();
-            tokio::task::spawn_blocking(move || Db::open(&path, MMAP_SIZE))
+            tokio::task::spawn_blocking(move || Store::open(&path))
                 .await
                 .map_err(|e| MirrorError::Task(e.to_string()))?
         };
-        let db = match opened {
-            Ok(db) => db,
+        let store = match opened {
+            Ok(s) => s,
             Err(e) => {
-                remove_db(&path).await;
+                remove_dir(&path).await;
                 return Err(e.into());
             }
         };
         let _guard = self.lock.lock().await;
-        let previous = self.current.swap(Some(Arc::new(db)));
+        let previous = self.current.swap(Some(Arc::new(store)));
         tracing::info!(dump = id, "serving the new dump");
         if let Some(previous) = previous {
             tokio::spawn(retire(previous));
@@ -272,7 +271,7 @@ impl Mirror {
         };
         while let Ok(Some(entry)) = entries.next_entry().await {
             let name = entry.file_name().to_string_lossy().into_owned();
-            if name != keep && entry.path().is_dir() {
+            if name != keep && dump::is_dump_id(&name) && entry.path().is_dir() {
                 tracing::info!(dump = name, "removing the downloads of a superseded dump");
                 remove_dir(&entry.path()).await;
             }
@@ -280,19 +279,19 @@ impl Mirror {
     }
 }
 
-/// Removes a replaced database once nothing uses it (or after 10 minutes: its file is unlinked, the open handles
+/// Removes a replaced store once nothing uses it (or after 10 minutes: its files are unlinked, the open mappings
 /// keep working).
-async fn retire(db: Arc<Db>) {
+async fn retire(store: Arc<Store>) {
     for _ in 0..600 {
-        if Arc::strong_count(&db) == 1 {
+        if Arc::strong_count(&store) == 1 {
             break;
         }
         tokio::time::sleep(Duration::from_secs(1)).await;
     }
-    let path = db.path.clone();
-    drop(db);
-    tracing::info!(file = %path.display(), "removing the replaced database");
-    remove_db(&path).await;
+    let path = store.dir.clone();
+    drop(store);
+    tracing::info!(dir = %path.display(), "removing the replaced store");
+    remove_dir(&path).await;
 }
 
 async fn remove(path: &Path) {
@@ -300,12 +299,6 @@ async fn remove(path: &Path) {
         && e.kind() != std::io::ErrorKind::NotFound
     {
         tracing::warn!(file = %path.display(), error = %e, "can't remove");
-    }
-}
-
-async fn remove_db(path: &Path) {
-    for suffix in ["", "-journal", "-wal", "-shm"] {
-        remove(&import::side_file(path, suffix)).await;
     }
 }
 
@@ -327,13 +320,13 @@ mod tests {
     use super::*;
 
     #[test]
-    fn database_file_names() {
+    fn store_dir_names() {
         assert_eq!(
-            file_dump("musicbrainz-20261104-002222.sqlite"),
+            dir_dump("musicbrainz-20261104-002222"),
             Some("20261104-002222")
         );
-        assert_eq!(file_dump("musicbrainz-local.sqlite"), Some("local"));
-        assert_eq!(file_dump("musicbrainz-x.sqlite"), None);
-        assert_eq!(file_dump("other.sqlite"), None);
+        assert_eq!(dir_dump("musicbrainz-local"), Some("local"));
+        assert_eq!(dir_dump("musicbrainz-x"), None);
+        assert_eq!(dir_dump("other"), None);
     }
 }

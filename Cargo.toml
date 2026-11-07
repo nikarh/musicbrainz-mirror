@@ -16,21 +16,30 @@ arc-swap = "1.9.4"
 axum = "0.8.9"
 bytes = "1.12.1"
 bzip2 = "0.6.1"
+memmap2 = "0.9.12"
 pico-args = "0.5.0"
 reqwest = { version = "0.13.5", default-features = false, features = ["rustls-no-provider", "stream"] }
-rusqlite = { version = "0.41.1", features = ["bundled", "serde_json"] }
 rustix = { version = "1.1.6", features = ["fs"] }
 rustls = { version = "0.23.46", default-features = false, features = ["ring", "std", "tls12"] }
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.154"
 serde_urlencoded = "0.7.1"
 sha2 = "0.11.1"
+tantivy = { version = "0.27.0", default-features = false, features = ["mmap"] }
 tar = { version = "0.4.46", default-features = false }
 thiserror = "2.0.21"
 tokio = { version = "1.54.1", features = ["rt-multi-thread", "macros", "net", "signal", "sync", "time", "fs", "io-util"] }
 tokio-util = { version = "0.7.20", features = ["rt"] }
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", default-features = false, features = ["env-filter", "fmt", "ansi"] }
+
+[features]
+# Records the rows read answering requests (for the compatibility test's fixture tool).
+record = []
+
+[[example]]
+name = "fixture"
+required-features = ["record"]
 
 [dev-dependencies]
 axum = "0.8.9"

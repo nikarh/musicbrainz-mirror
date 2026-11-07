@@ -2,30 +2,27 @@
 //! left out, there is an `artist-credit-id`, aliases have `begin-date` / `end-date`, releases have `count` (of
 //! media) and `track-count`, and lists of related entities are shorter.
 
-// Rows are read into tuples, as wide as the columns they read.
-#![allow(clippy::type_complexity)]
-
-use rusqlite::{Connection, OptionalExtension as _};
 use serde_json::{Map, Value, json};
 
-use crate::db::{Lookups, date, queries as q};
+use crate::date;
 use crate::kind::Kind;
+use crate::store::{Row, Store};
+use crate::ws::entity::{Ctx, Filter};
+use crate::ws::inc::Inc;
 
-type R<T> = rusqlite::Result<T>;
 type Obj = Map<String, Value>;
 
 /// Releases listed in a recording result, at most.
 const RECORDING_RELEASES: usize = 25;
 
 pub struct Formatter<'a> {
-    pub conn: &'a Connection,
-    pub lk: &'a Lookups,
+    pub store: &'a Store,
 }
 
 /// Inserts a string unless it is empty.
-fn put(obj: &mut Obj, key: &str, value: Option<String>) {
+fn put(obj: &mut Obj, key: &str, value: Option<&str>) {
     if let Some(v) = value.filter(|v| !v.is_empty()) {
-        obj.insert(key.into(), Value::String(v));
+        obj.insert(key.into(), Value::String(v.to_owned()));
     }
 }
 
@@ -35,323 +32,288 @@ fn put_list(obj: &mut Obj, key: &str, list: Vec<Value>) {
     }
 }
 
+fn strings<'a>(rows: impl Iterator<Item = Row<'a>>, field: &str) -> Vec<Value> {
+    let mut v: Vec<&str> = rows.filter_map(|r| r.str(field)).collect();
+    v.sort_unstable();
+    v.into_iter().map(|s| Value::String(s.to_owned())).collect()
+}
+
+fn life_span(row: &Row<'_>, with_ended_null: bool) -> Value {
+    let (by, bm, bd) = row.date("begin");
+    let (ey, em, ed) = row.date("end");
+    let mut span = Obj::new();
+    put(&mut span, "begin", Some(&date::format(by, bm, bd)));
+    put(&mut span, "end", Some(&date::format(ey, em, ed)));
+    if row.bool("ended") {
+        span.insert("ended".into(), Value::Bool(true));
+    } else if with_ended_null {
+        span.insert("ended".into(), Value::Null);
+    }
+    Value::Object(span)
+}
+
 impl Formatter<'_> {
-    fn strings(&self, sql: &str, id: i64) -> R<Vec<String>> {
-        self.conn
-            .prepare_cached(sql)?
-            .query_map([id], |r| r.get(0))?
-            .collect()
+    fn ctx(&self) -> Ctx<'_> {
+        static INC: std::sync::OnceLock<Inc> = std::sync::OnceLock::new();
+        static FILTER: std::sync::OnceLock<Filter> = std::sync::OnceLock::new();
+        Ctx {
+            store: self.store,
+            inc: INC.get_or_init(Inc::default),
+            filter: FILTER.get_or_init(Filter::default),
+            xml: false,
+        }
     }
 
-    fn named(&self, obj: &mut Obj, key: &str, table: &str, id: Option<i64>) {
-        if let Some(n) = self.lk.named(table, id) {
-            obj.insert(key.into(), Value::String(n.name.clone()));
-            if let Some(gid) = &n.gid {
-                obj.insert(format!("{key}-id"), Value::String(gid.clone()));
+    fn named(&self, obj: &mut Obj, key: &str, table: &str, id: Option<u32>) {
+        if let Some((name, gid)) = self.store.named(table, id) {
+            obj.insert(key.into(), Value::String(name.to_owned()));
+            if let Some(gid) = gid {
+                obj.insert(format!("{key}-id"), Value::String(gid));
             }
         }
     }
 
-    pub fn entity(&self, kind: Kind, id: i64) -> R<Value> {
-        Ok(Value::Object(match kind {
-            Kind::Artist => self.artist(id)?,
-            Kind::Release => self.release(id, true)?,
-            Kind::ReleaseGroup => self.release_group(id)?,
-            Kind::Recording => self.recording(id)?,
-            Kind::Work => self.work(id)?,
-            Kind::Label => self.label(id)?,
-            Kind::Area => self.area(id, true)?,
-            Kind::Place => self.place(id)?,
-            Kind::Event => self.event(id)?,
-            Kind::Instrument => {
-                self.simple(id, Kind::Instrument, q::INSTRUMENT, "instrument_type")?
-            }
-            Kind::Series => self.simple(id, Kind::Series, q::SERIES, "series_type")?,
+    #[must_use]
+    pub fn entity(&self, kind: Kind, id: u32) -> Value {
+        let Some(row) = self.store.entity(kind, id) else {
+            return Value::Null;
+        };
+        Value::Object(match kind {
+            Kind::Artist => self.artist(&row),
+            Kind::Release => self.release(&row, true),
+            Kind::ReleaseGroup => self.release_group(&row),
+            Kind::Recording => self.recording(&row),
+            Kind::Work => self.work(&row),
+            Kind::Label => self.label(&row),
+            Kind::Area => self.area(&row, true),
+            Kind::Place => self.place(&row),
+            Kind::Event => self.event(&row),
+            Kind::Instrument => self.simple(&row, Kind::Instrument, "instrument_type"),
+            Kind::Series => self.simple(&row, Kind::Series, "series_type"),
             Kind::Genre | Kind::Url => Obj::new(),
-        }))
+        })
     }
 
-    /// Life span: begin and end when known, `ended` true or null.
-    fn life_span(begin: String, end: String, ended: bool) -> Value {
-        let mut span = Obj::new();
-        put(&mut span, "begin", Some(begin));
-        put(&mut span, "end", Some(end));
-        span.insert(
-            "ended".into(),
-            if ended {
-                Value::Bool(true)
-            } else {
-                Value::Null
-            },
-        );
-        Value::Object(span)
+    fn aliases(&self, kind: Kind, id: u32) -> Vec<Value> {
+        self.store
+            .t(&format!("{}_alias", kind.table()))
+            .by("entity", id)
+            .map(|r| {
+                let mut a = Obj::new();
+                a.insert("name".into(), Value::String(r.text("name")));
+                a.insert("sort-name".into(), Value::String(r.text("sort_name")));
+                let type_ = self.store.alias_type(kind, r.u32("type"));
+                a.insert(
+                    "type".into(),
+                    type_
+                        .as_ref()
+                        .map_or(Value::Null, |t| Value::String(t.0.to_owned())),
+                );
+                if let Some(gid) = type_.and_then(|t| t.1) {
+                    a.insert("type-id".into(), Value::String(gid));
+                }
+                a.insert(
+                    "primary".into(),
+                    if r.bool("primary_for_locale") {
+                        Value::Bool(true)
+                    } else {
+                        Value::Null
+                    },
+                );
+                a.insert(
+                    "locale".into(),
+                    r.str("locale")
+                        .map_or(Value::Null, |l| Value::String(l.to_owned())),
+                );
+                let (by, bm, bd) = r.date("begin");
+                let (ey, em, ed) = r.date("end");
+                let (begin, end) = (date::format(by, bm, bd), date::format(ey, em, ed));
+                a.insert(
+                    "begin-date".into(),
+                    if begin.is_empty() {
+                        Value::Null
+                    } else {
+                        Value::String(begin)
+                    },
+                );
+                a.insert(
+                    "end-date".into(),
+                    if end.is_empty() {
+                        Value::Null
+                    } else {
+                        Value::String(end)
+                    },
+                );
+                Value::Object(a)
+            })
+            .collect()
     }
 
-    fn aliases(&self, kind: Kind, id: i64) -> R<Vec<Value>> {
-        let mut stmt = self.conn.prepare_cached(q::ALIASES)?;
-        let rows = stmt.query_map((kind.code(), id), |r| {
-            let locale: Option<String> = r.get(2)?;
-            let mut a = Obj::new();
-            a.insert("name".into(), Value::String(r.get(0)?));
-            a.insert("sort-name".into(), Value::String(r.get(1)?));
-            let type_ = self.lk.alias_type(kind, r.get(3)?);
-            a.insert(
-                "type".into(),
-                type_.map_or(Value::Null, |t| Value::String(t.name.clone())),
-            );
-            if let Some(gid) = type_.and_then(|t| t.gid.clone()) {
-                a.insert("type-id".into(), Value::String(gid));
-            }
-            a.insert(
-                "primary".into(),
-                if r.get::<_, Option<bool>>(4)?.unwrap_or(false) {
-                    Value::Bool(true)
-                } else {
-                    Value::Null
-                },
-            );
-            a.insert("locale".into(), locale.map_or(Value::Null, Value::String));
-            let begin = date::format(r.get(5)?, r.get(6)?, r.get(7)?);
-            let end = date::format(r.get(8)?, r.get(9)?, r.get(10)?);
-            a.insert(
-                "begin-date".into(),
-                if begin.is_empty() {
-                    Value::Null
-                } else {
-                    Value::String(begin)
-                },
-            );
-            a.insert(
-                "end-date".into(),
-                if end.is_empty() {
-                    Value::Null
-                } else {
-                    Value::String(end)
-                },
-            );
-            Ok(Value::Object(a))
-        })?;
-        rows.collect()
-    }
-
-    fn tags(&self, kind: Kind, id: i64) -> R<Vec<Value>> {
-        let mut tags: Vec<(String, i64)> = self
-            .conn
-            .prepare_cached(q::TAGS)?
-            .query_map((kind.code(), id), |r| Ok((r.get(0)?, r.get(1)?)))?
-            .collect::<R<_>>()?;
+    fn tags(&self, kind: Kind, id: u32) -> Vec<Value> {
+        let mut tags: Vec<(String, u32)> = self
+            .store
+            .t(&format!("{}_tag", kind.table()))
+            .by("entity", id)
+            .filter_map(|r| {
+                let count = r.u32("count").filter(|c| *c > 0 && *c < 0x8000_0000)?;
+                Some((self.store.t("tag").get(r.u32("tag")?)?.text("name"), count))
+            })
+            .collect();
         tags.sort();
-        Ok(tags
-            .into_iter()
+        tags.into_iter()
             .map(|(name, count)| json!({"count": count, "name": name}))
-            .collect())
+            .collect()
     }
 
     /// Aliases and tags, when there are any.
-    fn extras(&self, obj: &mut Obj, kind: Kind, id: i64) -> R<()> {
-        put_list(obj, "aliases", self.aliases(kind, id)?);
-        put_list(obj, "tags", self.tags(kind, id)?);
-        Ok(())
+    fn extras(&self, obj: &mut Obj, kind: Kind, id: u32) {
+        put_list(obj, "aliases", self.aliases(kind, id));
+        if kind.has_tags() {
+            put_list(obj, "tags", self.tags(kind, id));
+        }
     }
 
-    fn area(&self, id: i64, full: bool) -> R<Obj> {
-        type Row = (
-            String,
-            String,
-            String,
-            String,
-            bool,
-            Option<i64>,
-            Option<String>,
-        );
-        let (gid, name, begin, end, ended, type_id, comment): Row =
-            self.conn.prepare_cached(q::AREA)?.query_row([id], |r| {
-                Ok((
-                    r.get(0)?,
-                    r.get(1)?,
-                    date::format(r.get(2)?, r.get(3)?, r.get(4)?),
-                    date::format(r.get(5)?, r.get(6)?, r.get(7)?),
-                    r.get::<_, Option<bool>>(8)?.unwrap_or(false),
-                    r.get(9)?,
-                    r.get(10)?,
-                ))
-            })?;
+    fn area(&self, row: &Row<'_>, full: bool) -> Obj {
         let mut out = Obj::new();
-        out.insert("id".into(), Value::String(gid));
-        self.named(&mut out, "type", "area_type", type_id);
-        out.insert("name".into(), Value::String(name.clone()));
-        out.insert("sort-name".into(), Value::String(name));
+        out.insert("id".into(), Value::String(row.gid()));
+        self.named(&mut out, "type", "area_type", row.u32("type"));
+        out.insert("name".into(), Value::String(row.text("name")));
+        out.insert("sort-name".into(), Value::String(row.text("name")));
         if full {
-            put(&mut out, "disambiguation", comment);
-            for (key, sql) in [
-                ("iso-3166-1-codes", q::AREA_ISO1),
-                ("iso-3166-2-codes", q::AREA_ISO2),
-                ("iso-3166-3-codes", q::AREA_ISO3),
+            put(&mut out, "disambiguation", row.str("comment"));
+            for (key, table) in [
+                ("iso-3166-1-codes", "iso_3166_1"),
+                ("iso-3166-2-codes", "iso_3166_2"),
+                ("iso-3166-3-codes", "iso_3166_3"),
             ] {
                 put_list(
                     &mut out,
                     key,
-                    self.strings(sql, id)?
-                        .into_iter()
-                        .map(Value::String)
-                        .collect(),
+                    strings(self.store.t(table).by("area", row.id), "code"),
                 );
             }
-            self.extras(&mut out, Kind::Area, id)?;
+            self.extras(&mut out, Kind::Area, row.id);
         }
-        out.insert("life-span".into(), Self::life_span(begin, end, ended));
-        Ok(out)
+        out.insert("life-span".into(), life_span(row, true));
+        out
     }
 
-    fn artist(&self, id: i64) -> R<Obj> {
-        let row = self.conn.prepare_cached(q::ARTIST)?.query_row([id], |r| {
-            Ok((
-                r.get::<_, String>(0)?,
-                r.get::<_, String>(1)?,
-                r.get::<_, String>(2)?,
-                date::format(r.get(3)?, r.get(4)?, r.get(5)?),
-                date::format(r.get(6)?, r.get(7)?, r.get(8)?),
-                r.get::<_, Option<bool>>(9)?.unwrap_or(false),
-                r.get::<_, Option<i64>>(10)?,
-                r.get::<_, Option<i64>>(11)?,
-                r.get::<_, Option<i64>>(12)?,
-                r.get::<_, Option<String>>(13)?,
-                r.get::<_, Option<i64>>(14)?,
-                r.get::<_, Option<i64>>(15)?,
-            ))
-        })?;
-        let (
-            gid,
-            name,
-            sort_name,
-            begin,
-            end,
-            ended,
-            type_id,
-            area,
-            gender,
-            comment,
-            begin_area,
-            end_area,
-        ) = row;
+    fn area_by_id(&self, id: Option<u32>) -> Option<Obj> {
+        self.store.t("area").get(id?).map(|a| self.area(&a, false))
+    }
+
+    fn code(&self, area: Option<u32>) -> Option<String> {
+        let code = crate::store::derive::code(self.store, area?);
+        (!code.is_empty()).then_some(code)
+    }
+
+    fn artist(&self, row: &Row<'_>) -> Obj {
         let mut out = Obj::new();
-        out.insert("id".into(), Value::String(gid));
-        self.named(&mut out, "type", "artist_type", type_id);
-        out.insert("name".into(), Value::String(name));
-        out.insert("sort-name".into(), Value::String(sort_name));
-        self.named(&mut out, "gender", "gender", gender);
-        if let Some(area) = area {
-            let country: Option<String> = self
-                .conn
-                .prepare_cached(q::AREA_COUNTRY)?
-                .query_row([area], |r| r.get(0))
-                .optional()?;
-            put(&mut out, "country", country);
-        }
-        for (key, area) in [
-            ("area", area),
-            ("begin-area", begin_area),
-            ("end-area", end_area),
+        out.insert("id".into(), Value::String(row.gid()));
+        self.named(&mut out, "type", "artist_type", row.u32("type"));
+        out.insert("name".into(), Value::String(row.text("name")));
+        out.insert("sort-name".into(), Value::String(row.text("sort_name")));
+        self.named(&mut out, "gender", "gender", row.u32("gender"));
+        let country = row
+            .u32("area")
+            .and_then(|a| self.store.derived.area_country(a));
+        put(&mut out, "country", self.code(country).as_deref());
+        for (key, field) in [
+            ("area", "area"),
+            ("begin-area", "begin_area"),
+            ("end-area", "end_area"),
         ] {
-            if let Some(area) = area {
-                out.insert(key.into(), Value::Object(self.area(area, false)?));
+            if let Some(area) = self.area_by_id(row.u32(field)) {
+                out.insert(key.into(), Value::Object(area));
             }
         }
-        let ipis = self.strings(q::ARTIST_IPIS, id)?;
         put_list(
             &mut out,
             "ipis",
-            ipis.into_iter().map(Value::String).collect(),
+            strings(self.store.t("artist_ipi").by("artist", row.id), "ipi"),
         );
-        let isnis = self.strings(q::ARTIST_ISNIS, id)?;
         put_list(
             &mut out,
             "isnis",
-            isnis.into_iter().map(Value::String).collect(),
+            strings(self.store.t("artist_isni").by("artist", row.id), "isni"),
         );
-        out.insert("life-span".into(), Self::life_span(begin, end, ended));
-        put(&mut out, "disambiguation", comment);
-        self.extras(&mut out, Kind::Artist, id)?;
-        Ok(out)
+        out.insert("life-span".into(), life_span(row, true));
+        put(&mut out, "disambiguation", row.str("comment"));
+        self.extras(&mut out, Kind::Artist, row.id);
+        out
     }
 
     /// An artist credit and its MBID: (`artist-credit`, `artist-credit-id`). Artists have their aliases with
     /// `aliases`.
-    fn artist_credit(&self, ac: i64, aliases: bool) -> R<(Value, Option<String>)> {
-        let names: Vec<(i64, String, Option<String>)> = self
-            .conn
-            .prepare_cached(q::ARTIST_CREDIT)?
-            .query_map([ac], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))?
-            .collect::<R<_>>()?;
-        let mut out = Vec::with_capacity(names.len());
-        for (artist, name, join) in names {
-            let (gid, artist_name, sort_name, comment): (String, String, String, Option<String>) =
-                self.conn
-                    .prepare_cached(q::ARTIST)?
-                    .query_row([artist], |r| {
-                        Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(13)?))
-                    })?;
+    fn artist_credit(&self, ac: Option<u32>, aliases: bool) -> (Value, Option<String>) {
+        let Some(ac) = ac else {
+            return (json!([]), None);
+        };
+        let mut out = Vec::new();
+        for name in self.store.t("artist_credit_name").by("artist_credit", ac) {
+            let Some(artist) = name
+                .u32("artist")
+                .and_then(|a| self.store.t("artist").get(a))
+            else {
+                continue;
+            };
             let mut a = Obj::new();
-            a.insert("id".into(), Value::String(gid));
-            a.insert("name".into(), Value::String(artist_name));
-            a.insert("sort-name".into(), Value::String(sort_name));
-            put(&mut a, "disambiguation", comment);
+            a.insert("id".into(), Value::String(artist.gid()));
+            a.insert("name".into(), Value::String(artist.text("name")));
+            a.insert("sort-name".into(), Value::String(artist.text("sort_name")));
+            put(&mut a, "disambiguation", artist.str("comment"));
             if aliases {
-                put_list(&mut a, "aliases", self.aliases(Kind::Artist, artist)?);
+                put_list(&mut a, "aliases", self.aliases(Kind::Artist, artist.id));
             }
             let mut credit = Obj::new();
-            credit.insert("name".into(), Value::String(name));
-            put(&mut credit, "joinphrase", join);
+            credit.insert("name".into(), Value::String(name.text("name")));
+            put(&mut credit, "joinphrase", name.str("join_phrase"));
             credit.insert("artist".into(), Value::Object(a));
             out.push(Value::Object(credit));
         }
-        let gid: Option<String> = self
-            .conn
-            .prepare_cached("SELECT gid FROM artist_credit WHERE id = ?1")?
-            .query_row([ac], |r| r.get(0))
-            .optional()?
-            .flatten();
-        Ok((Value::Array(out), gid))
+        let gid = self.store.t("artist_credit").get(ac).map(|c| c.gid());
+        (Value::Array(out), gid)
     }
 
-    fn release_group_short(&self, rg: i64, with_comment: bool) -> R<Obj> {
-        let (gid, name, type_id, comment): (String, String, Option<i64>, Option<String>) = self
-            .conn
-            .prepare_cached(q::RELEASE_GROUP)?
-            .query_row([rg], |r| Ok((r.get(0)?, r.get(1)?, r.get(3)?, r.get(4)?)))?;
-        let mut out = Obj::new();
-        out.insert("id".into(), Value::String(gid));
-        if let Some(t) = self.lk.named("release_group_primary_type", type_id) {
-            if let Some(g) = &t.gid {
+    fn primary_type(&self, out: &mut Obj, type_id: Option<u32>) {
+        if let Some((name, gid)) = self.store.named("release_group_primary_type", type_id) {
+            if let Some(g) = gid {
                 out.insert("type-id".into(), Value::String(g.clone()));
-                out.insert("primary-type-id".into(), Value::String(g.clone()));
+                out.insert("primary-type-id".into(), Value::String(g));
             }
-            out.insert("primary-type".into(), Value::String(t.name.clone()));
+            out.insert("primary-type".into(), Value::String(name.to_owned()));
         }
-        out.insert("title".into(), Value::String(name));
-        if with_comment {
-            put(&mut out, "disambiguation", comment);
-        }
-        self.secondary_types(&mut out, rg)?;
-        Ok(out)
     }
 
-    fn secondary_types(&self, out: &mut Obj, rg: i64) -> R<()> {
-        let types: Vec<i64> = self
-            .conn
-            .prepare_cached(q::RELEASE_GROUP_SECONDARY_TYPES)?
-            .query_map([rg], |r| r.get(0))?
-            .collect::<R<_>>()?;
-        let named: Vec<_> = types
-            .iter()
-            .filter_map(|t| self.lk.named("release_group_secondary_type", Some(*t)))
+    fn release_group_short(&self, rg: &Row<'_>, with_comment: bool) -> Obj {
+        let mut out = Obj::new();
+        out.insert("id".into(), Value::String(rg.gid()));
+        self.primary_type(&mut out, rg.u32("type"));
+        out.insert("title".into(), Value::String(rg.text("name")));
+        if with_comment {
+            put(&mut out, "disambiguation", rg.str("comment"));
+        }
+        self.secondary_types(&mut out, rg.id);
+        out
+    }
+
+    fn secondary_types(&self, out: &mut Obj, rg: u32) {
+        let mut named: Vec<(&str, Option<String>)> = self
+            .store
+            .t("release_group_secondary_type_join")
+            .by("release_group", rg)
+            .filter_map(|j| {
+                self.store
+                    .named("release_group_secondary_type", j.u32("secondary_type"))
+            })
             .collect();
+        named.sort_by(|a, b| a.0.cmp(b.0));
         put_list(
             out,
             "secondary-types",
             named
                 .iter()
-                .map(|n| Value::String(n.name.clone()))
+                .map(|n| Value::String(n.0.to_owned()))
                 .collect(),
         );
         put_list(
@@ -359,350 +321,282 @@ impl Formatter<'_> {
             "secondary-type-ids",
             named
                 .iter()
-                .filter_map(|n| n.gid.clone())
+                .filter_map(|n| n.1.clone())
                 .map(Value::String)
                 .collect(),
         );
-        Ok(())
     }
 
     /// Release events, the first one's date and country.
-    fn release_events(&self, out: &mut Obj, release: i64) -> R<()> {
-        let events: Vec<(Option<i64>, String)> = self
-            .conn
-            .prepare_cached(q::RELEASE_EVENTS)?
-            .query_map([release], |r| {
-                Ok((r.get(0)?, date::format(r.get(1)?, r.get(2)?, r.get(3)?)))
-            })?
-            .collect::<R<_>>()?;
+    fn release_events(&self, out: &mut Obj, release: u32) {
+        let events = self.ctx().release_events(release);
         if let Some((country, first)) = events.first() {
-            put(out, "date", Some(first.clone()));
-            if let Some(country) = country {
-                put(
-                    out,
-                    "country",
-                    self.strings(q::AREA_ISO1, *country)?.into_iter().next(),
-                );
-            }
+            put(out, "date", Some(first));
+            put(out, "country", self.code(*country).as_deref());
         }
         let mut list = Vec::new();
         for (country, date) in events {
             let mut event = Obj::new();
-            put(&mut event, "date", Some(date));
-            if let Some(country) = country {
-                let (gid, name): (String, String) = self
-                    .conn
-                    .prepare_cached(q::AREA)?
-                    .query_row([country], |r| Ok((r.get(0)?, r.get(1)?)))?;
-                let mut area = Obj::new();
-                area.insert("id".into(), Value::String(gid));
-                area.insert("name".into(), Value::String(name.clone()));
-                area.insert("sort-name".into(), Value::String(name));
+            put(&mut event, "date", Some(&date));
+            if let Some(area) = country.and_then(|c| self.store.t("area").get(c)) {
+                let mut a = Obj::new();
+                a.insert("id".into(), Value::String(area.gid()));
+                a.insert("name".into(), Value::String(area.text("name")));
+                a.insert("sort-name".into(), Value::String(area.text("name")));
                 put_list(
-                    &mut area,
+                    &mut a,
                     "iso-3166-1-codes",
-                    self.strings(q::AREA_ISO1, country)?
-                        .into_iter()
-                        .map(Value::String)
-                        .collect(),
+                    strings(self.store.t("iso_3166_1").by("area", area.id), "code"),
                 );
-                event.insert("area".into(), Value::Object(area));
+                event.insert("area".into(), Value::Object(a));
             }
             list.push(Value::Object(event));
         }
         put_list(out, "release-events", list);
-        Ok(())
     }
 
     /// A release; `full` for a release result (labels, media formats, tags), else as listed in a recording.
-    #[allow(clippy::too_many_lines)]
-    fn release(&self, id: i64, full: bool) -> R<Obj> {
-        type Row = (
-            String,
-            String,
-            i64,
-            i64,
-            Option<i64>,
-            Option<i64>,
-            Option<i64>,
-            Option<i64>,
-        );
-        type Row2 = (Option<String>, Option<String>, Option<String>);
-        let (gid, name, ac, rg, status, packaging, language, script): Row =
-            self.conn.prepare_cached(q::RELEASE)?.query_row([id], |r| {
-                Ok((
-                    r.get(0)?,
-                    r.get(1)?,
-                    r.get(2)?,
-                    r.get(3)?,
-                    r.get(4)?,
-                    r.get(5)?,
-                    r.get(6)?,
-                    r.get(7)?,
-                ))
-            })?;
-        let (barcode, comment, asin): Row2 = self
-            .conn
-            .prepare_cached(q::RELEASE)?
-            .query_row([id], |r| Ok((r.get(8)?, r.get(9)?, r.get(11)?)))?;
-        let mediums: Vec<(i64, Option<String>, i64, Option<i64>, i64)> = self
-            .conn
-            .prepare_cached(q::RELEASE_MEDIUMS)?
-            .query_map([id], |r| {
-                Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get(5)?))
-            })?
-            .collect::<R<_>>()?;
+    fn release(&self, row: &Row<'_>, full: bool) -> Obj {
+        let mediums: Vec<Row<'_>> = self.store.t("medium").by("release", row.id).collect();
         let mut out = Obj::new();
-        out.insert("id".into(), Value::String(gid));
-        out.insert("title".into(), Value::String(name));
-        self.named(&mut out, "status", "release_status", status);
-        let (credit, credit_id) = self.artist_credit(ac, false)?;
-        put(&mut out, "artist-credit-id", credit_id);
+        out.insert("id".into(), Value::String(row.gid()));
+        out.insert("title".into(), Value::String(row.text("name")));
+        self.named(&mut out, "status", "release_status", row.u32("status"));
+        let (credit, credit_id) = self.artist_credit(row.u32("artist_credit"), false);
+        put(&mut out, "artist-credit-id", credit_id.as_deref());
         out.insert("artist-credit".into(), credit);
         out.insert("count".into(), json!(mediums.len()));
-        out.insert(
-            "release-group".into(),
-            Value::Object(self.release_group_short(rg, !full)?),
-        );
-        self.release_events(&mut out, id)?;
+        if let Some(rg) = row
+            .u32("release_group")
+            .and_then(|g| self.store.t("release_group").get(g))
+        {
+            out.insert(
+                "release-group".into(),
+                Value::Object(self.release_group_short(&rg, !full)),
+            );
+        }
+        self.release_events(&mut out, row.id);
         out.insert(
             "track-count".into(),
-            json!(mediums.iter().map(|m| m.4).sum::<i64>()),
+            json!(
+                mediums
+                    .iter()
+                    .filter_map(|m| m.u32("track_count"))
+                    .sum::<u32>()
+            ),
         );
         if !full {
-            return Ok(out);
+            return out;
         }
-        put(&mut out, "disambiguation", comment);
-        self.named(&mut out, "packaging", "release_packaging", packaging);
+        put(&mut out, "disambiguation", row.str("comment"));
+        self.named(
+            &mut out,
+            "packaging",
+            "release_packaging",
+            row.u32("packaging"),
+        );
         let mut text = Obj::new();
         put(
             &mut text,
             "language",
-            language.and_then(|l| self.lk.languages.get(&l).cloned()),
+            self.store.language(row.u32("language")),
         );
-        put(
-            &mut text,
-            "script",
-            script.and_then(|s| self.lk.scripts.get(&s).cloned()),
-        );
+        put(&mut text, "script", self.store.script(row.u32("script")));
         out.insert("text-representation".into(), Value::Object(text));
-        put(&mut out, "barcode", barcode);
-        put(&mut out, "asin", asin);
-        let labels: Vec<(Option<i64>, Option<String>)> = self
-            .conn
-            .prepare_cached(q::RELEASE_LABELS)?
-            .query_map([id], |r| Ok((r.get(0)?, r.get(1)?)))?
-            .collect::<R<_>>()?;
+        put(&mut out, "barcode", row.str("barcode"));
+        put(
+            &mut out,
+            "asin",
+            self.store
+                .t("release_meta")
+                .get(row.id)
+                .and_then(|m| m.str("amazon_asin")),
+        );
         let mut label_info = Vec::new();
-        for (label, catno) in labels {
+        for rl in self.store.t("release_label").by("release", row.id) {
             let mut info = Obj::new();
-            put(&mut info, "catalog-number", catno);
-            if let Some(label) = label {
-                let (lgid, lname): (String, String) = self
-                    .conn
-                    .prepare_cached(q::LABEL)?
-                    .query_row([label], |r| Ok((r.get(0)?, r.get(1)?)))?;
-                info.insert("label".into(), json!({"id": lgid, "name": lname}));
+            put(&mut info, "catalog-number", rl.str("catalog_number"));
+            if let Some(label) = rl.u32("label").and_then(|l| self.store.t("label").get(l)) {
+                info.insert(
+                    "label".into(),
+                    json!({"id": label.gid(), "name": label.text("name")}),
+                );
             }
             label_info.push(Value::Object(info));
         }
         put_list(&mut out, "label-info", label_info);
         let mut media = Vec::new();
-        for (medium, mgid, _, format, track_count) in mediums {
-            let mut m = Obj::new();
-            put(&mut m, "id", mgid);
-            if let Some(f) = self.lk.named("medium_format", format) {
-                m.insert("format".into(), Value::String(f.name.clone()));
+        for m in &mediums {
+            let mut medium = Obj::new();
+            medium.insert("id".into(), Value::String(m.gid()));
+            if let Some((format, _)) = self.store.named("medium_format", m.u32("format")) {
+                medium.insert("format".into(), Value::String(format.to_owned()));
             }
-            let discs: i64 = self
-                .conn
-                .prepare_cached("SELECT count(*) FROM medium_cdtoc WHERE medium = ?1")?
-                .query_row([medium], |r| r.get(0))?;
-            m.insert("disc-count".into(), json!(discs));
-            m.insert("track-count".into(), json!(track_count));
-            media.push(Value::Object(m));
+            medium.insert(
+                "disc-count".into(),
+                json!(self.store.t("medium_cdtoc").by("medium", m.id).count()),
+            );
+            medium.insert(
+                "track-count".into(),
+                json!(m.u32("track_count").unwrap_or(0)),
+            );
+            media.push(Value::Object(medium));
         }
         out.insert("media".into(), Value::Array(media));
-        put_list(&mut out, "tags", self.tags(Kind::Release, id)?);
-        Ok(out)
+        put_list(&mut out, "tags", self.tags(Kind::Release, row.id));
+        out
     }
 
-    fn release_group(&self, id: i64) -> R<Obj> {
-        type Row = (String, String, i64, Option<i64>, Option<String>, String);
-        let (gid, name, ac, type_id, comment, first): Row = self
-            .conn
-            .prepare_cached(q::RELEASE_GROUP)?
-            .query_row([id], |r| {
-                Ok((
-                    r.get(0)?,
-                    r.get(1)?,
-                    r.get(2)?,
-                    r.get(3)?,
-                    r.get(4)?,
-                    date::format(r.get(5)?, r.get(6)?, r.get(7)?),
-                ))
-            })?;
+    fn release_group(&self, row: &Row<'_>) -> Obj {
         let mut out = Obj::new();
-        out.insert("id".into(), Value::String(gid));
-        if let Some(t) = self.lk.named("release_group_primary_type", type_id) {
-            if let Some(g) = &t.gid {
-                out.insert("type-id".into(), Value::String(g.clone()));
-                out.insert("primary-type-id".into(), Value::String(g.clone()));
-            }
-            out.insert("primary-type".into(), Value::String(t.name.clone()));
+        out.insert("id".into(), Value::String(row.gid()));
+        self.primary_type(&mut out, row.u32("type"));
+        self.secondary_types(&mut out, row.id);
+        out.insert("title".into(), Value::String(row.text("name")));
+        if let Some(meta) = self.store.t("release_group_meta").get(row.id) {
+            let (y, m, d) = meta.date("first_release_date");
+            put(&mut out, "first-release-date", Some(&date::format(y, m, d)));
         }
-        self.secondary_types(&mut out, id)?;
-        out.insert("title".into(), Value::String(name));
-        put(&mut out, "first-release-date", Some(first));
-        put(&mut out, "disambiguation", comment);
-        let (credit, credit_id) = self.artist_credit(ac, false)?;
-        put(&mut out, "artist-credit-id", credit_id);
+        put(&mut out, "disambiguation", row.str("comment"));
+        let (credit, credit_id) = self.artist_credit(row.u32("artist_credit"), false);
+        put(&mut out, "artist-credit-id", credit_id.as_deref());
         out.insert("artist-credit".into(), credit);
-        let releases: Vec<(String, String, Option<i64>)> = self
-            .conn
-            .prepare_cached(
-                "SELECT gid, name, status FROM release WHERE release_group = ?1 ORDER BY id",
-            )?
-            .query_map([id], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))?
-            .collect::<R<_>>()?;
-        out.insert("count".into(), json!(releases.len()));
-        let releases = releases
-            .into_iter()
-            .map(|(gid, title, status)| {
-                let mut r = Obj::new();
-                r.insert("id".into(), Value::String(gid));
-                r.insert("title".into(), Value::String(title));
-                self.named(&mut r, "status", "release_status", status);
-                Value::Object(r)
+        let releases: Vec<Value> = self
+            .store
+            .t("release")
+            .by("release_group", row.id)
+            .map(|r| {
+                let mut o = Obj::new();
+                o.insert("id".into(), Value::String(r.gid()));
+                o.insert("title".into(), Value::String(r.text("name")));
+                self.named(&mut o, "status", "release_status", r.u32("status"));
+                Value::Object(o)
             })
             .collect();
+        out.insert("count".into(), json!(releases.len()));
         out.insert("releases".into(), Value::Array(releases));
-        put_list(&mut out, "tags", self.tags(Kind::ReleaseGroup, id)?);
-        Ok(out)
+        put_list(&mut out, "tags", self.tags(Kind::ReleaseGroup, row.id));
+        out
     }
 
-    fn recording(&self, id: i64) -> R<Obj> {
-        type Row = (
-            String,
-            String,
-            i64,
-            Option<i64>,
-            Option<String>,
-            Option<bool>,
-        );
-        let (gid, name, ac, length, comment, video): Row = self
-            .conn
-            .prepare_cached(q::RECORDING)?
-            .query_row([id], |r| {
-                Ok((
-                    r.get(0)?,
-                    r.get(1)?,
-                    r.get(2)?,
-                    r.get(3)?,
-                    r.get(4)?,
-                    r.get(5)?,
-                ))
-            })?;
+    fn recording(&self, row: &Row<'_>) -> Obj {
         let mut out = Obj::new();
-        out.insert("id".into(), Value::String(gid));
-        out.insert("title".into(), Value::String(name));
-        if let Some(length) = length {
+        out.insert("id".into(), Value::String(row.gid()));
+        out.insert("title".into(), Value::String(row.text("name")));
+        if let Some(length) = row.u32("length") {
             out.insert("length".into(), json!(length));
         }
         out.insert(
             "video".into(),
-            if video.unwrap_or(false) {
+            if row.bool("video") {
                 Value::Bool(true)
             } else {
                 Value::Null
             },
         );
-        put(&mut out, "disambiguation", comment);
-        let (credit, credit_id) = self.artist_credit(ac, true)?;
-        put(&mut out, "artist-credit-id", credit_id);
+        put(&mut out, "disambiguation", row.str("comment"));
+        let (credit, credit_id) = self.artist_credit(row.u32("artist_credit"), true);
+        put(&mut out, "artist-credit-id", credit_id.as_deref());
         out.insert("artist-credit".into(), credit);
-        let first: Option<i64> = self
-            .conn
-            .prepare_cached(q::RECORDING_FIRST_RELEASE_DATE)?
-            .query_row([id], |r| r.get(0))
-            .optional()?;
-        put(
-            &mut out,
-            "first-release-date",
-            first.map(date::format_packed),
-        );
-        let isrcs = self.strings(q::RECORDING_ISRCS, id)?;
+        if let Some(first) = self.store.derived.recording_first_date(row.id) {
+            put(
+                &mut out,
+                "first-release-date",
+                Some(&date::format_packed(i64::from(first))),
+            );
+        }
         put_list(
             &mut out,
             "isrcs",
-            isrcs.into_iter().map(Value::String).collect(),
+            strings(self.store.t("isrc").by("recording", row.id), "isrc"),
         );
 
         // The releases it is on, each with the medium and track.
-        let tracks: Vec<(i64, String, i64, Option<String>, String, Option<i64>, i64)> = self
-            .conn
-            .prepare_cached(
-                "SELECT m.release, t.gid, t.position, t.number, t.name, t.length, t.medium FROM track t \
-                 JOIN medium m ON m.id = t.medium WHERE t.recording = ?1 ORDER BY m.release, m.position, t.position",
-            )?
-            .query_map([id], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?, r.get(5)?, r.get(6)?)))?
-            .collect::<R<_>>()?;
+        let ctx = self.ctx();
+        let mut tracks: Vec<(u32, Row<'_>, Row<'_>)> = self
+            .store
+            .t("track")
+            .by("recording", row.id)
+            .filter_map(|t| {
+                let medium = self.store.t("medium").get(t.u32("medium")?)?;
+                Some((medium.u32("release")?, medium, t))
+            })
+            .collect();
+        tracks.sort_by_key(|(release, medium, track)| {
+            (*release, medium.u32("position"), track.u32("position"))
+        });
         let mut releases = Vec::new();
         let mut last = None;
-        for (release, tgid, position, number, title, tlength, medium) in tracks {
+        for (release, medium, track) in tracks {
             if last == Some(release) || releases.len() >= RECORDING_RELEASES {
                 continue;
             }
             last = Some(release);
-            let mut r = self.release(release, false)?;
-            let (mgid, mposition, format, track_count): (Option<String>, i64, Option<i64>, i64) =
-                self.conn
-                    .prepare_cached(q::MEDIUM)?
-                    .query_row([medium], |row| {
-                        Ok((row.get(1)?, row.get(2)?, row.get(3)?, row.get(5)?))
-                    })?;
+            let Some(release_row) = self.store.t("release").get(release) else {
+                continue;
+            };
+            let mut r = self.release(&release_row, false);
             let mut m = Obj::new();
-            put(&mut m, "id", mgid);
-            m.insert("position".into(), json!(mposition));
-            if let Some(f) = self.lk.named("medium_format", format) {
-                m.insert("format".into(), Value::String(f.name.clone()));
+            m.insert("id".into(), Value::String(medium.gid()));
+            m.insert("position".into(), json!(medium.u32("position")));
+            if let Some((format, _)) = self.store.named("medium_format", medium.u32("format")) {
+                m.insert("format".into(), Value::String(format.to_owned()));
             }
-            let mut track = Obj::new();
-            track.insert("id".into(), Value::String(tgid));
-            put(&mut track, "number", number);
-            track.insert("title".into(), Value::String(title));
-            if let Some(l) = tlength {
-                track.insert("length".into(), json!(l));
+            let mut t = Obj::new();
+            t.insert("id".into(), Value::String(track.gid()));
+            put(&mut t, "number", track.str("number"));
+            t.insert("title".into(), Value::String(ctx.track_title(&track)));
+            if let Some(l) = track.u32("length") {
+                t.insert("length".into(), json!(l));
             }
-            m.insert("track".into(), json!([track]));
-            m.insert("track-count".into(), json!(track_count));
-            m.insert("track-offset".into(), json!(position - 1));
+            m.insert("track".into(), json!([t]));
+            m.insert(
+                "track-count".into(),
+                json!(medium.u32("track_count").unwrap_or(0)),
+            );
+            m.insert(
+                "track-offset".into(),
+                json!(i64::from(track.u32("position").unwrap_or(1)) - 1),
+            );
             r.insert("media".into(), json!([m]));
             releases.push(Value::Object(r));
         }
         put_list(&mut out, "releases", releases);
-        put_list(&mut out, "tags", self.tags(Kind::Recording, id)?);
-        Ok(out)
+        put_list(&mut out, "tags", self.tags(Kind::Recording, row.id));
+        out
     }
 
-    fn work(&self, id: i64) -> R<Obj> {
-        let (gid, name, type_id, comment): (String, String, Option<i64>, Option<String>) = self
-            .conn
-            .prepare_cached(q::WORK)?
-            .query_row([id], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?)))?;
+    /// Relationships of a work or event to artists, as the search server lists them.
+    fn artist_relations(&self, table: &str, id: u32) -> Vec<Value> {
+        self.store
+            .t(table)
+            .by("entity1", id)
+            .filter_map(|rel| {
+                let artist = self.store.t("artist").get(rel.u32("entity0")?)?;
+                let link = self.store.t("link").get(rel.u32("link")?)?;
+                let lt = self.store.t("link_type").get(link.u32("link_type")?);
+                Some(json!({
+                    "type": lt.map(|t| t.text("name")),
+                    "type-id": lt.map(|t| t.gid()),
+                    "direction": "backward",
+                    "artist": {"id": artist.gid(), "name": artist.text("name"), "sort-name": artist.text("sort_name")},
+                }))
+            })
+            .collect()
+    }
+
+    fn work(&self, row: &Row<'_>) -> Obj {
         let mut out = Obj::new();
-        out.insert("id".into(), Value::String(gid));
-        if let Some(t) = self.lk.named("work_type", type_id) {
-            out.insert("type".into(), Value::String(t.name.clone()));
+        out.insert("id".into(), Value::String(row.gid()));
+        if let Some((t, _)) = self.store.named("work_type", row.u32("type")) {
+            out.insert("type".into(), Value::String(t.to_owned()));
         }
-        out.insert("title".into(), Value::String(name));
+        out.insert("title".into(), Value::String(row.text("name")));
         let languages: Vec<String> = self
-            .conn
-            .prepare_cached(q::WORK_LANGUAGES)?
-            .query_map([id], |r| r.get::<_, i64>(0))?
-            .collect::<R<Vec<_>>>()?
-            .into_iter()
-            .filter_map(|l| self.lk.languages.get(&l).cloned())
+            .store
+            .t("work_language")
+            .by("work", row.id)
+            .filter_map(|l| self.store.language(l.u32("language")).map(str::to_owned))
             .collect();
         match languages.as_slice() {
             [] => {}
@@ -718,113 +612,59 @@ impl Formatter<'_> {
             "languages",
             languages.into_iter().map(Value::String).collect(),
         );
-        let iswcs = self.strings(q::WORK_ISWCS, id)?;
         put_list(
             &mut out,
             "iswcs",
-            iswcs.into_iter().map(Value::String).collect(),
+            strings(self.store.t("iswc").by("work", row.id), "iswc"),
         );
-        put(&mut out, "disambiguation", comment);
-        // Its artists (composer, lyricist, ...)
-        let rels: Vec<(i64, i64)> = self
-            .conn
-            .prepare_cached(q::RELS_BACKWARD)?
-            .query_map((Kind::Work.code(), id, Kind::Artist.code()), |r| {
-                Ok((r.get(1)?, r.get(6)?))
-            })?
-            .collect::<R<_>>()?;
-        let mut relations = Vec::new();
-        for (artist, link_type) in rels {
-            let (agid, aname, asort): (String, String, String) = self
-                .conn
-                .prepare_cached(q::ARTIST)?
-                .query_row([artist], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))?;
-            let lt = self.lk.link_types.get(&link_type);
-            relations.push(json!({
-                "type": lt.map(|t| t.name.clone()),
-                "type-id": lt.and_then(|t| t.gid.clone()),
-                "direction": "backward",
-                "artist": {"id": agid, "name": aname, "sort-name": asort},
-            }));
-        }
-        put_list(&mut out, "relations", relations);
-        self.extras(&mut out, Kind::Work, id)?;
-        Ok(out)
+        put(&mut out, "disambiguation", row.str("comment"));
+        put_list(
+            &mut out,
+            "relations",
+            self.artist_relations("l_artist_work", row.id),
+        );
+        self.extras(&mut out, Kind::Work, row.id);
+        out
     }
 
-    fn label(&self, id: i64) -> R<Obj> {
-        let row = self.conn.prepare_cached(q::LABEL)?.query_row([id], |r| {
-            Ok((
-                r.get::<_, String>(0)?,
-                r.get::<_, String>(1)?,
-                date::format(r.get(2)?, r.get(3)?, r.get(4)?),
-                date::format(r.get(5)?, r.get(6)?, r.get(7)?),
-                r.get::<_, Option<bool>>(8)?.unwrap_or(false),
-                r.get::<_, Option<i64>>(9)?,
-                r.get::<_, Option<i64>>(10)?,
-                r.get::<_, Option<i64>>(11)?,
-                r.get::<_, Option<String>>(12)?,
-            ))
-        })?;
-        let (gid, name, begin, end, ended, type_id, code, area, comment) = row;
+    fn label(&self, row: &Row<'_>) -> Obj {
         let mut out = Obj::new();
-        out.insert("id".into(), Value::String(gid));
-        self.named(&mut out, "type", "label_type", type_id);
-        out.insert("name".into(), Value::String(name.clone()));
-        out.insert("sort-name".into(), Value::String(name));
-        if let Some(code) = code {
+        out.insert("id".into(), Value::String(row.gid()));
+        self.named(&mut out, "type", "label_type", row.u32("type"));
+        out.insert("name".into(), Value::String(row.text("name")));
+        out.insert("sort-name".into(), Value::String(row.text("name")));
+        if let Some(code) = row.u32("label_code") {
             out.insert("label-code".into(), json!(code));
         }
-        if let Some(area) = area {
-            put(
-                &mut out,
-                "country",
-                self.strings(q::AREA_ISO1, area)?.into_iter().next(),
-            );
-            out.insert("area".into(), Value::Object(self.area(area, false)?));
+        put(&mut out, "country", self.code(row.u32("area")).as_deref());
+        if let Some(area) = self.area_by_id(row.u32("area")) {
+            out.insert("area".into(), Value::Object(area));
         }
-        let ipis = self.strings(q::LABEL_IPIS, id)?;
         put_list(
             &mut out,
             "ipis",
-            ipis.into_iter().map(Value::String).collect(),
+            strings(self.store.t("label_ipi").by("label", row.id), "ipi"),
         );
-        let isnis = self.strings(q::LABEL_ISNIS, id)?;
         put_list(
             &mut out,
             "isnis",
-            isnis.into_iter().map(Value::String).collect(),
+            strings(self.store.t("label_isni").by("label", row.id), "isni"),
         );
-        out.insert("life-span".into(), Self::life_span(begin, end, ended));
-        put(&mut out, "disambiguation", comment);
-        self.extras(&mut out, Kind::Label, id)?;
-        Ok(out)
+        out.insert("life-span".into(), life_span(row, true));
+        put(&mut out, "disambiguation", row.str("comment"));
+        self.extras(&mut out, Kind::Label, row.id);
+        out
     }
 
-    fn place(&self, id: i64) -> R<Obj> {
-        let row = self.conn.prepare_cached(q::PLACE)?.query_row([id], |r| {
-            Ok((
-                r.get::<_, String>(0)?,
-                r.get::<_, String>(1)?,
-                date::format(r.get(2)?, r.get(3)?, r.get(4)?),
-                date::format(r.get(5)?, r.get(6)?, r.get(7)?),
-                r.get::<_, Option<bool>>(8)?.unwrap_or(false),
-                r.get::<_, Option<i64>>(9)?,
-                r.get::<_, Option<String>>(10)?,
-                r.get::<_, Option<i64>>(11)?,
-                r.get::<_, Option<String>>(12)?,
-                r.get::<_, Option<String>>(13)?,
-            ))
-        })?;
-        let (gid, name, begin, end, ended, type_id, address, area, coordinates, comment) = row;
+    fn place(&self, row: &Row<'_>) -> Obj {
         let mut out = Obj::new();
-        out.insert("id".into(), Value::String(gid));
-        self.named(&mut out, "type", "place_type", type_id);
-        out.insert("name".into(), Value::String(name));
-        put(&mut out, "address", address);
+        out.insert("id".into(), Value::String(row.gid()));
+        self.named(&mut out, "type", "place_type", row.u32("type"));
+        out.insert("name".into(), Value::String(row.text("name")));
+        put(&mut out, "address", row.str("address"));
         // The search server has coordinates as strings.
-        if let Some((lat, long)) = coordinates
-            .as_deref()
+        if let Some((lat, long)) = row
+            .str("coordinates")
             .and_then(|c| c.trim_matches(|c| c == '(' || c == ')').split_once(','))
         {
             out.insert(
@@ -832,98 +672,49 @@ impl Formatter<'_> {
                 json!({"latitude": lat.trim(), "longitude": long.trim()}),
             );
         }
-        if let Some(area) = area {
-            out.insert("area".into(), Value::Object(self.area(area, false)?));
+        if let Some(area) = self.area_by_id(row.u32("area")) {
+            out.insert("area".into(), Value::Object(area));
         }
-        out.insert("life-span".into(), Self::life_span(begin, end, ended));
-        put(&mut out, "disambiguation", comment);
-        self.extras(&mut out, Kind::Place, id)?;
-        Ok(out)
+        out.insert("life-span".into(), life_span(row, true));
+        put(&mut out, "disambiguation", row.str("comment"));
+        self.extras(&mut out, Kind::Place, row.id);
+        out
     }
 
-    fn event(&self, id: i64) -> R<Obj> {
-        let row = self.conn.prepare_cached(q::EVENT)?.query_row([id], |r| {
-            Ok((
-                r.get::<_, String>(0)?,
-                r.get::<_, String>(1)?,
-                date::format(r.get(2)?, r.get(3)?, r.get(4)?),
-                date::format(r.get(5)?, r.get(6)?, r.get(7)?),
-                r.get::<_, Option<bool>>(8)?.unwrap_or(false),
-                r.get::<_, Option<i64>>(9)?,
-                r.get::<_, Option<String>>(10)?,
-                r.get::<_, Option<String>>(13)?,
-            ))
-        })?;
-        let (gid, name, begin, end, ended, type_id, time, comment) = row;
+    fn event(&self, row: &Row<'_>) -> Obj {
         let mut out = Obj::new();
-        out.insert("id".into(), Value::String(gid));
-        if let Some(t) = self.lk.named("event_type", type_id) {
-            out.insert("type".into(), Value::String(t.name.clone()));
+        out.insert("id".into(), Value::String(row.gid()));
+        if let Some((t, _)) = self.store.named("event_type", row.u32("type")) {
+            out.insert("type".into(), Value::String(t.to_owned()));
         }
-        out.insert("name".into(), Value::String(name));
+        out.insert("name".into(), Value::String(row.text("name")));
         put(
             &mut out,
             "time",
-            time.map(|t| t.get(..5).unwrap_or(&t).to_owned()),
+            row.str("time").map(|t| t.get(..5).unwrap_or(t)),
         );
-        let mut span = Obj::new();
-        put(&mut span, "begin", Some(begin));
-        put(&mut span, "end", Some(end));
-        if ended {
-            span.insert("ended".into(), Value::Bool(true));
-        }
-        out.insert("life-span".into(), Value::Object(span));
-        put(&mut out, "disambiguation", comment);
-        // Its artists
-        let rels: Vec<(i64, i64)> = self
-            .conn
-            .prepare_cached(q::RELS_BACKWARD)?
-            .query_map((Kind::Event.code(), id, Kind::Artist.code()), |r| {
-                Ok((r.get(1)?, r.get(6)?))
-            })?
-            .collect::<R<_>>()?;
-        let mut relations = Vec::new();
-        for (artist, link_type) in rels {
-            let (agid, aname, asort): (String, String, String) = self
-                .conn
-                .prepare_cached(q::ARTIST)?
-                .query_row([artist], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))?;
-            let lt = self.lk.link_types.get(&link_type);
-            relations.push(json!({
-                "type": lt.map(|t| t.name.clone()),
-                "type-id": lt.and_then(|t| t.gid.clone()),
-                "direction": "backward",
-                "artist": {"id": agid, "name": aname, "sort-name": asort},
-            }));
-        }
-        put_list(&mut out, "relations", relations);
-        self.extras(&mut out, Kind::Event, id)?;
-        Ok(out)
+        out.insert("life-span".into(), life_span(row, false));
+        put(&mut out, "disambiguation", row.str("comment"));
+        put_list(
+            &mut out,
+            "relations",
+            self.artist_relations("l_artist_event", row.id),
+        );
+        self.extras(&mut out, Kind::Event, row.id);
+        out
     }
 
     /// Instruments and series: name, type, disambiguation (and an instrument's description).
-    fn simple(&self, id: i64, kind: Kind, sql: &str, type_table: &str) -> R<Obj> {
-        let (gid, name): (String, String) = self
-            .conn
-            .prepare_cached(sql)?
-            .query_row([id], |r| Ok((r.get(0)?, r.get(1)?)))?;
-        let (type_id, comment, description): (Option<i64>, Option<String>, Option<String>) =
-            if kind == Kind::Series {
-                self.conn
-                    .prepare_cached(sql)?
-                    .query_row([id], |r| Ok((r.get(3)?, r.get(2)?, None)))?
-            } else {
-                self.conn
-                    .prepare_cached(sql)?
-                    .query_row([id], |r| Ok((r.get(2)?, r.get(3)?, r.get(4)?)))?
-            };
+    fn simple(&self, row: &Row<'_>, kind: Kind, type_table: &str) -> Obj {
         let mut out = Obj::new();
-        out.insert("id".into(), Value::String(gid));
-        self.named(&mut out, "type", type_table, type_id);
-        out.insert("name".into(), Value::String(name));
-        put(&mut out, "description", description);
-        put(&mut out, "disambiguation", comment);
-        self.extras(&mut out, kind, id)?;
-        Ok(out)
+        out.insert("id".into(), Value::String(row.gid()));
+        self.named(&mut out, "type", type_table, row.u32("type"));
+        out.insert("name".into(), Value::String(row.text("name")));
+        if kind == Kind::Instrument {
+            put(&mut out, "description", row.str("description"));
+        }
+        put(&mut out, "disambiguation", row.str("comment"));
+        self.extras(&mut out, kind, row.id);
+        out
     }
 }

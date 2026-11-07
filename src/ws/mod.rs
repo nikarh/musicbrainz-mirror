@@ -1,4 +1,4 @@
-//! The web service: musicbrainz-server's `/ws/2` (read-only), answered from the database.
+//! The web service: musicbrainz-server's `/ws/2` (read-only), answered from the store.
 
 pub mod browse;
 pub mod caa;
@@ -15,35 +15,34 @@ use axum::extract::{Path, RawQuery, State};
 use axum::http::{HeaderMap, HeaderValue, Method, StatusCode, header};
 use axum::response::{IntoResponse, Response};
 use axum::routing::get;
-use rusqlite::{Connection, OptionalExtension as _};
 use serde_json::{Map, Value, json};
 
 use self::browse::{Linked, Page};
-use self::entity::{Ctx, Filter, Opts};
+use self::entity::{Ctx, Filter, Missing, Opts};
 use self::inc::{Inc, Mode};
-use crate::db::{Db, Lookups, queries as q};
 use crate::kind::Kind;
+use crate::store::Store;
 
 /// Releases of a browse with `inc=recordings` stop once they have this many tracks (musicbrainz-server's
 /// `WS_TRACK_LIMIT`), except the first.
-const TRACK_LIMIT: i64 = 500;
+const TRACK_LIMIT: u32 = 500;
 
-/// The database being served; empty until the first import is done.
-pub type Current = Arc<ArcSwapOption<Db>>;
+/// The store being served; empty until the first import is done.
+pub type Current = Arc<ArcSwapOption<Store>>;
 
 #[derive(Clone)]
 pub struct AppState {
-    pub db: Current,
+    pub store: Current,
     /// Where cover art images are (their URLs in the Cover Art Archive API point there).
-    pub cover_art_url: std::sync::Arc<str>,
-    /// Requests running against the database at once (each takes a blocking thread).
+    pub cover_art_url: Arc<str>,
+    /// Requests running at once (each takes a blocking thread).
     pub permits: Arc<tokio::sync::Semaphore>,
 }
 
-pub fn router(db: Current, cover_art_url: &str) -> Router {
+pub fn router(store: Current, cover_art_url: &str) -> Router {
     let permits = std::thread::available_parallelism().map_or(4, |n| n.get() * 2);
     let state = AppState {
-        db,
+        store,
         cover_art_url: cover_art_url.trim_end_matches('/').into(),
         permits: Arc::new(tokio::sync::Semaphore::new(permits)),
     };
@@ -58,8 +57,8 @@ pub fn router(db: Current, cover_art_url: &str) -> Router {
 }
 
 async fn healthz(State(state): State<AppState>) -> Response {
-    match state.db.load_full() {
-        Some(db) => (StatusCode::OK, format!("ok {}\n", db.dump)).into_response(),
+    match state.store.load_full() {
+        Some(store) => (StatusCode::OK, format!("ok {}\n", store.dump())).into_response(),
         // Up, but nothing to serve yet: healthy as a process.
         None => (StatusCode::OK, "ok, no database yet\n").into_response(),
     }
@@ -78,7 +77,7 @@ pub enum Format {
     Txt,
 }
 
-/// A request's query parameters, in order.
+/// A request's query parameters, in order; and whether the answer is XML.
 #[derive(Debug, Default)]
 pub struct Params(Vec<(String, String)>, bool);
 
@@ -89,11 +88,6 @@ impl Params {
                 .unwrap_or_default(),
             false,
         )
-    }
-
-    /// Whether the answer is XML (which shows a few things the JSON leaves out).
-    fn xml(&self) -> bool {
-        self.1
     }
 
     #[must_use]
@@ -206,8 +200,8 @@ async fn ws(
     let mut params = Params::parse(raw.as_deref());
     let format = params.format(&headers);
     params.1 = format == Format::Xml;
-    run(state, format, move |conn, lk| {
-        collection(conn, lk, &resource, &params)
+    run(state, format, move |store| {
+        collection(store, &resource, &params)
     })
     .await
 }
@@ -221,18 +215,18 @@ async fn ws_id(
     let mut params = Params::parse(raw.as_deref());
     let format = params.format(&headers);
     params.1 = format == Format::Xml;
-    run(state, format, move |conn, lk| {
-        lookup(conn, lk, &resource, &id, &params, format)
+    run(state, format, move |store| {
+        lookup(store, &resource, &id, &params, format)
     })
     .await
 }
 
-/// Answers a request with a connection from the pool, on a blocking thread.
+/// Answers a request from the store, on a blocking thread (page faults of the mapped files block).
 async fn run<F>(state: AppState, format: Format, answer: F) -> Response
 where
-    F: FnOnce(&Connection, &Lookups) -> rusqlite::Result<Answer> + Send + 'static,
+    F: FnOnce(&Store) -> Result<Answer, Missing> + Send + 'static,
 {
-    let Some(db) = state.db.load_full() else {
+    let Some(store) = state.store.load_full() else {
         return Answer::Error(
             StatusCode::SERVICE_UNAVAILABLE,
             "The database is not ready yet: the first MusicBrainz dump is being imported".into(),
@@ -242,12 +236,7 @@ where
     let Ok(_permit) = state.permits.acquire().await else {
         return StatusCode::SERVICE_UNAVAILABLE.into_response();
     };
-    let answered = tokio::task::spawn_blocking(move || {
-        let conn = db.conn().map_err(|e| e.to_string())?;
-        answer(&conn, &db.lookups).map_err(|e| e.to_string())
-    })
-    .await;
-    match answered {
+    match tokio::task::spawn_blocking(move || answer(&store)).await {
         Ok(Ok(answer)) => answer.respond(format),
         Ok(Err(e)) => {
             tracing::error!(error = %e, "request failed");
@@ -280,32 +269,15 @@ pub fn is_mbid(s: &str) -> bool {
         })
 }
 
-/// The database id of an entity by its MBID, or by an MBID merged into it.
-pub fn resolve(
-    conn: &Connection,
-    table: &str,
-    kind: Option<Kind>,
-    mbid: &str,
-) -> rusqlite::Result<Option<i64>> {
-    let mbid = mbid.to_ascii_lowercase();
-    if let Some(id) = conn
-        .prepare_cached(&q::by_gid(table))?
-        .query_row([&mbid], |r| r.get(0))
-        .optional()?
-    {
-        return Ok(Some(id));
-    }
-    match kind {
-        Some(kind) => conn
-            .prepare_cached(q::GID_REDIRECT)?
-            .query_row((&mbid, kind.code()), |r| r.get(0))
-            .optional(),
-        None => Ok(None),
-    }
-}
-
 /// `type=` and `status=` (musicbrainz-server's `validate_type` / `validate_status`).
-fn filter(lk: &Lookups, resource: &str, inc: &Inc, params: &Params) -> Result<Filter, String> {
+fn filter(store: &Store, resource: &str, inc: &Inc, params: &Params) -> Result<Filter, String> {
+    let by_name = |table: &str, name: &str| {
+        store
+            .t(table)
+            .iter()
+            .find(|r| r.str("name").is_some_and(|n| n.to_lowercase() == name))
+            .map(|r| r.id)
+    };
     let mut filter = Filter::default();
     if let Some(types) = params.value("type") {
         if !(inc.releases
@@ -323,15 +295,12 @@ fn filter(lk: &Lookups, resource: &str, inc: &Inc, params: &Params) -> Result<Fi
                 .strip_prefix("sa-")
                 .or_else(|| t.strip_prefix("va-"))
                 .unwrap_or(t);
-            let primary = lk
-                .all("release_group_primary_type")
-                .find(|(_, n)| n.name.to_lowercase() == name);
-            let secondary = lk
-                .all("release_group_secondary_type")
-                .find(|(_, n)| n.name.to_lowercase() == name);
-            match (primary, secondary) {
-                (Some((id, _)), _) => filter.primary_types.push(id),
-                (None, Some((id, _))) => filter.secondary_types.push(id),
+            match (
+                by_name("release_group_primary_type", name),
+                by_name("release_group_secondary_type", name),
+            ) {
+                (Some(id), _) => filter.primary_types.push(id),
+                (None, Some(id)) => filter.secondary_types.push(id),
                 _ => return Err(format!("{t} is not a recognized release-group type.")),
             }
         }
@@ -345,11 +314,8 @@ fn filter(lk: &Lookups, resource: &str, inc: &Inc, params: &Params) -> Result<Fi
                 .strip_prefix("sa-")
                 .or_else(|| s.strip_prefix("va-"))
                 .unwrap_or(s);
-            match lk
-                .all("release_status")
-                .find(|(_, n)| n.name.to_lowercase() == name)
-            {
-                Some((id, _)) => filter.status.push(id),
+            match by_name("release_status", name) {
+                Some(id) => filter.status.push(id),
                 None => return Err(format!("{s} is not a recognized release status.")),
             }
         }
@@ -371,11 +337,11 @@ fn filter(lk: &Lookups, resource: &str, inc: &Inc, params: &Params) -> Result<Fi
 
 /// `limit` (at most 100, 25 by default) and `offset`.
 fn page(params: &Params) -> Result<Page, String> {
-    let parse = |name: &str, default: i64| -> Result<i64, String> {
+    let parse = |name: &str, default: usize| -> Result<usize, String> {
         match params.value(name) {
             None => Ok(default),
-            Some(v) => match v.parse::<i64>() {
-                Ok(n) if n >= 0 && v.bytes().all(|b| b.is_ascii_digit()) => Ok(n),
+            Some(v) => match v.parse::<usize>() {
+                Ok(n) if v.bytes().all(|b| b.is_ascii_digit()) => Ok(n),
                 _ => Err("The 'limit' and 'offset' parameters must be positive integers".into()),
             },
         }
@@ -400,45 +366,47 @@ fn inc_param(resource: &str, mode: Mode, params: &Params) -> Result<Inc, String>
     inc::parse(resource, mode, incs.first().copied())
 }
 
+/// Returns early with a 400 answer.
+macro_rules! bad {
+    ($result:expr) => {
+        match $result {
+            Ok(v) => v,
+            Err(e) => return Ok(Answer::bad(e)),
+        }
+    };
+}
+
 /// `/ws/2/<resource>/<id>`
 fn lookup(
-    conn: &Connection,
-    lk: &Lookups,
+    store: &Store,
     resource: &str,
     id: &str,
     params: &Params,
     format: Format,
-) -> rusqlite::Result<Answer> {
+) -> Result<Answer, Missing> {
     match resource {
-        "discid" => return discid(conn, lk, id, params),
-        "isrc" => return isrc(conn, lk, id, params),
-        "iswc" => return iswc(conn, lk, id, params),
-        "genre" if id == "all" => return genre_all(conn, lk, params, format),
+        "discid" => return discid(store, id, params),
+        "isrc" => return isrc(store, id, params),
+        "iswc" => return iswc(store, id, params),
+        "genre" if id == "all" => return genre_all(store, params, format),
         _ => {}
     }
     let Some(kind) = Kind::from_name(resource) else {
         return Ok(Answer::not_found());
     };
-    let inc = match inc_param(resource, Mode::Lookup, params) {
-        Ok(inc) => inc,
-        Err(e) => return Ok(Answer::bad(e)),
-    };
-    let filter = match filter(lk, resource, &inc, params) {
-        Ok(f) => f,
-        Err(e) => return Ok(Answer::bad(e)),
-    };
+    let inc = bad!(inc_param(resource, Mode::Lookup, params));
+    let filter = bad!(filter(store, resource, &inc, params));
     if !is_mbid(id) {
         return Ok(Answer::bad("Invalid mbid."));
     }
-    let Some(entity) = resolve(conn, kind.table(), Some(kind), id)? else {
+    let Some(entity) = store.resolve(kind.table(), Some(kind), id) else {
         return Ok(Answer::not_found());
     };
     let ctx = Ctx {
-        conn,
-        lk,
+        store,
         inc: &inc,
         filter: &filter,
-        xml: params.xml(),
+        xml: params.1,
     };
     Ok(Answer::Ok(
         kind.name(),
@@ -447,44 +415,28 @@ fn lookup(
 }
 
 /// `/ws/2/<resource>?...`: a search (`query=`), a browse, or a URL by its address.
-fn collection(
-    conn: &Connection,
-    lk: &Lookups,
-    resource: &str,
-    params: &Params,
-) -> rusqlite::Result<Answer> {
+fn collection(store: &Store, resource: &str, params: &Params) -> Result<Answer, Missing> {
     let Some(kind) = Kind::from_name(resource) else {
         return Ok(match resource {
             "annotation" | "tag" | "cdstub" if params.value("query").is_some() => {
-                let page = match page(params) {
-                    Ok(p) => p,
-                    Err(e) => return Ok(Answer::bad(e)),
-                };
-                return search::search_other(
-                    conn,
-                    resource,
-                    params.value("query").unwrap_or(""),
-                    page,
-                );
+                let page = bad!(page(params));
+                search::search_other(store, resource, params.value("query").unwrap_or(""), page)
             }
             _ => Answer::not_found(),
         });
     };
     if let Some(query) = params.value("query") {
-        let page = match page(params) {
-            Ok(p) => p,
-            Err(e) => return Ok(Answer::bad(e)),
-        };
+        let page = bad!(page(params));
         if kind == Kind::Genre {
             return Ok(Answer::Error(
                 StatusCode::NOT_IMPLEMENTED,
                 "This hasn't been implemented yet.".into(),
             ));
         }
-        return search::search(conn, lk, kind, query, page);
+        return Ok(search::search(store, kind, query, page));
     }
     if kind == Kind::Url && params.get("resource").is_some() {
-        return url_by_resource(conn, lk, params);
+        return url_by_resource(store, params);
     }
     let Some((param, value)) = browse::params(kind)
         .iter()
@@ -494,18 +446,9 @@ fn collection(
             "The given parameters do not match any available query type for the {resource} resource."
         )));
     };
-    let mut inc = match inc_param(resource, Mode::Browse, params) {
-        Ok(inc) => inc,
-        Err(e) => return Ok(Answer::bad(e)),
-    };
-    let filter = match filter(lk, resource, &inc, params) {
-        Ok(f) => f,
-        Err(e) => return Ok(Answer::bad(e)),
-    };
-    let page = match page(params) {
-        Ok(p) => p,
-        Err(e) => return Ok(Answer::bad(e)),
-    };
+    let mut inc = bad!(inc_param(resource, Mode::Browse, params));
+    let filter = bad!(filter(store, resource, &inc, params));
+    let page = bad!(page(params));
     if !is_mbid(value) {
         return Ok(Answer::bad("Invalid mbid."));
     }
@@ -513,7 +456,7 @@ fn collection(
     let Some((table, linked_kind, make)) = Linked::parse(param) else {
         return Ok(Answer::not_found());
     };
-    let Some(linked_id) = resolve(conn, table, linked_kind, value)? else {
+    let Some(linked_id) = store.resolve(table, linked_kind, value) else {
         return Ok(Answer::not_found());
     };
     let linked = make(linked_id);
@@ -521,42 +464,37 @@ fn collection(
         inc.recordings = true;
     }
     let ctx = Ctx {
-        conn,
-        lk,
+        store,
         inc: &inc,
         filter: &filter,
-        xml: params.xml(),
+        xml: params.1,
     };
-    let (mut ids, total) = browse::ids(&ctx, kind, linked, page)?;
+    let (mut ids, total) = browse::ids(&ctx, kind, linked, page);
     if kind == Kind::Release && inc.recordings {
-        limit_by_tracks(conn, &mut ids)?;
+        limit_by_tracks(store, &mut ids);
     }
     let items = ids
         .iter()
         .map(|id| ctx.entity(kind, *id, Opts::toplevel()))
-        .collect::<rusqlite::Result<Vec<_>>>()?;
+        .collect::<Result<Vec<_>, _>>()?;
     Ok(list(kind, items, total, page.offset))
 }
 
 /// A browse's or search's list: `{"<plural>": [...], "<type>-count": n, "<type>-offset": n}`, sorted by MBID as
 /// musicbrainz-server sorts it (genres by name).
 #[must_use]
-pub fn list(kind: Kind, mut items: Vec<Value>, total: i64, offset: i64) -> Answer {
+pub fn list(kind: Kind, mut items: Vec<Value>, total: usize, offset: usize) -> Answer {
     let key = if kind == Kind::Genre { "name" } else { "id" };
     items.sort_by(|a, b| {
         a.get(key)
             .and_then(Value::as_str)
             .cmp(&b.get(key).and_then(Value::as_str))
     });
-    Answer::Ok(list_root(kind), list_value(kind, items, total, offset))
-}
-
-fn list_value(kind: Kind, items: Vec<Value>, total: i64, offset: i64) -> Value {
     let mut out = Map::new();
     out.insert(kind.plural().into(), Value::Array(items));
     out.insert(format!("{}-count", kind.name()), json!(total));
     out.insert(format!("{}-offset", kind.name()), json!(offset));
-    Value::Object(out)
+    Answer::Ok(list_root(kind), Value::Object(out))
 }
 
 #[must_use]
@@ -579,63 +517,52 @@ pub fn list_root(kind: Kind) -> &'static str {
 }
 
 /// Cuts a page of releases so that it holds at most [`TRACK_LIMIT`] tracks (but at least one release).
-fn limit_by_tracks(conn: &Connection, ids: &mut Vec<i64>) -> rusqlite::Result<()> {
+fn limit_by_tracks(store: &Store, ids: &mut Vec<u32>) {
     let mut tracks = 0;
     let mut keep = 0;
     for id in ids.iter() {
-        let count: i64 = conn
-            .prepare_cached("SELECT coalesce(sum(track_count), 0) FROM medium WHERE release = ?1")?
-            .query_row([id], |r| r.get(0))?;
-        tracks += count;
+        tracks += store
+            .t("medium")
+            .by("release", *id)
+            .filter_map(|m| m.u32("track_count"))
+            .sum::<u32>();
         if tracks > TRACK_LIMIT && keep > 0 {
             break;
         }
         keep += 1;
     }
     ids.truncate(keep);
-    Ok(())
 }
 
-fn url_by_resource(conn: &Connection, lk: &Lookups, params: &Params) -> rusqlite::Result<Answer> {
-    let inc = match inc_param("url", Mode::Lookup, params) {
-        Ok(inc) => inc,
-        Err(e) => return Ok(Answer::bad(e)),
-    };
+fn url_by_resource(store: &Store, params: &Params) -> Result<Answer, Missing> {
+    let inc = bad!(inc_param("url", Mode::Lookup, params));
     let filter = Filter::default();
     let ctx = Ctx {
-        conn,
-        lk,
+        store,
         inc: &inc,
         filter: &filter,
-        xml: params.xml(),
+        xml: params.1,
     };
     let resources = params.all("resource");
-    let find = |url: &str| {
-        conn.prepare_cached(q::URL_BY_RESOURCE)?
-            .query_row([url], |r| r.get::<_, i64>(0))
-            .optional()
-    };
+    let find = |url: &str| store.t("url").find("url", url).first().map(|r| r.id);
     if let [one] = resources.as_slice() {
-        let Some(id) = find(one)? else {
+        let Some(id) = find(one) else {
             return Ok(Answer::not_found());
         };
         return Ok(Answer::Ok("url", ctx.url(id, Opts::toplevel())?));
     }
     let mut items = Vec::new();
     for url in resources.iter().take(100) {
-        if let Some(id) = find(url)? {
+        if let Some(id) = find(url) {
             items.push(ctx.url(id, Opts::toplevel())?);
         }
     }
-    let total = i64::try_from(items.len()).unwrap_or(i64::MAX);
+    let total = items.len();
     Ok(list(Kind::Url, items, total, 0))
 }
 
-fn isrc(conn: &Connection, lk: &Lookups, isrc: &str, params: &Params) -> rusqlite::Result<Answer> {
-    let inc = match inc_param("isrc", Mode::Lookup, params) {
-        Ok(inc) => inc,
-        Err(e) => return Ok(Answer::bad(e)),
-    };
+fn isrc(store: &Store, isrc: &str, params: &Params) -> Result<Answer, Missing> {
+    let inc = bad!(inc_param("isrc", Mode::Lookup, params));
     let valid = isrc.len() == 12
         && isrc.bytes().take(2).all(|b| b.is_ascii_uppercase())
         && isrc
@@ -647,20 +574,23 @@ fn isrc(conn: &Connection, lk: &Lookups, isrc: &str, params: &Params) -> rusqlit
     if !valid {
         return Ok(Answer::bad("Invalid isrc."));
     }
-    let ids: Vec<i64> = conn
-        .prepare_cached(q::RECORDINGS_BY_ISRC)?
-        .query_map([isrc], |r| r.get(0))?
-        .collect::<rusqlite::Result<_>>()?;
+    let mut ids: Vec<(String, u32)> = store
+        .t("isrc")
+        .find("isrc", isrc)
+        .iter()
+        .filter_map(|r| r.u32("recording"))
+        .filter_map(|id| store.t("recording").get(id).map(|r| (r.text("name"), id)))
+        .collect();
     if ids.is_empty() {
         return Ok(Answer::not_found());
     }
+    ids.sort();
     let filter = Filter::default();
     let ctx = Ctx {
-        conn,
-        lk,
+        store,
         inc: &inc,
         filter: &filter,
-        xml: params.xml(),
+        xml: params.1,
     };
     // Loaded as the requested recordings, serialized as nested ones.
     let o = Opts {
@@ -669,23 +599,19 @@ fn isrc(conn: &Connection, lk: &Lookups, isrc: &str, params: &Params) -> rusqlit
     };
     let recordings = ids
         .iter()
-        .map(|id| ctx.recording(*id, o))
-        .collect::<rusqlite::Result<Vec<_>>>()?;
+        .map(|(_, id)| ctx.recording(*id, o))
+        .collect::<Result<Vec<_>, _>>()?;
     Ok(Answer::Ok(
         "isrc",
         json!({"isrc": isrc, "recordings": recordings}),
     ))
 }
 
-fn iswc(conn: &Connection, lk: &Lookups, iswc: &str, params: &Params) -> rusqlite::Result<Answer> {
-    let inc = match inc_param("iswc", Mode::Lookup, params) {
-        Ok(inc) => inc,
-        Err(e) => return Ok(Answer::bad(e)),
-    };
+fn iswc(store: &Store, iswc: &str, params: &Params) -> Result<Answer, Missing> {
+    let inc = bad!(inc_param("iswc", Mode::Lookup, params));
     // T-DDD.DDD.DDD-C, with or without the separators
     let digits: String = iswc.chars().filter(char::is_ascii_digit).collect();
-    let valid = iswc.starts_with('T') && digits.len() == 10;
-    if !valid {
+    if !(iswc.starts_with('T') && digits.len() == 10) {
         return Ok(Answer::bad("Invalid iswc."));
     }
     let normalized = format!(
@@ -695,39 +621,34 @@ fn iswc(conn: &Connection, lk: &Lookups, iswc: &str, params: &Params) -> rusqlit
         digits.get(6..9).unwrap_or(""),
         digits.get(9..10).unwrap_or("")
     );
-    let ids: Vec<i64> = conn
-        .prepare_cached(q::WORKS_BY_ISWC)?
-        .query_map([&normalized], |r| r.get(0))?
-        .collect::<rusqlite::Result<_>>()?;
+    let mut ids: Vec<(String, u32)> = store
+        .t("iswc")
+        .find("iswc", &normalized)
+        .iter()
+        .filter_map(|r| r.u32("work"))
+        .filter_map(|id| store.t("work").get(id).map(|w| (w.text("name"), id)))
+        .collect();
     if ids.is_empty() {
         return Ok(Answer::not_found());
     }
+    ids.sort();
     let filter = Filter::default();
     let ctx = Ctx {
-        conn,
-        lk,
+        store,
         inc: &inc,
         filter: &filter,
-        xml: params.xml(),
+        xml: params.1,
     };
     let works = ids
         .iter()
-        .map(|id| ctx.work(*id, Opts::toplevel()))
-        .collect::<rusqlite::Result<Vec<_>>>()?;
-    let total = i64::try_from(works.len()).unwrap_or(i64::MAX);
+        .map(|(_, id)| ctx.work(*id, Opts::toplevel()))
+        .collect::<Result<Vec<_>, _>>()?;
+    let total = works.len();
     Ok(list(Kind::Work, works, total, 0))
 }
 
-fn discid(
-    conn: &Connection,
-    lk: &Lookups,
-    discid: &str,
-    params: &Params,
-) -> rusqlite::Result<Answer> {
-    let mut inc = match inc_param("discid", Mode::Lookup, params) {
-        Ok(inc) => inc,
-        Err(e) => return Ok(Answer::bad(e)),
-    };
+fn discid(store: &Store, discid: &str, params: &Params) -> Result<Answer, Missing> {
+    let mut inc = bad!(inc_param("discid", Mode::Lookup, params));
     let valid = discid.len() == 28
         && discid
             .bytes()
@@ -744,47 +665,36 @@ fn discid(
             "Invalid argument \"cdstubs\": must be \"yes\" or \"no\"",
         ));
     }
-    let mut page = match page(params) {
-        Ok(p) => p,
-        Err(e) => return Ok(Answer::bad(e)),
-    };
+    let mut page = bad!(page(params));
     page.limit = page.limit.min(25);
     inc.media = true;
     inc.discids = true;
     let filter = Filter::default();
     let ctx = Ctx {
-        conn,
-        lk,
+        store,
         inc: &inc,
         filter: &filter,
-        xml: params.xml(),
+        xml: params.1,
     };
-    if valid {
-        type Toc = (i64, String, Option<i64>, Option<i64>, Option<String>);
-        let cdtoc: Option<Toc> = conn
-            .prepare_cached(q::CDTOC_BY_DISCID)?
-            .query_row([discid], |r| {
-                Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?))
-            })
-            .optional()?;
-        if let Some((id, discid, track_count, leadout, offsets)) = cdtoc {
-            let mut releases: Vec<i64> = conn
-                .prepare_cached(q::RELEASES_BY_CDTOC)?
-                .query_map([id], |r| r.get(0))?
-                .collect::<rusqlite::Result<_>>()?;
-            releases.sort_unstable();
-            let releases = releases
-                .into_iter()
-                .skip(usize::try_from(page.offset).unwrap_or(0))
-                .take(usize::try_from(page.limit).unwrap_or(25))
-                .map(|r| ctx.release(r, Opts::toplevel()))
-                .collect::<rusqlite::Result<Vec<_>>>()?;
-            let mut disc = entity::cdtoc_json(discid, track_count, leadout, offsets.as_deref());
-            if let Value::Object(obj) = &mut disc {
-                obj.insert("releases".into(), Value::Array(releases));
-            }
-            return Ok(Answer::Ok("disc", disc));
+    if valid && let Some(cdtoc) = store.t("cdtoc").find("discid", discid).first().copied() {
+        let mut releases: Vec<u32> = store
+            .t("medium_cdtoc")
+            .by("cdtoc", cdtoc.id)
+            .filter_map(|mc| store.t("medium").get(mc.u32("medium")?)?.u32("release"))
+            .collect();
+        releases.sort_unstable();
+        releases.dedup();
+        let releases = releases
+            .into_iter()
+            .skip(page.offset)
+            .take(page.limit)
+            .map(|r| ctx.release(r, Opts::toplevel()))
+            .collect::<Result<Vec<_>, _>>()?;
+        let mut disc = entity::cdtoc_json(&cdtoc);
+        if let Value::Object(obj) = &mut disc {
+            obj.insert("releases".into(), Value::Array(releases));
         }
+        return Ok(Answer::Ok("disc", disc));
     }
     if toc.is_some() {
         // Looking releases up by the track lengths of a TOC needs musicbrainz-server's medium_index, which the
@@ -794,43 +704,34 @@ fn discid(
     Ok(Answer::not_found())
 }
 
-fn genre_all(
-    conn: &Connection,
-    lk: &Lookups,
-    params: &Params,
-    format: Format,
-) -> rusqlite::Result<Answer> {
+fn genre_all(store: &Store, params: &Params, format: Format) -> Result<Answer, Missing> {
+    let mut genres: Vec<(String, u32)> = store
+        .t("genre")
+        .iter()
+        .map(|g| (g.text("name"), g.id))
+        .collect();
+    genres.sort();
     if format == Format::Txt {
-        let names: Vec<String> = conn
-            .prepare_cached(q::GENRE_NAMES)?
-            .query_map([], |r| r.get(0))?
-            .collect::<rusqlite::Result<_>>()?;
-        return Ok(Answer::Text(names.into_iter().map(|n| n + "\n").collect()));
+        return Ok(Answer::Text(
+            genres.into_iter().map(|(n, _)| n + "\n").collect(),
+        ));
     }
-    let page = match page(params) {
-        Ok(p) => p,
-        Err(e) => return Ok(Answer::bad(e)),
-    };
+    let page = bad!(page(params));
     let inc = Inc::default();
     let filter = Filter::default();
     let ctx = Ctx {
-        conn,
-        lk,
+        store,
         inc: &inc,
         filter: &filter,
-        xml: params.xml(),
+        xml: params.1,
     };
-    let ids: Vec<i64> = conn
-        .prepare_cached(q::GENRES_ALL)?
-        .query_map((page.limit, page.offset), |r| r.get(0))?
-        .collect::<rusqlite::Result<_>>()?;
-    let total: i64 = conn
-        .prepare_cached(q::GENRES_COUNT)?
-        .query_row([], |r| r.get(0))?;
-    let items = ids
+    let total = genres.len();
+    let items = genres
         .iter()
-        .map(|id| ctx.genre(*id, Opts::toplevel()))
-        .collect::<rusqlite::Result<Vec<_>>>()?;
+        .skip(page.offset)
+        .take(page.limit)
+        .map(|(_, id)| ctx.genre(*id, Opts::toplevel()))
+        .collect::<Result<Vec<_>, _>>()?;
     Ok(list(Kind::Genre, items, total, page.offset))
 }
 
@@ -849,10 +750,10 @@ mod tests {
 
     #[test]
     fn pages() {
-        let page = |q: &str| super::page(&Params::parse(Some(q)));
-        assert_eq!(page("limit=0").map(|p| p.limit), Ok(25));
-        assert_eq!(page("limit=500").map(|p| p.limit), Ok(100));
-        assert_eq!(page("offset=7").map(|p| p.offset), Ok(7));
+        let page = |q: &str| super::page(&Params::parse(Some(q))).map(|p| (p.limit, p.offset));
+        assert_eq!(page("limit=0"), Ok((25, 0)));
+        assert_eq!(page("limit=500"), Ok((100, 0)));
+        assert_eq!(page("offset=7"), Ok((25, 7)));
         assert!(page("limit=-1").is_err());
         assert!(page("offset=x").is_err());
     }
