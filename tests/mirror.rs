@@ -14,7 +14,7 @@ use std::time::Duration;
 use axum::extract::{Path as UrlPath, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
-use musicbrainz_mirror::config::Config;
+use musicbrainz_mirror::config::{BuildOptions, Config};
 use musicbrainz_mirror::mirror::Mirror;
 use sha2::{Digest as _, Sha256};
 
@@ -81,9 +81,9 @@ async fn serve(
     }
 }
 
+/// A test's own directory under cargo's temporary directory for tests (the same each run: a run replaces it).
 fn temp_dir(name: &str) -> PathBuf {
-    let dir =
-        std::env::temp_dir().join(format!("musicbrainz-mirror-{name}-{}", std::process::id()));
+    let dir = PathBuf::from(env!("CARGO_TARGET_TMPDIR")).join(format!("mirror-{name}"));
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).unwrap();
     dir
@@ -126,8 +126,11 @@ async fn downloads_imports_and_switches_dumps() {
         min_free_bytes: 0,
         dump_url: format!("http://{addr}/exports"),
         cover_art_url: "https://coverartarchive.org".into(),
-        build_threads: 2,
-        build_memory_mb: 64,
+        build: BuildOptions {
+            threads: 2,
+            memory_mb: 64,
+            compress_rows: true,
+        },
     };
     let mirror = Mirror::new(config).unwrap();
     mirror.start().await.unwrap();
@@ -189,8 +192,11 @@ fn mirror_config(data_dir: &Path, addr: std::net::SocketAddr) -> Config {
         min_free_bytes: 0,
         dump_url: format!("http://{addr}/exports"),
         cover_art_url: "https://coverartarchive.org".into(),
-        build_threads: 2,
-        build_memory_mb: 64,
+        build: BuildOptions {
+            threads: 2,
+            memory_mb: 64,
+            compress_rows: true,
+        },
     }
 }
 

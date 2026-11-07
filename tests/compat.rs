@@ -30,19 +30,28 @@ fn root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
 }
 
-/// The fixture imported, once per test binary.
-fn database() -> &'static Path {
-    static DB: std::sync::OnceLock<PathBuf> = std::sync::OnceLock::new();
-    DB.get_or_init(|| {
-        let dir =
-            std::env::temp_dir().join(format!("musicbrainz-mirror-compat-{}", std::process::id()));
+/// The fixture imported (with its rows compressed or not), once per test binary.
+fn database(compressed: bool) -> &'static Path {
+    static PLAIN: std::sync::OnceLock<PathBuf> = std::sync::OnceLock::new();
+    static COMPRESSED: std::sync::OnceLock<PathBuf> = std::sync::OnceLock::new();
+    let cell = if compressed { &COMPRESSED } else { &PLAIN };
+    cell.get_or_init(|| {
+        // under cargo's temporary directory for tests, the same each run (a run replaces it)
+        let dir = PathBuf::from(env!("CARGO_TARGET_TMPDIR")).join(if compressed {
+            "compat-compressed"
+        } else {
+            "compat-plain"
+        });
         let _ = std::fs::remove_dir_all(&dir);
         store::build::build(
             &[root().join("tests/fixtures/dump")],
             "fixture",
             &dir,
-            1,
-            50,
+            &store::build::BuildOptions {
+                threads: 1,
+                memory_mb: 50,
+                compress_rows: compressed,
+            },
         )
         .unwrap();
         dir
@@ -131,7 +140,13 @@ fn xml_facts(xml: &str) -> BTreeMap<String, usize> {
 
 #[tokio::test]
 async fn answers_as_musicbrainz_org() {
-    let store = Store::open(database()).unwrap();
+    for compressed in [false, true] {
+        answers_from(compressed).await;
+    }
+}
+
+async fn answers_from(compressed: bool) {
+    let store = Store::open(database(compressed)).unwrap();
     let router = ws::router(
         Arc::new(arc_swap::ArcSwapOption::from_pointee(store)),
         "https://coverartarchive.org",
@@ -208,7 +223,7 @@ async fn answers_as_musicbrainz_org() {
     assert!(checked > 0);
     assert!(
         failures.is_empty(),
-        "{} of {checked} requests differ:\n{}",
+        "{} of {checked} requests differ (compressed rows: {compressed}):\n{}",
         failures.len(),
         failures.join("\n")
     );
@@ -218,7 +233,7 @@ async fn answers_as_musicbrainz_org() {
 /// picks them), and `field:"value"` finds the entity for each of its values.
 #[test]
 fn every_search_field_is_indexed() {
-    let store = Store::open(database()).unwrap();
+    let store = Store::open(database(false)).unwrap();
     let mut failures = Vec::new();
     for kind in search::SEARCHABLE {
         let spec = search::fields(kind);
