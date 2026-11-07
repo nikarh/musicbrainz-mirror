@@ -48,13 +48,21 @@ enum Cond {
     Expr(&'static str),
     /// A type or status by name: the lookup table and the column of `e` (or an expression with `?` for the id).
     Named(&'static str, &'static str),
-    /// A partial date or range of them: SQL with `{cond}` for the condition over `date_year`, `date_month`,
-    /// `date_day` (or the packed `date` when `packed`).
-    Date(&'static str, bool),
+    /// A partial date or range of them: SQL with `{cond}` for the condition over the date's columns.
+    Date(&'static str, DateColumns),
     /// A number or range of them: SQL with `{cond}` over `n`.
     Number(&'static str),
     /// `true` / `false`
     Bool(&'static str),
+}
+
+/// The columns a date condition compares.
+#[derive(Clone, Copy)]
+enum DateColumns {
+    /// `<prefix>year`, `<prefix>month`, `<prefix>day`
+    Parts(&'static str),
+    /// One packed date column (src/db/date.rs).
+    Packed(&'static str),
 }
 
 /// The default columns of each search table, and its table name.
@@ -109,7 +117,7 @@ fn field(kind: Kind, name: &str) -> Option<Field> {
         (Kind::Artist, "endarea") => Sql(Expr(
             "(SELECT lower(name) FROM area WHERE id = e.end_area) = ?",
         )),
-        (Kind::Artist, "begin") => Sql(Date("({cond})", false)),
+        (Kind::Artist, "begin") => Sql(Date("({cond})", DateColumns::Parts("e.begin_date_"))),
         (Kind::Artist, "ended") => Sql(Bool("e.ended")),
         (Kind::Artist, "ipi") => Sql(In("SELECT artist FROM artist_ipi WHERE ipi = ?")),
         (Kind::Artist, "isni") => Sql(In("SELECT artist FROM artist_isni WHERE isni = ?")),
@@ -137,7 +145,7 @@ fn field(kind: Kind, name: &str) -> Option<Field> {
             "EXISTS (SELECT 1 FROM release_country rc \
             JOIN iso_3166_1 iso ON iso.area = rc.country WHERE rc.release = e.id AND iso.code = upper(?))",
         )),
-        (Kind::Release, "date") => Sql(Date(RELEASE_DATE, false)),
+        (Kind::Release, "date") => Sql(Date(RELEASE_DATE, DateColumns::Parts("date_"))),
         (Kind::Release, "format") => Sql(Named(
             "medium_format",
             "EXISTS (SELECT 1 FROM medium WHERE release = e.id AND format = ?)",
@@ -193,7 +201,7 @@ fn field(kind: Kind, name: &str) -> Option<Field> {
         )),
         (Kind::ReleaseGroup, "firstreleasedate") => Sql(Date(
             "EXISTS (SELECT 1 FROM release_group_meta m WHERE m.id = e.id AND {cond})",
-            false,
+            DateColumns::Parts("m.first_release_date_"),
         )),
         (Kind::ReleaseGroup, "releases") => Sql(Number(
             "(SELECT count(*) FROM release WHERE release_group = e.id) {cond}",
@@ -221,7 +229,7 @@ fn field(kind: Kind, name: &str) -> Option<Field> {
         (Kind::Recording, "video") => Sql(Bool("e.video")),
         (Kind::Recording, "firstreleasedate") => Sql(Date(
             "EXISTS (SELECT 1 FROM recording_first_release_date f WHERE f.recording = e.id AND {cond})",
-            true,
+            DateColumns::Packed("f.date"),
         )),
         (Kind::Recording, "tnum" | "position") => Sql(Number(
             "EXISTS (SELECT 1 FROM track WHERE recording = e.id AND position {cond})",
@@ -275,7 +283,7 @@ fn field(kind: Kind, name: &str) -> Option<Field> {
             "(SELECT code FROM area_country WHERE area = e.area) = upper(?)",
         )),
         (Kind::Label, "area") => Sql(Expr("(SELECT lower(name) FROM area WHERE id = e.area) = ?")),
-        (Kind::Label, "begin") => Sql(Date("({cond})", false)),
+        (Kind::Label, "begin") => Sql(Date("({cond})", DateColumns::Parts("e.begin_date_"))),
         (Kind::Label, "ended") => Sql(Bool("e.ended")),
         (Kind::Label, "ipi") => Sql(In("SELECT label FROM label_ipi WHERE ipi = ?")),
         (Kind::Label, "isni") => Sql(In("SELECT label FROM label_isni WHERE isni = ?")),
@@ -286,12 +294,8 @@ fn field(kind: Kind, name: &str) -> Option<Field> {
         (Kind::Area, "iso" | "iso1") => {
             Sql(In("SELECT area FROM iso_3166_1 WHERE code = upper(?)"))
         }
-        (Kind::Area, "iso2") => Sql(In(
-            "SELECT area FROM iso_3166_2 WHERE upper(code) = upper(?)",
-        )),
-        (Kind::Area, "iso3") => Sql(In(
-            "SELECT area FROM iso_3166_3 WHERE upper(code) = upper(?)",
-        )),
+        (Kind::Area, "iso2") => Sql(In("SELECT area FROM iso_3166_2 WHERE code = upper(?)")),
+        (Kind::Area, "iso3") => Sql(In("SELECT area FROM iso_3166_3 WHERE code = upper(?)")),
         (Kind::Area, "ended") => Sql(Bool("e.ended")),
 
         (Kind::Place, "place" | "placeaccent") => Text(&["name", "alias"]),
@@ -304,7 +308,7 @@ fn field(kind: Kind, name: &str) -> Option<Field> {
         (Kind::Event, "event" | "eventaccent") => Text(&["name", "alias"]),
         (Kind::Event, "eid") => Sql(In("SELECT id FROM event WHERE gid = ?")),
         (Kind::Event, "type") => Sql(Named("event_type", "e.type")),
-        (Kind::Event, "begin") => Sql(Date("({cond})", false)),
+        (Kind::Event, "begin") => Sql(Date("({cond})", DateColumns::Parts("e.begin_date_"))),
         (Kind::Event, "ended") => Sql(Bool("e.ended")),
         (Kind::Event, "arid") => Sql(In(
             "SELECT rel.entity1 FROM artist a JOIN rel ON rel.kind0 = 2 \
@@ -340,7 +344,7 @@ impl Sql {
 }
 
 /// A partial date (`2001`, `2001-05`, `2001-05-03`) as a condition on year/month/day columns, or a range of them.
-fn date_cond(node: &Node, packed: bool) -> Option<(String, Vec<String>)> {
+fn date_cond(node: &Node, columns: DateColumns) -> Option<(String, Vec<String>)> {
     let pack = |d: &str, upper: bool| -> Option<i64> {
         let mut parts = d.split('-').map(|p| p.trim().parse::<i64>());
         let y = parts.next()?.ok()?;
@@ -349,10 +353,13 @@ fn date_cond(node: &Node, packed: bool) -> Option<(String, Vec<String>)> {
         let fill = if upper { 99 } else { 0 };
         Some(y * 10000 + m.unwrap_or(fill) * 100 + day.unwrap_or(fill))
     };
-    let value = if packed {
-        "date".to_owned()
-    } else {
-        "(coalesce(date_year, 9999) * 10000 + coalesce(date_month, 99) * 100 + coalesce(date_day, 99))".to_owned()
+    let value = match columns {
+        DateColumns::Packed(column) => column.to_owned(),
+        DateColumns::Parts(p) => {
+            format!(
+                "(coalesce({p}year, 9999) * 10000 + coalesce({p}month, 99) * 100 + coalesce({p}day, 99))"
+            )
+        }
     };
     if let Node::Range { from, to, .. } = node {
         let from = from.as_deref().and_then(|f| pack(f, false)).unwrap_or(0);
@@ -410,19 +417,11 @@ fn sql_cond(kind: Kind, lk: &Lookups, cond: Cond, node: &Node) -> Sql {
                 None => Sql::never(),
             }
         }
-        Cond::Date(template, packed) => match date_cond(node, packed) {
-            Some((cond, params)) => {
-                // For the entity's own dates, the columns are begin_date_*.
-                let cond = if template == "({cond})" {
-                    cond.replace("date_", "e.begin_date_")
-                } else {
-                    cond
-                };
-                Sql {
-                    sql: template.replace("{cond}", &cond),
-                    params,
-                }
-            }
+        Cond::Date(template, columns) => match date_cond(node, columns) {
+            Some((cond, params)) => Sql {
+                sql: template.replace("{cond}", &cond),
+                params,
+            },
             None => Sql::never(),
         },
         Cond::Number(template) => match number_cond(node) {
@@ -877,10 +876,13 @@ fn now_iso() -> String {
     )
 }
 
-/// Every field of every entity type's search with a sample value, for the query plan tests.
+/// The SQL of searches by every field of every entity type, for the query plan tests: with text (the search table
+/// finds the candidates), and alone for the fields that find candidates themselves (MBIDs, codes). Fields of other
+/// kinds alone (a status, a year) are answered by going through the entity table in id order.
 #[cfg(test)]
 #[must_use]
-pub fn sample_queries() -> Vec<(Kind, String)> {
+#[allow(clippy::too_many_lines)]
+pub fn sample_sql() -> Vec<(String, String)> {
     const FIELDS: &[&str] = &[
         "alias",
         "comment",
@@ -957,18 +959,35 @@ pub fn sample_queries() -> Vec<(Kind, String)> {
         "series",
         "sid",
     ];
+    let lk = Lookups::for_tests();
     let mut out = Vec::new();
     for kind in Kind::ALL {
         if table(kind).is_none() {
             continue;
         }
-        out.push((kind, "love".to_owned()));
         for name in FIELDS {
-            if field(kind, name).is_some() {
-                // with text (the search table finds candidates) and alone (the condition does)
-                out.push((kind, format!("love {name}:1")));
-                out.push((kind, format!("+love +{name}:1")));
-                out.push((kind, format!("{name}:1")));
+            let Some(f) = field(kind, name) else { continue };
+            for query in [format!("love {name}:1"), format!("+love +{name}:1")] {
+                let plan = plan(kind, &lk, &query);
+                let (page, count) = text_sql(kind, &plan);
+                out.push((format!("{kind:?} {query} (page)"), page));
+                out.push((format!("{kind:?} {query} (count)"), count));
+                for cond in &plan.should {
+                    out.push((
+                        format!("{kind:?} {query} (rank)"),
+                        format!(
+                            "SELECT EXISTS (SELECT 1 FROM {} e WHERE e.id = ? AND {})",
+                            kind.table(),
+                            cond.sql
+                        ),
+                    ));
+                }
+            }
+            if matches!(f, Field::Sql(Cond::In(_))) {
+                let plan = plan(kind, &lk, &format!("{name}:1"));
+                let (page, count) = fields_sql(kind, &plan);
+                out.push((format!("{kind:?} {name}:1 (page)"), page));
+                out.push((format!("{kind:?} {name}:1 (count)"), count));
             }
         }
     }
@@ -1030,8 +1049,10 @@ mod tests {
     fn dates() {
         let node = query::parse("date:2001-05").remove(0).1;
         assert_eq!(
-            date_cond(&node, true).map(|c| c.0).as_deref(),
-            Some("date BETWEEN 20010500 AND 20010599")
+            date_cond(&node, DateColumns::Packed("f.date"))
+                .map(|c| c.0)
+                .as_deref(),
+            Some("f.date BETWEEN 20010500 AND 20010599")
         );
         assert!(now_iso().ends_with('Z'));
     }

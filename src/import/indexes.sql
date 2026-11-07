@@ -6,7 +6,9 @@ CREATE INDEX area_type_idx ON area (type);
 CREATE INDEX iso_3166_1_area ON iso_3166_1 (area);
 CREATE INDEX iso_3166_1_code ON iso_3166_1 (code);
 CREATE INDEX iso_3166_2_area ON iso_3166_2 (area);
+CREATE INDEX iso_3166_2_code ON iso_3166_2 (code);
 CREATE INDEX iso_3166_3_area ON iso_3166_3 (area);
+CREATE INDEX iso_3166_3_code ON iso_3166_3 (code);
 
 CREATE UNIQUE INDEX artist_gid ON artist (gid);
 CREATE INDEX artist_area ON artist (area);
@@ -14,6 +16,8 @@ CREATE INDEX artist_begin_area ON artist (begin_area);
 CREATE INDEX artist_end_area ON artist (end_area);
 CREATE INDEX artist_ipi_artist ON artist_ipi (artist);
 CREATE INDEX artist_isni_artist ON artist_isni (artist);
+CREATE INDEX artist_ipi_ipi ON artist_ipi (ipi);
+CREATE INDEX artist_isni_isni ON artist_isni (isni);
 CREATE INDEX artist_credit_name_artist_credit ON artist_credit_name (artist_credit, position);
 CREATE INDEX artist_credit_name_artist ON artist_credit_name (artist);
 
@@ -26,6 +30,8 @@ CREATE UNIQUE INDEX label_gid ON label (gid);
 CREATE INDEX label_area ON label (area);
 CREATE INDEX label_ipi_label ON label_ipi (label);
 CREATE INDEX label_isni_label ON label_isni (label);
+CREATE INDEX label_ipi_ipi ON label_ipi (ipi);
+CREATE INDEX label_isni_isni ON label_isni (isni);
 
 CREATE UNIQUE INDEX place_gid ON place (gid);
 CREATE INDEX place_area ON place (area);

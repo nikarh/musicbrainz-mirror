@@ -1,6 +1,8 @@
 //! An imported database, opened read-only: a pool of connections and the lookup tables, read into memory once.
 
 pub mod date;
+#[cfg(test)]
+pub mod plan;
 pub mod queries;
 
 use std::collections::HashMap;
@@ -155,6 +157,26 @@ impl Lookups {
             .query_map([], |r| Ok((r.get(0)?, (r.get(1)?, r.get(2)?))))?
             .collect::<Result<_, _>>()?;
         Ok(lookups)
+    }
+
+    /// Lookups where every lookup table has one row: id 1, named "1".
+    #[cfg(test)]
+    #[must_use]
+    pub fn for_tests() -> Self {
+        let mut lookups = Self::default();
+        for table in NAMED_TABLES {
+            lookups.named.insert(
+                table,
+                HashMap::from([(
+                    1,
+                    Named {
+                        name: "1".into(),
+                        gid: None,
+                    },
+                )]),
+            );
+        }
+        lookups
     }
 
     /// A row of one of [`NAMED_TABLES`].
