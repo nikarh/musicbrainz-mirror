@@ -1,0 +1,3 @@
+[env]
+# Lets SQLite memory-map more than its built-in 2 GB limit (the database is tens of gigabytes).
+LIBSQLITE3_FLAGS = "-DSQLITE_MAX_MMAP_SIZE=0x4000000000"

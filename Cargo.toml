@@ -1,0 +1,74 @@
+[package]
+name = "musicbrainz-mirror"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.99"
+description = "A self-hosted, read-only MusicBrainz web service (ws/2) on a local copy of MusicBrainz's database dumps, kept up to date"
+license = "MIT OR Apache-2.0"
+publish = false
+repository = "https://github.com/nikarh/musicbrainz-mirror"
+readme = "README.md"
+keywords = ["musicbrainz", "mirror", "metadata", "music"]
+categories = ["web-programming::http-server"]
+
+[dependencies]
+arc-swap = "1.9.4"
+axum = "0.8.9"
+bytes = "1.12.1"
+bzip2 = "0.6.1"
+pico-args = "0.5.0"
+reqwest = { version = "0.13.5", default-features = false, features = ["rustls-no-provider", "stream"] }
+rusqlite = { version = "0.41.1", features = ["bundled", "serde_json"] }
+rustix = { version = "1.1.6", features = ["fs"] }
+rustls = { version = "0.23.46", default-features = false, features = ["ring", "std", "tls12"] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+serde_urlencoded = "0.7.1"
+sha2 = "0.11.1"
+tar = { version = "0.4.46", default-features = false }
+thiserror = "2.0.21"
+tokio = { version = "1.54.1", features = ["rt-multi-thread", "macros", "net", "signal", "sync", "time", "fs", "io-util"] }
+tokio-util = { version = "0.7.20", features = ["rt"] }
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.23", default-features = false, features = ["env-filter", "fmt", "ansi"] }
+
+[dev-dependencies]
+http-body-util = "0.1.5"
+tower = { version = "0.5.3", features = ["util"] }
+
+[lints.rust]
+unsafe_code = "deny"
+
+[lints.clippy]
+pedantic = { level = "deny", priority = -1 }
+cargo = { level = "deny", priority = -1 }
+complexity = { level = "deny", priority = -1 }
+correctness = { level = "deny", priority = -1 }
+suspicious = { level = "deny", priority = -1 }
+perf = { level = "deny", priority = -1 }
+style = { level = "deny", priority = -1 }
+similar_names = "allow"
+struct_field_names = "allow"
+match_bool = "allow"
+missing_errors_doc = "allow"
+unwrap_used = "deny"
+expect_used = "deny"
+indexing_slicing = "deny"
+print_stdout = "deny"
+print_stderr = "deny"
+undocumented_unsafe_blocks = "deny"
+# Duplicate transitive versions are tracked (with reasons) in deny.toml instead.
+multiple_crate_versions = "allow"
+
+[profile.dev]
+debug = "line-tables-only"
+
+[profile.dev.package."*"]
+debug = false
+# The importer parses and inserts hundreds of millions of rows; unoptimized it would take hours in tests and `mise
+# run dev`.
+opt-level = 2
+
+[profile.release]
+strip = true
+panic = "abort"
