@@ -1,0 +1,295 @@
+200
+{
+  "aliases": [
+    {
+      "begin": null,
+      "end": null,
+      "ended": false,
+      "locale": null,
+      "name": "N.I.N.",
+      "primary": null,
+      "sort-name": "N.I.N.",
+      "type": null,
+      "type-id": null
+    },
+    {
+      "begin": null,
+      "end": null,
+      "ended": false,
+      "locale": null,
+      "name": "NIN",
+      "primary": null,
+      "sort-name": "NIN",
+      "type": "Artist name",
+      "type-id": "894afba6-2816-3c24-8072-eadb66bd04bc"
+    },
+    {
+      "begin": null,
+      "end": null,
+      "ended": false,
+      "locale": null,
+      "name": "NIИ",
+      "primary": null,
+      "sort-name": "NIИ",
+      "type": null,
+      "type-id": null
+    },
+    {
+      "begin": null,
+      "end": null,
+      "ended": false,
+      "locale": "en",
+      "name": "Nine Inch Nails",
+      "primary": true,
+      "sort-name": "Nine Inch Nails",
+      "type": "Artist name",
+      "type-id": "894afba6-2816-3c24-8072-eadb66bd04bc"
+    },
+    {
+      "begin": null,
+      "end": null,
+      "ended": false,
+      "locale": "es",
+      "name": "Nine Inch Nails",
+      "primary": true,
+      "sort-name": "Nine Inch Nails",
+      "type": "Artist name",
+      "type-id": "894afba6-2816-3c24-8072-eadb66bd04bc"
+    },
+    {
+      "begin": null,
+      "end": null,
+      "ended": false,
+      "locale": "fr",
+      "name": "Nine Inch Nails",
+      "primary": true,
+      "sort-name": "Nine Inch Nails",
+      "type": "Artist name",
+      "type-id": "894afba6-2816-3c24-8072-eadb66bd04bc"
+    },
+    {
+      "begin": null,
+      "end": null,
+      "ended": false,
+      "locale": null,
+      "name": "Nine Inch Nails Live",
+      "primary": null,
+      "sort-name": "Nine Inch Nails Live",
+      "type": null,
+      "type-id": null
+    },
+    {
+      "begin": null,
+      "end": null,
+      "ended": false,
+      "locale": null,
+      "name": "NineInchNails",
+      "primary": null,
+      "sort-name": "NineInchNails",
+      "type": null,
+      "type-id": null
+    },
+    {
+      "begin": null,
+      "end": null,
+      "ended": false,
+      "locale": null,
+      "name": "И1И31ИCHИ41L5",
+      "primary": null,
+      "sort-name": "NINEINCHNAILS",
+      "type": "Artist name",
+      "type-id": "894afba6-2816-3c24-8072-eadb66bd04bc"
+    },
+    {
+      "begin": null,
+      "end": null,
+      "ended": false,
+      "locale": "ja",
+      "name": "ナイン・インチ・ネイルズ",
+      "primary": true,
+      "sort-name": "ナイン・インチ・ネイルズ",
+      "type": "Artist name",
+      "type-id": "894afba6-2816-3c24-8072-eadb66bd04bc"
+    }
+  ],
+  "area": {
+    "disambiguation": "",
+    "id": "489ce91b-6658-3307-9877-795b68554c98",
+    "iso-3166-1-codes": [
+      "US"
+    ],
+    "name": "United States",
+    "sort-name": "United States",
+    "type": null,
+    "type-id": null
+  },
+  "begin-area": {
+    "disambiguation": "",
+    "id": "7b2ca1e7-e7f6-4155-881d-c660a45c11e8",
+    "name": "Cleveland",
+    "sort-name": "Cleveland",
+    "type": null,
+    "type-id": null
+  },
+  "country": "US",
+  "disambiguation": "",
+  "end-area": null,
+  "gender": null,
+  "gender-id": null,
+  "genres": [
+    {
+      "count": 16,
+      "disambiguation": "",
+      "id": "ceeaa283-5d7b-4202-8d1d-e25d116b2a18",
+      "name": "alternative rock"
+    },
+    {
+      "count": 1,
+      "disambiguation": "",
+      "id": "e5bba957-8c91-496a-a675-c6d0c6b51c33",
+      "name": "dance"
+    },
+    {
+      "count": 1,
+      "disambiguation": "",
+      "id": "01ecf8e4-7f7a-4145-ae97-504d3109633d",
+      "name": "dark ambient"
+    },
+    {
+      "count": 6,
+      "disambiguation": "",
+      "id": "6e2e809f-8c54-4e0f-aca0-0642771ab3cf",
+      "name": "electro-industrial"
+    },
+    {
+      "count": 12,
+      "disambiguation": "",
+      "id": "89255676-1f14-4dd8-bbad-fca839d6aff4",
+      "name": "electronic"
+    },
+    {
+      "count": 1,
+      "disambiguation": "",
+      "id": "c4a69842-f891-4569-9506-1882aa5db433",
+      "name": "electronic rock"
+    },
+    {
+      "count": 18,
+      "disambiguation": "",
+      "id": "060beed7-e597-4c42-8e25-5bf8bd5dd3cb",
+      "name": "industrial"
+    },
+    {
+      "count": 8,
+      "disambiguation": "",
+      "id": "d4df54b5-67b4-4fb7-8f73-79e71717a501",
+      "name": "industrial metal"
+    },
+    {
+      "count": 40,
+      "disambiguation": "",
+      "id": "ffbc9907-c9be-4ace-876b-b7fd5b9d51f9",
+      "name": "industrial rock"
+    },
+    {
+      "count": 2,
+      "disambiguation": "",
+      "id": "bbad9cda-bde2-448e-821c-7ebf85a54020",
+      "name": "nu metal"
+    },
+    {
+      "count": 2,
+      "disambiguation": "",
+      "id": "53ceafec-ced4-4bec-ac57-d00cbf3a0c29",
+      "name": "post-industrial"
+    },
+    {
+      "count": 3,
+      "disambiguation": "",
+      "id": "0e3fc579-2d24-4f20-9dae-736e1ec78798",
+      "name": "rock"
+    },
+    {
+      "count": 1,
+      "disambiguation": "",
+      "id": "41fe3260-fcc1-450b-bd5a-803886c56912",
+      "name": "techno"
+    }
+  ],
+  "id": "b7ffd2af-418f-4be2-bdd1-22f8b48613da",
+  "ipis": [],
+  "isnis": [
+    "0000000121493471"
+  ],
+  "life-span": {
+    "begin": "1988",
+    "end": null,
+    "ended": false
+  },
+  "name": "Nine Inch Nails",
+  "rating": {
+    "value": 4.1,
+    "votes-count": 44
+  },
+  "sort-name": "Nine Inch Nails",
+  "tags": [
+    {
+      "count": 16,
+      "name": "alternative rock"
+    },
+    {
+      "count": 1,
+      "name": "ambient music"
+    },
+    {
+      "count": 1,
+      "name": "dance"
+    },
+    {
+      "count": 1,
+      "name": "dark ambient"
+    },
+    {
+      "count": 6,
+      "name": "electro-industrial"
+    },
+    {
+      "count": 12,
+      "name": "electronic"
+    },
+    {
+      "count": 1,
+      "name": "electronic rock"
+    },
+    {
+      "count": 18,
+      "name": "industrial"
+    },
+    {
+      "count": 8,
+      "name": "industrial metal"
+    },
+    {
+      "count": 40,
+      "name": "industrial rock"
+    },
+    {
+      "count": 2,
+      "name": "nu metal"
+    },
+    {
+      "count": 2,
+      "name": "post-industrial"
+    },
+    {
+      "count": 3,
+      "name": "rock"
+    },
+    {
+      "count": 1,
+      "name": "techno"
+    }
+  ],
+  "type": "Group",
+  "type-id": "e431f5f6-b5d2-343d-8b36-72607fffb74b"
+}

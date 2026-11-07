@@ -1,0 +1,42 @@
+200
+{
+  "asin": "B000F6YPCI",
+  "barcode": "4988005429650",
+  "country": "JP",
+  "cover-art-archive": {
+    "artwork": true,
+    "back": false,
+    "count": 1,
+    "darkened": false,
+    "front": true
+  },
+  "date": "2006-05-17",
+  "disambiguation": "",
+  "id": "602af258-e647-48e2-9660-bd0c5c8f92bf",
+  "packaging": null,
+  "packaging-id": null,
+  "quality": "normal",
+  "release-events": [
+    {
+      "area": {
+        "disambiguation": "",
+        "id": "2db42837-c832-3c27-b4a3-08198f75693c",
+        "iso-3166-1-codes": [
+          "JP"
+        ],
+        "name": "Japan",
+        "sort-name": "Japan",
+        "type": null,
+        "type-id": null
+      },
+      "date": "2006-05-17"
+    }
+  ],
+  "status": "Official",
+  "status-id": "4e304316-386d-3409-af2e-78857eec5cfe",
+  "text-representation": {
+    "language": "eng",
+    "script": "Latn"
+  },
+  "title": "The Downward Spiral"
+}

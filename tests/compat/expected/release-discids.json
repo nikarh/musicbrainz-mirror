@@ -1,0 +1,91 @@
+200
+{
+  "annotation": "Also known as '''halo eight'''.",
+  "asin": "B000F6YPCI",
+  "barcode": "4988005429650",
+  "country": "JP",
+  "cover-art-archive": {
+    "artwork": true,
+    "back": false,
+    "count": 1,
+    "darkened": false,
+    "front": true
+  },
+  "date": "2006-05-17",
+  "disambiguation": "",
+  "id": "602af258-e647-48e2-9660-bd0c5c8f92bf",
+  "media": [
+    {
+      "discs": [
+        {
+          "id": "D218_xkmXCzrevofoZujqbr2uhs-",
+          "offset-count": 15,
+          "offsets": [
+            150,
+            20452,
+            40307,
+            57875,
+            71265,
+            99245,
+            121645,
+            146522,
+            172115,
+            179675,
+            201452,
+            216575,
+            238625,
+            269532,
+            287307
+          ],
+          "sectors": 315407
+        }
+      ],
+      "format": "CD",
+      "format-id": "9712d52a-4509-3d4b-a1a2-67c88c643e31",
+      "id": "63944ab5-2dff-3f31-8d42-5faccd5099d5",
+      "position": 1,
+      "title": "",
+      "track-count": 15
+    }
+  ],
+  "packaging": null,
+  "packaging-id": null,
+  "quality": "normal",
+  "release-events": [
+    {
+      "area": {
+        "disambiguation": "",
+        "id": "2db42837-c832-3c27-b4a3-08198f75693c",
+        "iso-3166-1-codes": [
+          "JP"
+        ],
+        "name": "Japan",
+        "sort-name": "Japan",
+        "type": null,
+        "type-id": null
+      },
+      "date": "2006-05-17"
+    }
+  ],
+  "release-group": {
+    "disambiguation": "",
+    "first-release-date": "1994-03-08",
+    "id": "7c4cab8d-dead-3870-b501-93c90fd0a580",
+    "primary-type": "Album",
+    "primary-type-id": "f529b476-6e62-324f-b0aa-1f3e33d313fc",
+    "rating": {
+      "value": 3.45,
+      "votes-count": 61
+    },
+    "secondary-type-ids": [],
+    "secondary-types": [],
+    "title": "The Downward Spiral"
+  },
+  "status": "Official",
+  "status-id": "4e304316-386d-3409-af2e-78857eec5cfe",
+  "text-representation": {
+    "language": "eng",
+    "script": "Latn"
+  },
+  "title": "The Downward Spiral"
+}

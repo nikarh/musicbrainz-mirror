@@ -1,0 +1,5 @@
+400
+{
+  "error": "The given parameters do not match any available query type for the release resource.",
+  "help": "For usage, please see: https://musicbrainz.org/development/mmd"
+}

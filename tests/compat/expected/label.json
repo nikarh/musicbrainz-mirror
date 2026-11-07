@@ -1,0 +1,30 @@
+200
+{
+  "aliases": [],
+  "area": {
+    "disambiguation": "",
+    "id": "489ce91b-6658-3307-9877-795b68554c98",
+    "iso-3166-1-codes": [
+      "US"
+    ],
+    "name": "United States",
+    "sort-name": "United States",
+    "type": null,
+    "type-id": null
+  },
+  "country": "US",
+  "disambiguation": "US industrial/electronic founded by Trent Reznor",
+  "id": "4b5cba06-6a79-454c-91f5-3fe220d4950d",
+  "ipis": [],
+  "isnis": [],
+  "label-code": null,
+  "life-span": {
+    "begin": "1992",
+    "end": "2004",
+    "ended": true
+  },
+  "name": "Nothing Records",
+  "sort-name": "Nothing Records",
+  "type": "Original Production",
+  "type-id": "7aaa37fe-2def-3476-b359-80245850062d"
+}

@@ -1,0 +1,14 @@
+200
+{
+  "isrc": "USIR19400525",
+  "recordings": [
+    {
+      "disambiguation": "",
+      "first-release-date": "1994-03-08",
+      "id": "96f64611-49df-4e54-84e7-0f9a30f01766",
+      "length": 270573,
+      "title": "Mr Self Destruct",
+      "video": false
+    }
+  ]
+}

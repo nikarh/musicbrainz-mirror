@@ -1,0 +1,42 @@
+# The requests of the compatibility test (tests/compat.rs): name, path. JSON with fmt=json, XML otherwise.
+# After changing them, rebuild the fixture and record musicbrainz.org's answers: see examples/fixture.rs.
+
+# What beets asks for an album and a track
+release-beets /ws/2/release/602af258-e647-48e2-9660-bd0c5c8f92bf?inc=artists+media+recordings+release-groups+labels+artist-credits+aliases+recording-level-rels+work-rels+work-level-rels+artist-rels+isrcs+url-rels+release-rels+genres+tags&fmt=json
+recording-beets /ws/2/recording/96f64611-49df-4e54-84e7-0f9a30f01766?inc=artists+aliases+isrcs+work-level-rels+artist-rels&fmt=json
+release-group-beets /ws/2/release-group?artist=b7ffd2af-418f-4be2-bdd1-22f8b48613da&type=single&limit=100&fmt=json
+
+# Lookups
+release /ws/2/release/602af258-e647-48e2-9660-bd0c5c8f92bf?fmt=json
+release-discids /ws/2/release/602af258-e647-48e2-9660-bd0c5c8f92bf?inc=discids+release-groups+ratings+annotation&fmt=json
+release-xml /ws/2/release/602af258-e647-48e2-9660-bd0c5c8f92bf?inc=artist-credits+labels+recordings+release-groups+isrcs+artist-rels+tags
+recording /ws/2/recording/96f64611-49df-4e54-84e7-0f9a30f01766?fmt=json
+recording-xml /ws/2/recording/96f64611-49df-4e54-84e7-0f9a30f01766?inc=artist-credits+isrcs+work-rels+work-level-rels+artist-rels
+artist /ws/2/artist/b7ffd2af-418f-4be2-bdd1-22f8b48613da?inc=aliases+tags+genres+ratings&fmt=json
+artist-xml /ws/2/artist/b7ffd2af-418f-4be2-bdd1-22f8b48613da?inc=aliases+tags+genres+ratings
+release-group /ws/2/release-group/88e47200-ad1e-352e-82c5-fa28e9bca1d1?inc=artist-credits+releases+genres+tags+ratings&fmt=json
+label /ws/2/label/4b5cba06-6a79-454c-91f5-3fe220d4950d?inc=aliases&fmt=json
+work /ws/2/work/9852733f-8a33-3c64-96b3-0570d9a50607?inc=artist-rels+aliases&fmt=json
+area /ws/2/area/489ce91b-6658-3307-9877-795b68554c98?fmt=json
+event /ws/2/event/fe39727a-3d21-4066-9345-3970cbd6cca4?inc=artist-rels+place-rels&fmt=json
+place /ws/2/place/bd55aeb7-19d1-4607-a500-14b8479d3fed?fmt=json
+instrument /ws/2/instrument/63021302-86cd-4aee-80df-2270d54f4978?fmt=json
+series /ws/2/series/004214f8-3667-48c0-aad4-774834155cdc?fmt=json
+genre /ws/2/genre/0e3fc579-2d24-4f20-9dae-736e1ec78798?fmt=json
+url /ws/2/url?resource=https://myspace.com/nin&fmt=json
+isrc /ws/2/isrc/USIR19400525?fmt=json
+iswc /ws/2/iswc/T-070.117.859-7?fmt=json
+discid /ws/2/discid/D218_xkmXCzrevofoZujqbr2uhs-?fmt=json
+
+# Browsing
+recordings-of-release /ws/2/recording?release=602af258-e647-48e2-9660-bd0c5c8f92bf&fmt=json
+releases-of-release-group /ws/2/release?release-group=88e47200-ad1e-352e-82c5-fa28e9bca1d1&inc=media&fmt=json
+labels-of-release /ws/2/label?release=602af258-e647-48e2-9660-bd0c5c8f92bf&fmt=json
+
+# Errors
+invalid-mbid /ws/2/artist/not-an-mbid?fmt=json
+not-found /ws/2/artist/11111111-2222-3333-4444-555555555555?fmt=json
+invalid-inc /ws/2/artist/b7ffd2af-418f-4be2-bdd1-22f8b48613da?inc=isrcs&fmt=json
+no-query-type /ws/2/release?fmt=json
+not-found-xml /ws/2/artist/11111111-2222-3333-4444-555555555555
+nil-mbid /ws/2/artist/00000000-0000-0000-0000-000000000000?fmt=json

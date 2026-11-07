@@ -1,0 +1,449 @@
+200
+{
+  "release-group-count": 41,
+  "release-group-offset": 0,
+  "release-groups": [
+    {
+      "disambiguation": "",
+      "first-release-date": "1990",
+      "id": "031a46ee-2c86-3810-b6f5-98f3a911388c",
+      "primary-type": "Single",
+      "primary-type-id": "d6038452-8ee0-3f68-affc-2de9a1ede0b9",
+      "secondary-type-ids": [],
+      "secondary-types": [],
+      "title": "You Get What You Deserve"
+    },
+    {
+      "disambiguation": "",
+      "first-release-date": "2005-07-25",
+      "id": "05955694-7dd0-30b7-8e25-86ff4366ad47",
+      "primary-type": "Single",
+      "primary-type-id": "d6038452-8ee0-3f68-affc-2de9a1ede0b9",
+      "secondary-type-ids": [],
+      "secondary-types": [],
+      "title": "Only"
+    },
+    {
+      "disambiguation": "",
+      "first-release-date": "2006-03-09",
+      "id": "103a88af-2a84-3536-9212-2aa4eaef29d7",
+      "primary-type": "Single",
+      "primary-type-id": "d6038452-8ee0-3f68-affc-2de9a1ede0b9",
+      "secondary-type-ids": [],
+      "secondary-types": [],
+      "title": "Every Day Is Exactly the Same"
+    },
+    {
+      "disambiguation": "",
+      "first-release-date": "1999",
+      "id": "194313cc-934c-3ea7-b4a7-3edd2df0675e",
+      "primary-type": "Single",
+      "primary-type-id": "d6038452-8ee0-3f68-affc-2de9a1ede0b9",
+      "secondary-type-ids": [],
+      "secondary-types": [],
+      "title": "Into the Void"
+    },
+    {
+      "disambiguation": "",
+      "first-release-date": "2012-07-17",
+      "id": "1c37c5ab-d22a-4345-94bd-319832fe462e",
+      "primary-type": "Single",
+      "primary-type-id": "d6038452-8ee0-3f68-affc-2de9a1ede0b9",
+      "secondary-type-ids": [
+        "0c60f497-ff81-3818-befd-abfc84a4858b"
+      ],
+      "secondary-types": [
+        "Remix"
+      ],
+      "title": "Survivalism (deadmau5 remix)"
+    },
+    {
+      "disambiguation": "",
+      "first-release-date": "1995",
+      "id": "1cadba33-e120-3e3e-8a9e-df878eb29b62",
+      "primary-type": "Single",
+      "primary-type-id": "d6038452-8ee0-3f68-affc-2de9a1ede0b9",
+      "secondary-type-ids": [],
+      "secondary-types": [],
+      "title": "Hurt"
+    },
+    {
+      "disambiguation": "",
+      "first-release-date": "2005",
+      "id": "23a48575-a534-4089-8a15-d8049d9c7bab",
+      "primary-type": "Single",
+      "primary-type-id": "d6038452-8ee0-3f68-affc-2de9a1ede0b9",
+      "secondary-type-ids": [
+        "0c60f497-ff81-3818-befd-abfc84a4858b"
+      ],
+      "secondary-types": [
+        "Remix"
+      ],
+      "title": "Perfect Drug / One Chill Remixes"
+    },
+    {
+      "disambiguation": "",
+      "first-release-date": "1990-03-22",
+      "id": "2578b1f7-1325-30f4-b556-827c3d8fc246",
+      "primary-type": "Single",
+      "primary-type-id": "d6038452-8ee0-3f68-affc-2de9a1ede0b9",
+      "secondary-type-ids": [],
+      "secondary-types": [],
+      "title": "Head Like a Hole"
+    },
+    {
+      "disambiguation": "",
+      "first-release-date": "2025-07-17",
+      "id": "2b74b819-ae11-44f7-8ee1-9fe6b9721f32",
+      "primary-type": "Single",
+      "primary-type-id": "d6038452-8ee0-3f68-affc-2de9a1ede0b9",
+      "secondary-type-ids": [
+        "22a628ad-c082-3c4f-b1b6-d41665107b88"
+      ],
+      "secondary-types": [
+        "Soundtrack"
+      ],
+      "title": "As Alive as You Need Me to Be"
+    },
+    {
+      "disambiguation": "",
+      "first-release-date": "2013-06-06",
+      "id": "2c647c1a-9a44-4a74-b254-b458fcdb1b1f",
+      "primary-type": "Single",
+      "primary-type-id": "d6038452-8ee0-3f68-affc-2de9a1ede0b9",
+      "secondary-type-ids": [],
+      "secondary-types": [],
+      "title": "Came Back Haunted"
+    },
+    {
+      "disambiguation": "",
+      "first-release-date": "1992",
+      "id": "4cabbeef-6fa9-38c0-b8e8-617772e02d3a",
+      "primary-type": "Single",
+      "primary-type-id": "d6038452-8ee0-3f68-affc-2de9a1ede0b9",
+      "secondary-type-ids": [],
+      "secondary-types": [],
+      "title": "Physical"
+    },
+    {
+      "disambiguation": "",
+      "first-release-date": "2007-04-26",
+      "id": "4cb48ab2-5e3d-3053-bf92-11a327bfbd70",
+      "primary-type": "Single",
+      "primary-type-id": "d6038452-8ee0-3f68-affc-2de9a1ede0b9",
+      "secondary-type-ids": [],
+      "secondary-types": [],
+      "title": "Capital G"
+    },
+    {
+      "disambiguation": "",
+      "first-release-date": "2001",
+      "id": "5b37cac1-abb3-30d5-bdb4-312591353fb5",
+      "primary-type": "Single",
+      "primary-type-id": "d6038452-8ee0-3f68-affc-2de9a1ede0b9",
+      "secondary-type-ids": [
+        "22a628ad-c082-3c4f-b1b6-d41665107b88"
+      ],
+      "secondary-types": [
+        "Soundtrack"
+      ],
+      "title": "Deep"
+    },
+    {
+      "disambiguation": "Halo 12",
+      "first-release-date": "1994-05-14",
+      "id": "61ae1b48-43dd-3755-bae4-52d38f12d063",
+      "primary-type": "Single",
+      "primary-type-id": "d6038452-8ee0-3f68-affc-2de9a1ede0b9",
+      "secondary-type-ids": [],
+      "secondary-types": [],
+      "title": "Closer To God"
+    },
+    {
+      "disambiguation": "",
+      "first-release-date": "1994",
+      "id": "684a79fb-c60e-3509-b08f-7c33cc143ce5",
+      "primary-type": "Single",
+      "primary-type-id": "d6038452-8ee0-3f68-affc-2de9a1ede0b9",
+      "secondary-type-ids": [],
+      "secondary-types": [],
+      "title": "Burn"
+    },
+    {
+      "disambiguation": "",
+      "first-release-date": "1989-09-15",
+      "id": "6af5f6a8-9d1c-3bf3-a24c-3d0562573ae9",
+      "primary-type": "Single",
+      "primary-type-id": "d6038452-8ee0-3f68-affc-2de9a1ede0b9",
+      "secondary-type-ids": [],
+      "secondary-types": [],
+      "title": "Down in It"
+    },
+    {
+      "disambiguation": "",
+      "first-release-date": "2019-01-01",
+      "id": "6b139e83-84c4-4eaf-b27a-ada699e0c1f0",
+      "primary-type": "Single",
+      "primary-type-id": "d6038452-8ee0-3f68-affc-2de9a1ede0b9",
+      "secondary-type-ids": [],
+      "secondary-types": [],
+      "title": "Terrible Lie (zxz mix)"
+    },
+    {
+      "disambiguation": "",
+      "first-release-date": "2008-04-22",
+      "id": "6b2d6dc3-b174-3519-bd40-3c0266ace455",
+      "primary-type": "Single",
+      "primary-type-id": "d6038452-8ee0-3f68-affc-2de9a1ede0b9",
+      "secondary-type-ids": [],
+      "secondary-types": [],
+      "title": "Discipline"
+    },
+    {
+      "disambiguation": "",
+      "first-release-date": "2013-08-12",
+      "id": "6ee79100-cddc-4432-9696-7d2ba9c7a5f7",
+      "primary-type": "Single",
+      "primary-type-id": "d6038452-8ee0-3f68-affc-2de9a1ede0b9",
+      "secondary-type-ids": [],
+      "secondary-types": [],
+      "title": "Copy of A"
+    },
+    {
+      "disambiguation": "",
+      "first-release-date": "1999",
+      "id": "77928600-95d9-3760-89df-ac67649a1368",
+      "primary-type": "Single",
+      "primary-type-id": "d6038452-8ee0-3f68-affc-2de9a1ede0b9",
+      "secondary-type-ids": [],
+      "secondary-types": [],
+      "title": "Starfuckers, Inc."
+    },
+    {
+      "disambiguation": "",
+      "first-release-date": "1992",
+      "id": "780d7253-9998-304a-a241-942bf5296966",
+      "primary-type": "Single",
+      "primary-type-id": "d6038452-8ee0-3f68-affc-2de9a1ede0b9",
+      "secondary-type-ids": [],
+      "secondary-types": [],
+      "title": "Wish"
+    },
+    {
+      "disambiguation": "",
+      "first-release-date": "1999-07-20",
+      "id": "7b8d5928-f05c-3a1c-8f32-a4e618de43b9",
+      "primary-type": "Single",
+      "primary-type-id": "d6038452-8ee0-3f68-affc-2de9a1ede0b9",
+      "secondary-type-ids": [],
+      "secondary-types": [],
+      "title": "The Day the World Went Away"
+    },
+    {
+      "disambiguation": "",
+      "first-release-date": "2005-04-02",
+      "id": "7be12c7f-d77e-3ce8-9f27-cc2e1ae34c7d",
+      "primary-type": "Single",
+      "primary-type-id": "d6038452-8ee0-3f68-affc-2de9a1ede0b9",
+      "secondary-type-ids": [],
+      "secondary-types": [],
+      "title": "The Hand That Feeds"
+    },
+    {
+      "disambiguation": "Halo 11",
+      "first-release-date": "1995",
+      "id": "84c8b3b4-0db2-3673-96d1-401b7e559539",
+      "primary-type": "Single",
+      "primary-type-id": "d6038452-8ee0-3f68-affc-2de9a1ede0b9",
+      "secondary-type-ids": [],
+      "secondary-types": [],
+      "title": "The Perfect Drug"
+    },
+    {
+      "disambiguation": "",
+      "first-release-date": "2007-02-21",
+      "id": "8a772dab-6832-34cd-85c6-a9f666058593",
+      "primary-type": "Single",
+      "primary-type-id": "d6038452-8ee0-3f68-affc-2de9a1ede0b9",
+      "secondary-type-ids": [],
+      "secondary-types": [],
+      "title": "Survivalism"
+    },
+    {
+      "disambiguation": "",
+      "first-release-date": "2018-05-17",
+      "id": "912c24d3-01ee-457c-97e9-72dd372a3388",
+      "primary-type": "Single",
+      "primary-type-id": "d6038452-8ee0-3f68-affc-2de9a1ede0b9",
+      "secondary-type-ids": [],
+      "secondary-types": [],
+      "title": "God Break Down the Door"
+    },
+    {
+      "disambiguation": "",
+      "first-release-date": "2008-05-02",
+      "id": "96229441-9404-3ff7-a51a-4e965309a118",
+      "primary-type": "Single",
+      "primary-type-id": "d6038452-8ee0-3f68-affc-2de9a1ede0b9",
+      "secondary-type-ids": [],
+      "secondary-types": [],
+      "title": "Echoplex"
+    },
+    {
+      "disambiguation": "",
+      "first-release-date": "2007-12-08",
+      "id": "a3397204-af57-4e7b-aef7-9db0b848262f",
+      "primary-type": "Single",
+      "primary-type-id": "d6038452-8ee0-3f68-affc-2de9a1ede0b9",
+      "secondary-type-ids": [],
+      "secondary-types": [],
+      "title": "The Perfect Drug (instrumental)"
+    },
+    {
+      "disambiguation": "",
+      "first-release-date": "1992",
+      "id": "abff5b0b-7c7c-3cda-bc23-fbaed36f378c",
+      "primary-type": "Single",
+      "primary-type-id": "d6038452-8ee0-3f68-affc-2de9a1ede0b9",
+      "secondary-type-ids": [],
+      "secondary-types": [],
+      "title": "Happiness in Slavery"
+    },
+    {
+      "disambiguation": "",
+      "first-release-date": "",
+      "id": "b0f5bba7-e7c9-4c9e-a22e-6df2cdd6845c",
+      "primary-type": "Single",
+      "primary-type-id": "d6038452-8ee0-3f68-affc-2de9a1ede0b9",
+      "secondary-type-ids": [
+        "0c60f497-ff81-3818-befd-abfc84a4858b"
+      ],
+      "secondary-types": [
+        "Remix"
+      ],
+      "title": "Me, I’m Not (grimmless mix)"
+    },
+    {
+      "disambiguation": "",
+      "first-release-date": "1999-09-27",
+      "id": "b2ba5a6a-8d73-3aca-804a-9397a1228cc8",
+      "primary-type": "Single",
+      "primary-type-id": "d6038452-8ee0-3f68-affc-2de9a1ede0b9",
+      "secondary-type-ids": [],
+      "secondary-types": [],
+      "title": "We’re in This Together"
+    },
+    {
+      "disambiguation": "",
+      "first-release-date": "2005-01-01",
+      "id": "be5c6cdd-0705-4f29-9e9a-d0100fdec6e4",
+      "primary-type": "Single",
+      "primary-type-id": "d6038452-8ee0-3f68-affc-2de9a1ede0b9",
+      "secondary-type-ids": [
+        "0c60f497-ff81-3818-befd-abfc84a4858b"
+      ],
+      "secondary-types": [
+        "Remix"
+      ],
+      "title": "The Hand That Feeds (DFA remix)"
+    },
+    {
+      "disambiguation": "",
+      "first-release-date": "1994-02-25",
+      "id": "d03cf545-b0a6-39c4-a8d6-457832c86eee",
+      "primary-type": "Single",
+      "primary-type-id": "d6038452-8ee0-3f68-affc-2de9a1ede0b9",
+      "secondary-type-ids": [],
+      "secondary-types": [],
+      "title": "March of the Pigs"
+    },
+    {
+      "disambiguation": "",
+      "first-release-date": "2017-07-13",
+      "id": "db7f540d-e5e5-4c36-9c7a-d3ce59862637",
+      "primary-type": "Single",
+      "primary-type-id": "d6038452-8ee0-3f68-affc-2de9a1ede0b9",
+      "secondary-type-ids": [],
+      "secondary-types": [],
+      "title": "Less Than"
+    },
+    {
+      "disambiguation": "",
+      "first-release-date": "1990-10-10",
+      "id": "dfa9a7dc-cdd0-3053-9612-7e3d8173e186",
+      "primary-type": "Single",
+      "primary-type-id": "d6038452-8ee0-3f68-affc-2de9a1ede0b9",
+      "secondary-type-ids": [],
+      "secondary-types": [],
+      "title": "Sin"
+    },
+    {
+      "disambiguation": "",
+      "first-release-date": "1992",
+      "id": "e2b5c7a0-cd46-3c00-85e5-25274806d653",
+      "primary-type": "Single",
+      "primary-type-id": "d6038452-8ee0-3f68-affc-2de9a1ede0b9",
+      "secondary-type-ids": [],
+      "secondary-types": [],
+      "title": "Suck"
+    },
+    {
+      "disambiguation": "",
+      "first-release-date": "1994",
+      "id": "e2e2c297-d225-3822-a27a-3093bdabf155",
+      "primary-type": "Single",
+      "primary-type-id": "d6038452-8ee0-3f68-affc-2de9a1ede0b9",
+      "secondary-type-ids": [],
+      "secondary-types": [],
+      "title": "Piggy"
+    },
+    {
+      "disambiguation": "",
+      "first-release-date": "2012-05-01",
+      "id": "e54ca2bf-0f6a-4bce-bb1c-e4a9389d447c",
+      "primary-type": "Single",
+      "primary-type-id": "d6038452-8ee0-3f68-affc-2de9a1ede0b9",
+      "secondary-type-ids": [
+        "0c60f497-ff81-3818-befd-abfc84a4858b"
+      ],
+      "secondary-types": [
+        "Remix"
+      ],
+      "title": "Only"
+    },
+    {
+      "disambiguation": "",
+      "first-release-date": "2013-08-19",
+      "id": "eb74e6ff-514d-4351-b315-b3fe28d92493",
+      "primary-type": "Single",
+      "primary-type-id": "d6038452-8ee0-3f68-affc-2de9a1ede0b9",
+      "secondary-type-ids": [],
+      "secondary-types": [],
+      "title": "Everything"
+    },
+    {
+      "disambiguation": "",
+      "first-release-date": "2008-12-29",
+      "id": "f5a6af6d-9624-40a4-a0b2-ed7a3fa1a56b",
+      "primary-type": "Single",
+      "primary-type-id": "d6038452-8ee0-3f68-affc-2de9a1ede0b9",
+      "secondary-type-ids": [
+        "0c60f497-ff81-3818-befd-abfc84a4858b"
+      ],
+      "secondary-types": [
+        "Remix"
+      ],
+      "title": "The Hand That Feeds (remix) / 35 Ghosts IV (remix)"
+    },
+    {
+      "disambiguation": "",
+      "first-release-date": "2021-05-06",
+      "id": "fc450902-fbb4-4778-b616-5174854a4187",
+      "primary-type": "Single",
+      "primary-type-id": "d6038452-8ee0-3f68-affc-2de9a1ede0b9",
+      "secondary-type-ids": [],
+      "secondary-types": [],
+      "title": "ISN’T EVERYONE"
+    }
+  ]
+}

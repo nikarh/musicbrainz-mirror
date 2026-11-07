@@ -1,0 +1,127 @@
+200
+{
+  "recording-count": 15,
+  "recording-offset": 0,
+  "recordings": [
+    {
+      "disambiguation": "",
+      "first-release-date": "1994-03-08",
+      "id": "05166c96-7f2f-42f2-8b8c-de0fc58e34b2",
+      "length": 236893,
+      "title": "The Downward Spiral",
+      "video": false
+    },
+    {
+      "disambiguation": "",
+      "first-release-date": "1994-03-08",
+      "id": "0ec126f3-a608-46dc-9210-90ad42fc1ee6",
+      "length": 293506,
+      "title": "Eraser",
+      "video": false
+    },
+    {
+      "disambiguation": "album version",
+      "first-release-date": "1994-03-08",
+      "id": "13dd61c7-ce73-4e97-9f0c-9f0e53144411",
+      "length": 373133,
+      "title": "Closer",
+      "video": false
+    },
+    {
+      "disambiguation": "",
+      "first-release-date": "1994-03-08",
+      "id": "3c6e9da3-e16f-47e3-a5b8-bc16c04184e3",
+      "length": 234400,
+      "title": "Heresy",
+      "video": false
+    },
+    {
+      "disambiguation": "",
+      "first-release-date": "1994-03-08",
+      "id": "429f0b1a-0293-4793-993b-0bb5f73567f2",
+      "length": 264426,
+      "title": "Piggy",
+      "video": false
+    },
+    {
+      "disambiguation": "",
+      "first-release-date": "1994-03-08",
+      "id": "688301b0-ae38-4aeb-8a4d-993330a74ba8",
+      "length": 202600,
+      "title": "A Warm Place",
+      "video": false
+    },
+    {
+      "disambiguation": "",
+      "first-release-date": "1994-03-08",
+      "id": "70d25e69-b939-4898-a97d-780ac978afbd",
+      "length": 341173,
+      "title": "I Do Not Want This",
+      "video": false
+    },
+    {
+      "disambiguation": "",
+      "first-release-date": "1994-02-25",
+      "id": "787cf6d0-a44b-4562-aa5c-5c4b244576c6",
+      "length": 178466,
+      "title": "March of the Pigs",
+      "video": false
+    },
+    {
+      "disambiguation": "",
+      "first-release-date": "1994-03-08",
+      "id": "941b357e-f763-4eff-85e0-16a033b94038",
+      "length": 298840,
+      "title": "Ruiner",
+      "video": false
+    },
+    {
+      "disambiguation": "",
+      "first-release-date": "1994-03-08",
+      "id": "96f64611-49df-4e54-84e7-0f9a30f01766",
+      "length": 270573,
+      "title": "Mr Self Destruct",
+      "video": false
+    },
+    {
+      "disambiguation": "explicit album version",
+      "first-release-date": "1994-03-08",
+      "id": "ab7805a8-c161-403d-92bf-a92c8b8e17dc",
+      "length": 374066,
+      "title": "Hurt",
+      "video": false
+    },
+    {
+      "disambiguation": "",
+      "first-release-date": "1994-03-08",
+      "id": "adc19475-b1b9-49a0-a966-45f4a7d35bb5",
+      "length": 412333,
+      "title": "Reptile",
+      "video": false
+    },
+    {
+      "disambiguation": "",
+      "first-release-date": "1994-03-08",
+      "id": "c0fa02fe-93cd-4a28-9574-ef11788b2704",
+      "length": 96200,
+      "title": "Big Man With a Gun",
+      "video": false
+    },
+    {
+      "disambiguation": "",
+      "first-release-date": "1994-03-08",
+      "id": "d5c0f5fe-f27a-492e-acd4-032d0b2aa747",
+      "length": 331560,
+      "title": "The Becoming",
+      "video": false
+    },
+    {
+      "disambiguation": "",
+      "first-release-date": "1994-03-29",
+      "id": "dd40751c-6dc5-4578-bda5-e06c4d638056",
+      "length": 293000,
+      "title": "Dead Souls",
+      "video": false
+    }
+  ]
+}

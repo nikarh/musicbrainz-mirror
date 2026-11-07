@@ -1,0 +1,160 @@
+0	\N	\N	\N	\N
+1	Xsux	\N	Cuneiform, Sumero-Akkadian	\N
+2	Xpeo	\N	Old Persian	\N
+3	Ugar	\N	Ugaritic	\N
+4	Egyp	\N	Egyptian hieroglyphs	\N
+5	Egyh	\N	Egyptian hieratic	\N
+6	Egyd	\N	Egyptian demotic	\N
+7	Maya	\N	Mayan hieroglyphs	\N
+8	Mero	\N	Meroitic Hieroglyphs	\N
+9	Phnx	\N	Phoenician	\N
+10	Tfng	\N	Tifinagh	\N
+11	Hebr	\N	Hebrew	\N
+12	Syrc	\N	Syriac	\N
+13	Syrn	\N	Syriac (Eastern variant)	\N
+14	Syrj	\N	Syriac (Western variant)	\N
+15	Syre	\N	Syriac (Estrangelo variant)	\N
+16	Mand	\N	Mandaic	\N
+17	Mong	\N	Mongolian	\N
+18	Arab	\N	Arabic	\N
+19	Thaa	\N	Thaana	\N
+20	Orkh	\N	Old Turkic	\N
+21	Hung	\N	Old Hungarian	\N
+22	Grek	\N	Greek	\N
+23	Copt	\N	Coptic	\N
+24	Goth	\N	Gothic	\N
+25	Ital	\N	Old Italic	\N
+26	Runr	\N	Runic	\N
+27	Ogam	\N	Ogham	\N
+28	Latn	\N	Latin	\N
+29	Latg	\N	Latin (Gaelic variant)	\N
+30	Latf	\N	Latin (Fraktur variant)	\N
+31	Cyrl	\N	Cyrillic	\N
+32	Cyrs	\N	Cyrillic (Old Church Slavonic variant)	\N
+33	Glag	\N	Glagolitic	\N
+34	Perm	\N	Old Permic	\N
+35	Armn	\N	Armenian	\N
+36	Geor	\N	Georgian	\N
+37	Dsrt	\N	Deseret	\N
+38	Osma	\N	Osmanya	\N
+39	Visp	\N	Visible Speech	\N
+40	Shaw	\N	Shavian	\N
+41	Plrd	\N	Miao	\N
+42	Bopo	\N	Bopomofo	\N
+43	Kore	\N	Korean	\N
+44	Teng	\N	Tengwar	\N
+45	Cirt	\N	Cirth	\N
+46	Sara	\N	Sarati	\N
+47	Brah	\N	Brahmi	\N
+48	Khar	\N	Kharoshthi	\N
+49	Guru	\N	Gurmukhi	\N
+50	Deva	\N	Devanagari	\N
+51	Sylo	\N	Syloti Nagri	\N
+52	Gujr	\N	Gujarati	\N
+53	Beng	\N	Bengali	\N
+54	Orya	\N	Oriya	\N
+55	Tibt	\N	Tibetan	\N
+56	Phag	\N	Phags-pa	\N
+57	Lepc	\N	Lepcha	\N
+58	Limb	\N	Limbu	\N
+59	Telu	\N	Telugu	\N
+60	Knda	\N	Kannada	\N
+61	Taml	\N	Tamil	\N
+62	Mlym	\N	Malayalam	\N
+63	Sinh	\N	Sinhala	\N
+64	Mymr	\N	Myanmar	\N
+65	Thai	\N	Thai	\N
+66	Tale	\N	Tai Le	\N
+67	Talu	\N	New Tai Lue	\N
+68	Khmr	\N	Khmer	\N
+69	Laoo	\N	Lao	\N
+70	Kali	\N	Kayah Li	\N
+71	Cham	\N	Cham	\N
+72	Bali	\N	Balinese	\N
+73	Java	\N	Javanese	\N
+74	Batk	\N	Batak	\N
+75	Bugi	\N	Buginese	\N
+76	Tglg	\N	Tagalog	\N
+77	Hano	\N	Hanunoo	\N
+78	Buhd	\N	Buhid	\N
+79	Tagb	\N	Tagbanwa	\N
+80	Lina	\N	Linear A	\N
+81	Linb	\N	Linear B	\N
+82	Cprt	\N	Cypriot	\N
+83	Hira	\N	Hiragana	\N
+84	Kana	\N	Katakana	\N
+85	Jpan	\N	Japanese	\N
+86	Ethi	\N	Ethiopic	\N
+87	Cans	\N	Canadian Syllabics	\N
+88	Cher	\N	Cherokee	\N
+89	Hmng	\N	Pahawh Hmong	\N
+90	Yiii	\N	Yi	\N
+91	Vaii	\N	Vai	\N
+92	Hani	\N	Han (Hanzi, Kanji, Hanja)	\N
+93	Hans	\N	Han (Simplified variant)	\N
+94	Hant	\N	Han (Traditional variant)	\N
+95	Blis	\N	Blissymbols	\N
+96	Brai	\N	Braille	\N
+97	Inds	\N	Indus	\N
+98	Roro	\N	Rongorongo	\N
+100	Hrkt	\N	Japanese syllabaries	\N
+101	Hang	\N	Hangul	\N
+102	Geok	\N	Khutsuri	\N
+103	Nkoo	\N	N'ko	\N
+104	Olck	\N	Ol Chiki	\N
+105	Rjng	\N	Rejang	\N
+106	Saur	\N	Saurashtra	\N
+107	Sund	\N	Sundanese	\N
+108	Cari	\N	Carian	\N
+109	Lyci	\N	Lycian	\N
+110	Lydi	\N	Lydian	\N
+111	Zmth	\N	Mathematical notation	\N
+112	Zsym	\N	Symbols	\N
+113	Armi	\N	Imperial Aramaic	\N
+114	Avst	\N	Avestan	\N
+115	Cakm	\N	Chakma	\N
+116	Kthi	\N	Kaithi	\N
+117	Lana	\N	Tai Tham	\N
+118	Mani	\N	Manichaean	\N
+119	Moon	\N	Moon	\N
+120	Mtei	\N	Meitei Mayek	\N
+121	Phli	\N	Inscriptional Pahlavi	\N
+122	Phlp	\N	Psalter Pahlavi	\N
+123	Phlv	\N	Book Pahlavi	\N
+124	Prti	\N	Inscriptional Parthian	\N
+125	Samr	\N	Samaritan	\N
+126	Sgnw	\N	SignWriting	\N
+127	Tavt	\N	Tai Viet	\N
+128	Zxxx	\N	Code for unwritten documents	\N
+129	Zyyy	\N	Code for undetermined script	\N
+130	Zzzz	\N	Code for uncoded script	\N
+131	Khoj	\N	Khojki	\N
+132	Tirh	\N	Tiruta	\N
+133	Afak	\N	Afaka	\N
+134	Jurc	\N	Jurchen	\N
+135	Mroo	\N	Mro, Mru	\N
+136	Nshu	\N	Nüshu	\N
+137	Sora	\N	Sora Sompeng	\N
+138	Shrd	\N	Sharada	\N
+139	Takr	\N	Takri	\N
+140	Tang	\N	Tangut	\N
+141	Wole	\N	Woleai	\N
+142	Dupl	\N	Duployan shorthand	\N
+143	Elba	\N	Elbasan	\N
+144	Sind	\N	Khudawadi	\N
+145	Bass	\N	Bassa Vah	\N
+146	Kpel	\N	Kpelle	\N
+147	Loma	\N	Loma	\N
+148	Mend	\N	Mende	\N
+149	Nbat	\N	Nabataean	\N
+150	Narb	\N	Old North Arabian	\N
+151	Palm	\N	Palmyrene	\N
+152	Gran	\N	Grantha	\N
+153	Merc	\N	Meroitic Cursive	\N
+154	Wara	\N	Warang Citi	\N
+155	Bamu	\N	Bamum	\N
+156	Sarb	\N	Old South Arabian	\N
+157	Lisu	\N	Lisu (Fraser)	\N
+158	Nkgb	\N	Nakhi Geba	\N
+159	Zinh	\N	Code for inherited script	\N
+160	Qaaa	\N	[Multiple scripts]	\N

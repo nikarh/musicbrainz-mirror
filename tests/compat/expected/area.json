@@ -1,0 +1,17 @@
+200
+{
+  "disambiguation": "",
+  "id": "489ce91b-6658-3307-9877-795b68554c98",
+  "iso-3166-1-codes": [
+    "US"
+  ],
+  "life-span": {
+    "begin": null,
+    "end": null,
+    "ended": false
+  },
+  "name": "United States",
+  "sort-name": "United States",
+  "type": "Country",
+  "type-id": "06dd0ae4-8c74-30bb-b43d-95dcedf961de"
+}

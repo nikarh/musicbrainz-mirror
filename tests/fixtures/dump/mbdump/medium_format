@@ -1,0 +1,115 @@
+1	CD	\N	\N	\N	\N	\N	9712d52a-4509-3d4b-a1a2-67c88c643e31
+2	DVD	\N	\N	\N	\N	\N	2875c583-4580-3a90-b723-ba1b39921e23
+3	SACD	\N	\N	\N	\N	\N	5c9021b5-aecf-3339-b78e-c7bbe427c342
+4	DualDisc	\N	\N	\N	\N	\N	564fb227-66af-356e-a4c6-f0a3f806fcd1
+5	LaserDisc	\N	\N	\N	\N	\N	8383eae1-ae79-30c2-8753-a7ed615ead84
+6	MiniDisc	\N	\N	\N	\N	\N	671c5ed4-20e3-3a62-b6ea-f155cde04258
+7	Vinyl	\N	\N	\N	\N	\N	10e17707-9751-3aaf-95b2-2432acd5374c
+8	Cassette	\N	\N	\N	\N	\N	f5e6e254-8f39-331c-936b-9c69d686dc47
+9	Cartridge	\N	\N	\N	\N	\N	2b240bc1-a4d7-34de-928f-f85e372751bd
+10	Reel-to-reel	\N	\N	\N	\N	\N	58016447-3617-3da2-b1d0-7646c2a7797e
+11	DAT	\N	\N	\N	\N	\N	0bef8b9c-f1f8-3f49-a737-dde52fb120ea
+12	Digital Media	\N	\N	\N	\N	\N	907a28d9-b3b2-3ef6-89a8-7b18d91d4794
+13	Other	\N	\N	\N	\N	\N	3408c8ed-b520-3a80-be3b-7fa855665346
+14	Wax Cylinder	\N	\N	\N	\N	\N	329b3584-ff79-39fa-b234-7dafdd29fb7e
+15	Piano Roll	\N	\N	\N	\N	\N	a6408521-bf0e-3b68-9f35-32ff1c609ab8
+16	DCC	\N	\N	\N	\N	\N	dc560160-b9a5-3579-9c07-5920e815455a
+17	HD-DVD	\N	\N	\N	\N	\N	d13fa46d-9a5f-36b4-9d7d-fcdc12b71dce
+18	DVD-Audio	\N	\N	\N	\N	\N	9d7fa8ab-3bb4-36f6-a8c6-b7eed946fc4b
+19	DVD-Video	\N	\N	\N	\N	\N	bb71fd58-ff93-32b4-a201-4ad1b2a80e5f
+20	Blu-ray	\N	\N	\N	\N	\N	c693c05b-3316-3d69-afc2-5e2bc455bffc
+21	VHS	\N	\N	\N	\N	\N	ec44fdc0-739e-386a-818c-dafa1215b487
+22	VCD	\N	\N	\N	\N	\N	f74cb37d-d0a8-3df3-bb69-04b70361259a
+23	SVCD	\N	\N	\N	\N	\N	368f05ec-97d2-320f-9057-7a69962e5fa8
+24	Betamax	\N	\N	\N	\N	\N	783f6231-1113-306a-9730-31f788027ffb
+25	HDCD	\N	\N	\N	\N	\N	8759db4e-8451-33c0-8a8f-05e5f95f192e
+26	USB Flash Drive	\N	\N	\N	\N	\N	d9a5f2e3-6a87-3f0b-9623-95d60d94faff
+27	slotMusic	\N	\N	\N	\N	\N	2c8efa62-d96c-356e-a28f-ccaf4117e67e
+28	UMD	\N	\N	\N	\N	\N	7c4397a2-1b00-35c0-8dbe-f06c474df4b8
+29	7" Vinyl	\N	\N	\N	\N	\N	1d5a48e4-e94a-36dc-84e2-0c5f9f880aa7
+30	10" Vinyl	\N	\N	\N	\N	\N	3155d2b6-52fd-3952-bda3-bd7c429d038d
+31	12" Vinyl	\N	\N	\N	\N	\N	3e9080b0-5e6c-34ab-bd15-f526b6306a64
+33	CD-R	\N	\N	\N	\N	\N	18805d5b-ff3a-3bc0-9b1f-188cc06415c8
+34	8cm CD	\N	\N	\N	\N	\N	86071488-c73d-31f9-be48-5795cb490c86
+35	Blu-spec CD	\N	\N	\N	\N	\N	038ec24e-5d01-3a8c-817e-c51a515b1875
+36	SHM-CD	\N	\N	\N	\N	\N	4856b1c6-674d-3f68-a1dd-8ae517e8b566
+37	HQCD	\N	\N	\N	\N	\N	fb8e91c7-16e3-3e29-98be-1dda0a473146
+38	Hybrid SACD	\N	\N	\N	\N	\N	8a756eda-09f6-3381-8fac-15065c7d5ed9
+39	CD+G	\N	\N	\N	\N	\N	f59d2658-7fa7-377e-b2f1-fda418284d2c
+40	8cm CD+G	\N	\N	\N	\N	\N	9f11c690-3b69-3585-9c40-1558d3ecb5ce
+41	CDV	\N	\N	\N	\N	\N	da35a223-d4da-3a29-8a86-b50462452b72
+42	Enhanced CD	\N	\N	\N	\N	\N	8a08dc62-1aa2-34de-a904-fa467c53052c
+43	Data CD	\N	\N	\N	\N	\N	37cceb6f-7ca2-321f-b2c5-12312a1a1df1
+44	DTS CD	\N	\N	\N	\N	\N	ccacd435-d33f-3104-98c9-cbe04d037c36
+45	Playbutton	\N	\N	\N	\N	\N	aa6e7005-53d9-3793-a5bd-c5372a3981c3
+46	Download Card	\N	\N	\N	\N	\N	11cad59d-0f90-387f-88a2-752afeb88f5d
+47	DVDplus	\N	\N	\N	\N	\N	9e52c71a-e9e2-3386-87f7-3111f3e8934b
+48	VinylDisc	\N	\N	\N	\N	\N	fb6e30d8-db2b-3424-a560-dd4146370886
+49	3.5" Floppy Disk	\N	\N	\N	\N	\N	a9527198-e02a-31e3-be3d-3b88e26a59c9
+50	Edison Diamond Disc	\N	\N	\N	\N	\N	1a3a0a66-3c79-3cf9-b7be-fedb00d5ec1d
+51	Flexi-disc	\N	\N	\N	\N	\N	400e26c7-dc10-308c-991f-55c49d40f8d1
+52	7" Flexi-disc	\N	\N	\N	\N	\N	da961db2-0ec7-316d-b6f4-5fddba1ca401
+53	Shellac	\N	\N	\N	\N	\N	1278c691-269c-3238-8bef-4582921ad7ff
+54	10" Shellac	\N	\N	\N	\N	\N	6954724d-b8f3-39a4-b724-d2eec6ac674b
+55	12" Shellac	\N	\N	\N	\N	\N	af174b17-9469-3771-9555-115ae415e587
+56	7" Shellac	\N	\N	\N	\N	\N	682f97ed-517e-3a86-ad66-33f98e864346
+57	SHM-SACD	\N	\N	\N	\N	\N	6714d4b0-5669-354c-84fa-22d1f1a0fcae
+58	Pathé disc	\N	\N	\N	\N	\N	34cc287c-c448-3fe4-90d6-ed3a6fa35fe5
+59	VHD	\N	\N	\N	\N	\N	cc98ca24-3ae0-35fd-b311-94e0423a78a7
+60	CED	\N	\N	\N	\N	\N	38910592-1be4-371d-b34d-2df852c8b9ea
+61	Copy Control CD	\N	\N	\N	\N	\N	1a648190-5c75-3b74-b8c5-8150c97af0f5
+62	SD Card	\N	\N	\N	\N	\N	25637275-fb7c-3315-b8a8-f561bef283fc
+63	Hybrid SACD (CD layer)	\N	\N	\N	\N	\N	1a168dbd-d7ce-381d-a38a-3948de2cb4d6
+64	Hybrid SACD (SACD layer)	\N	\N	\N	\N	\N	2ee0ef3d-5c51-37ec-bbd9-0dcd72005174
+65	DualDisc (DVD-Audio side)	\N	\N	\N	\N	\N	8b96a5a6-0f07-3095-8cb9-a85e888acd46
+66	DualDisc (DVD-Video side)	\N	\N	\N	\N	\N	bd5365d8-3790-3a72-8cd8-480dc12ec483
+67	DualDisc (CD side)	\N	\N	\N	\N	\N	1582d6aa-7109-377c-a124-c016facccb10
+68	DVDplus (DVD-Audio side)	\N	\N	\N	\N	\N	d38fffa4-87b1-3ec8-8dae-8d739ec1f300
+69	DVDplus (DVD-Video side)	\N	\N	\N	\N	\N	ccef53b5-d41a-391b-b1b3-9ca9a96498e6
+70	DVDplus (CD side)	\N	\N	\N	\N	\N	d047545e-c13a-33b4-a1cc-4cc12d6e28c6
+71	8" LaserDisc	\N	\N	\N	\N	\N	1bb6e33f-6ff6-4449-b407-04cc7a598945
+72	12" LaserDisc	\N	\N	\N	\N	\N	fc50ccd4-86fd-4697-8a20-dabe98d62ad5
+73	Phonograph record	\N	\N	\N	\N	\N	3f9883d5-12dc-4866-a4e1-b240065c2155
+74	PlayTape	\N	\N	\N	\N	\N	d089612f-f195-4549-a6d1-b774cfe7d6ef
+75	HiPac	\N	\N	\N	\N	\N	53b29c32-2bb4-49b0-ba33-aec7b49fd28d
+76	Floppy Disk	\N	\N	\N	\N	\N	d77bf383-553c-43c7-a94b-b112668fdc57
+77	Zip Disk	\N	\N	\N	\N	\N	125fb6e6-fa77-4914-94d2-822e598e4e98
+78	8-Track Cartridge	\N	\N	\N	\N	\N	49b49ca7-d2d8-4d36-a7dd-d61363ee3697
+79	Blu-ray-R	\N	\N	\N	\N	\N	96fc0e15-e24a-41f0-879c-96c0538809be
+80	VinylDisc (DVD side)	\N	\N	\N	\N	\N	2f334ecc-af5b-4894-a5af-bfe5a94a3e5b
+81	VinylDisc (Vinyl side)	\N	\N	\N	\N	\N	ab3f704c-b7fd-4092-b60d-bedb93ebac3c
+82	VinylDisc (CD side)	\N	\N	\N	\N	\N	949e1cd7-af5a-4b6b-abda-87416244b1cf
+83	Microcassette	\N	\N	\N	\N	\N	7bdf614f-da65-4dd6-96ca-a165708470bb
+84	SACD (2 channels)	\N	\N	\N	\N	\N	dd9f171b-9099-438f-a410-3bdce00ce139
+85	SACD (multichannel)	\N	\N	\N	\N	\N	3146aab3-e0cb-4571-898e-c25cffac0010
+86	Hybrid SACD (SACD layer, multichannel)	\N	\N	\N	\N	\N	fa46fab8-4c29-495a-b2fa-7bc14257dcca
+87	Hybrid SACD (SACD layer, 2 channels)	\N	\N	\N	\N	\N	6c521ee3-f723-41de-bc6b-ec3621b9ffa9
+88	SHM-SACD (multichannel)	\N	\N	\N	\N	\N	46f1a40b-4377-4097-8b89-9930057175a7
+89	SHM-SACD (2 channels)	\N	\N	\N	\N	\N	0c722fb0-2106-44c5-9f1c-5c62dbbb476e
+90	Tefifon	\N	\N	\N	\N	\N	12fadf41-2519-4635-a010-eda7b1bb0fc3
+91	5.25" Floppy Disk	\N	\N	\N	\N	\N	6e0fab4d-b888-4285-9848-7dbb6827c5d4
+92	DVD-R Video	\N	\N	\N	\N	\N	c28a0f2e-a61e-4236-879a-5ff92ad33695
+93	Data DVD-R	\N	\N	\N	\N	\N	a89246ae-697c-4c26-b5e8-bdf393e8d317
+94	Data DVD	\N	\N	\N	\N	\N	bf0c91f8-381e-4d81-8c2e-1ff58f3694fa
+95	KiT Album	\N	\N	\N	\N	\N	299854ce-ca2b-4731-93b9-141586742797
+128	DataPlay	\N	\N	\N	\N	\N	a092ba8e-8bc6-46fb-aeb2-97ff06002c2c
+129	Mixed Mode CD	\N	\N	\N	\N	\N	184c65db-2619-4577-be0c-5dcc1d630c5d
+130	DualDisc (DVD side)	\N	\N	\N	\N	\N	76c22700-45b7-4878-b33e-1710861bd70d
+131	Betacam SP	\N	\N	\N	\N	\N	d5c3429a-69f6-454d-a72f-13fdf78d7a05
+164	microSD	\N	\N	\N	\N	\N	bcd4ec0a-d880-4dfc-8b32-ccf53cc46c59
+165	Minimax CD	\N	\N	\N	\N	\N	60d7410f-b961-4518-8423-9df9df539255
+166	MiniDVD	\N	\N	\N	\N	\N	b0f9a962-39f1-4cc7-927b-82835d8ed734
+167	Minimax DVD	\N	\N	\N	\N	\N	d4946d8e-d8aa-48c8-accd-693f86378de2
+168	MiniDVD-Audio	\N	\N	\N	\N	\N	fe687b4d-b819-4747-ad33-bff6fbd9ec00
+169	MiniDVD-Video	\N	\N	\N	\N	\N	8a81ae79-8a3b-4d87-8c6c-14b5ffdbe754
+170	Minimax DVD-Audio	\N	\N	\N	\N	\N	e889791c-1fc6-4155-9c07-19f5947b555f
+171	Minimax DVD-Video	\N	\N	\N	\N	\N	83624f88-292b-4dcd-b358-e26a7b66cbe2
+203	Acetate	\N	\N	\N	\N	\N	b2c6d333-dbcb-4000-b96c-20e614d1befd
+204	7" Acetate	\N	\N	\N	\N	\N	0d094c3a-a839-42fa-9e8b-d830cafdadc1
+205	10" Acetate	\N	\N	\N	\N	\N	7e0d0a4e-9ff0-49f7-954d-c2aaa7d6dd44
+206	12" Acetate	\N	\N	\N	\N	\N	0e84d5d1-34f1-420b-8f48-fbf9c6f9ef3e
+207	3" Vinyl	\N	\N	\N	\N	\N	a7e2de59-dcd7-4ea6-a3b2-cac9b7ee3ea9
+208	ROM cartridge	\N	\N	\N	\N	\N	03d69fea-a3ab-4d89-8386-27784f5e8137
+209	CD-i	\N	\N	\N	\N	\N	2119a23b-24cc-46d2-b1cf-e61b3b039db3
+210	8cm CD-R	\N	\N	\N	\N	\N	1bd868e8-3858-4954-8df7-2463f865b3c9
+211	Ultra HD Blu-ray	\N	\N	\N	\N	\N	b749434b-740e-4952-a3c1-a53ff10c2d95

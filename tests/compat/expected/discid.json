@@ -1,0 +1,175 @@
+200
+{
+  "id": "D218_xkmXCzrevofoZujqbr2uhs-",
+  "offset-count": 15,
+  "offsets": [
+    150,
+    20452,
+    40307,
+    57875,
+    71265,
+    99245,
+    121645,
+    146522,
+    172115,
+    179675,
+    201452,
+    216575,
+    238625,
+    269532,
+    287307
+  ],
+  "releases": [
+    {
+      "asin": "B000F6YPCI",
+      "barcode": "4988005429650",
+      "country": "JP",
+      "cover-art-archive": {
+        "artwork": true,
+        "back": false,
+        "count": 1,
+        "darkened": false,
+        "front": true
+      },
+      "date": "2006-05-17",
+      "disambiguation": "",
+      "id": "602af258-e647-48e2-9660-bd0c5c8f92bf",
+      "media": [
+        {
+          "discs": [
+            {
+              "id": "D218_xkmXCzrevofoZujqbr2uhs-",
+              "offset-count": 15,
+              "offsets": [
+                150,
+                20452,
+                40307,
+                57875,
+                71265,
+                99245,
+                121645,
+                146522,
+                172115,
+                179675,
+                201452,
+                216575,
+                238625,
+                269532,
+                287307
+              ],
+              "sectors": 315407
+            }
+          ],
+          "format": "CD",
+          "format-id": "9712d52a-4509-3d4b-a1a2-67c88c643e31",
+          "id": "63944ab5-2dff-3f31-8d42-5faccd5099d5",
+          "position": 1,
+          "title": "",
+          "track-count": 15
+        }
+      ],
+      "packaging": null,
+      "packaging-id": null,
+      "quality": "normal",
+      "release-events": [
+        {
+          "area": {
+            "disambiguation": "",
+            "id": "2db42837-c832-3c27-b4a3-08198f75693c",
+            "iso-3166-1-codes": [
+              "JP"
+            ],
+            "name": "Japan",
+            "sort-name": "Japan",
+            "type": null,
+            "type-id": null
+          },
+          "date": "2006-05-17"
+        }
+      ],
+      "status": "Official",
+      "status-id": "4e304316-386d-3409-af2e-78857eec5cfe",
+      "text-representation": {
+        "language": "eng",
+        "script": "Latn"
+      },
+      "title": "The Downward Spiral"
+    },
+    {
+      "asin": "B001GM7G94",
+      "barcode": "4988005537591",
+      "country": "JP",
+      "cover-art-archive": {
+        "artwork": true,
+        "back": false,
+        "count": 2,
+        "darkened": false,
+        "front": false
+      },
+      "date": "2008-12-03",
+      "disambiguation": "",
+      "id": "c5de0ba9-9a02-4209-aa1b-beec746837e9",
+      "media": [
+        {
+          "discs": [
+            {
+              "id": "D218_xkmXCzrevofoZujqbr2uhs-",
+              "offset-count": 15,
+              "offsets": [
+                150,
+                20452,
+                40307,
+                57875,
+                71265,
+                99245,
+                121645,
+                146522,
+                172115,
+                179675,
+                201452,
+                216575,
+                238625,
+                269532,
+                287307
+              ],
+              "sectors": 315407
+            }
+          ],
+          "format": "SHM-CD",
+          "format-id": "4856b1c6-674d-3f68-a1dd-8ae517e8b566",
+          "id": "f84bd697-be6e-3a66-9655-cb433150a684",
+          "position": 1,
+          "title": "",
+          "track-count": 15
+        }
+      ],
+      "packaging": null,
+      "packaging-id": null,
+      "quality": "normal",
+      "release-events": [
+        {
+          "area": {
+            "disambiguation": "",
+            "id": "2db42837-c832-3c27-b4a3-08198f75693c",
+            "iso-3166-1-codes": [
+              "JP"
+            ],
+            "name": "Japan",
+            "sort-name": "Japan",
+            "type": null,
+            "type-id": null
+          },
+          "date": "2008-12-03"
+        }
+      ],
+      "status": "Official",
+      "status-id": "4e304316-386d-3409-af2e-78857eec5cfe",
+      "text-representation": {
+        "language": "eng",
+        "script": "Latn"
+      },
+      "title": "The Downward Spiral"
+    }
+  ],
+  "sectors": 315407
+}

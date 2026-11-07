@@ -1,0 +1,1172 @@
+1	\N	\N	\N	0a5341f8-3b1d-4f99-a0c6-26b7f4e42c7f	additional	\N	\N
+2	\N	\N	\N	5b66c85d-6963-4d4b-86e5-18d2caccb349	minor	\N	\N
+3	\N	\N	\N	d92884b7-ee0c-46d5-96f3-918196ba8c5b	vocal	\N	\N
+4	\N	\N	\N	8e2a3255-87c2-4809-a174-98cb3704f1a5	lead vocals	\N	\N
+5	\N	\N	\N	9f63c4ba-b76f-40d5-9e99-2fb08bd4c286	alto vocals	\N	\N
+6	\N	\N	\N	a40b43ed-2722-4b4a-98a5-478283cdf8df	baritone vocals	\N	\N
+7	\N	\N	\N	1bfdb77e-f339-4e8e-9627-331ca9d9e920	bass vocals	\N	\N
+8	\N	\N	\N	435a19f5-55dc-4a08-8c59-4257680b4217	countertenor vocals	\N	\N
+9	\N	\N	\N	f81325d7-593c-4197-b776-4f8a62c67a8e	mezzo-soprano vocals	\N	\N
+10	\N	\N	\N	e88f0be8-a07e-4c0d-bd06-e938eea4d5f6	soprano vocals	\N	\N
+11	\N	\N	\N	122c11da-651f-46cc-9118-c523a14afa1d	tenor vocals	\N	\N
+12	\N	\N	\N	75052401-7340-4e5b-a71d-ea024a128849	background vocals	\N	\N
+13	\N	\N	\N	43427f08-837b-46b8-bc77-483453af6a7b	choir vocals	\N	\N
+14	\N	\N	\N	0abd7f04-5e28-425b-956f-94789d9bcbe2	instrument	\N	\N
+15	\N	\N	\N	77a0f1d3-f9ec-4055-a6e7-24d7258c21f7	wind instruments	\N	\N
+16	\N	\N	\N	35df3318-7a89-4601-bccc-4cd27ba062f7	woodwind	\N	\N
+17	\N	\N	\N	ee570715-6ded-4cff-ad7e-feef6a5bca44	double reed	\N	\N
+18	\N	\N	\N	1d865ced-d86a-4277-8914-009740e37887	bagpipe	\N	\N
+19	\N	\N	\N	5318ae3e-fb33-4187-a1a1-1df9a59930f8	bassoon	\N	\N
+20	\N	\N	\N	5c14a2d9-0906-4a09-b5ab-0020293e430e	contrabassoon	\N	\N
+21	\N	\N	\N	3590521b-8c97-4f4b-b1bb-5f68d3663d8a	cor anglais	\N	\N
+22	\N	\N	\N	1b97909a-6db7-4829-91fd-414338ce28cf	oboe	\N	\N
+23	\N	\N	\N	08028095-6dae-4fe0-9f34-284fde19f29b	clarinet	\N	\N
+24	\N	\N	\N	eaa3713d-162a-42ed-bcd8-4185a68defbf	alto clarinet	\N	\N
+25	\N	\N	\N	b7d71e02-e76c-4483-b394-b29057888131	bass clarinet	\N	\N
+26	\N	\N	\N	3f501227-b481-4336-9eee-f24f3414ba61	contrabass clarinet	\N	\N
+27	\N	\N	\N	540280f1-d6cf-46bf-968b-695e99e216d7	flute	\N	\N
+28	\N	\N	\N	3a4d70ed-7c34-4d50-b6a3-b8ce63a8c234	end-blown flute	\N	\N
+29	\N	\N	\N	e93eda0f-9475-45c1-9194-29020d9b83e9	ocarina	\N	\N
+30	\N	\N	\N	6b5b72d8-6e9c-4e31-bd21-062d10bcf661	pan flute	\N	\N
+31	\N	\N	\N	d01ae816-0567-4520-8fcb-8d3b71ef4bdf	piccolo	\N	\N
+32	\N	\N	\N	3cf4c0c9-160a-4d73-9243-7d0e0df17050	recorder	\N	\N
+33	\N	\N	\N	a9ed16cd-b8cb-4256-9c41-93f5f0458c49	saxophone	\N	\N
+34	\N	\N	\N	4a32d2f2-2ac7-423d-9820-2c0b7ff37f60	soprano saxophone	\N	\N
+35	\N	\N	\N	9c977091-b27a-4a0e-b54e-b5ab89420e22	alto saxophone	\N	\N
+36	\N	\N	\N	ef7382cf-d5b4-4923-8b9e-3c482ed84b5e	tenor saxophone	\N	\N
+37	\N	\N	\N	d3a04358-70f8-4c43-b722-c3cf6cc218ae	baritone saxophone	\N	\N
+38	\N	\N	\N	82157c40-112f-4e4a-a3c0-5388ebb12931	brass	\N	\N
+39	\N	\N	\N	257dad59-02e6-47d9-958a-659843737827	cornet	\N	\N
+40	\N	\N	\N	e798a2bd-a578-4c28-8eea-6eca2d8b2c5d	horn	\N	\N
+41	\N	\N	\N	2d8ec312-6373-4c11-acc5-18e9a9b788b0	alphorn	\N	\N
+42	\N	\N	\N	f28d6657-bc51-494f-84d0-553ef1ad0376	baritone horn	\N	\N
+43	\N	\N	\N	fd016966-658e-40db-8fe1-f2235fe1e9a3	flugelhorn	\N	\N
+44	\N	\N	\N	f9abcd44-52d6-4424-b3a0-67f003bbbf3d	French horn	\N	\N
+45	\N	\N	\N	2d5bfd00-f0ef-41e5-aa33-fd706b1d0da0	tenor horn / alto horn	\N	\N
+46	\N	\N	\N	f6100277-c7b8-4c8d-aa26-d8cd014b6761	trombone	\N	\N
+47	\N	\N	\N	1c8f9780-2f16-4891-b66d-bb7aa0820dbd	trumpet	\N	\N
+48	\N	\N	\N	e297fcf6-29a7-4673-a15d-a6f54819b2d1	tuba	\N	\N
+49	\N	\N	\N	e5781903-d6ef-4480-a158-60300265577c	natural brass instruments	\N	\N
+51	\N	\N	\N	d8afa42b-9287-41a2-82b2-2a96cb6b6fca	bugle	\N	\N
+56	\N	\N	\N	6a539558-5585-4803-a705-a4520f23189d	mellophone	\N	\N
+57	\N	\N	\N	18fb4427-58c5-4ab6-88a3-2b67a6afd718	ophicleide	\N	\N
+60	\N	\N	\N	7cb02b35-2fea-4d24-88d4-92413f090e3f	shofar	\N	\N
+63	\N	\N	\N	3016babb-461a-4dfe-aa20-75a01cb0b2a3	free reed	\N	\N
+64	\N	\N	\N	bdf08ac2-b9c2-4391-85e5-9a7716bdd690	accordion	\N	\N
+65	\N	\N	\N	b4aab04d-64b6-47c1-91bd-6a3541d7903a	concertina	\N	\N
+66	\N	\N	\N	63e37f1a-30b6-4746-8a49-dfb55be3cdd1	harmonica	\N	\N
+67	\N	\N	\N	8ab40df2-106b-4b9b-a50c-0798ee95da8f	melodica	\N	\N
+68	\N	\N	\N	e9f3db08-5360-4dfc-a5f4-0951f39d2be0	sheng	\N	\N
+69	\N	\N	\N	32eca297-dde6-45d0-9305-ae479947c2a8	strings	\N	\N
+70	\N	\N	\N	6505f98c-f698-4406-8bf4-8ca43d05c36f	bass	\N	\N
+71	\N	\N	\N	7bd32b95-416f-4244-a98b-1311ec69c7db	double bass	\N	\N
+72	\N	\N	\N	6ba5268f-766e-48b4-9d23-f378a7559f99	electric upright bass	\N	\N
+73	\N	\N	\N	15861569-249d-4b24-8ce4-d0b001b1f978	acoustic bass guitar	\N	\N
+74	\N	\N	\N	0b9d87fa-93fa-4956-8b6a-a419566cc915	electric bass guitar	\N	\N
+75	\N	\N	\N	f68936f2-194c-4bcd-94a9-81e1dd947b8d	guitar family	\N	\N
+76	\N	\N	\N	00beaf8e-a781-431c-8130-7c2871696b7d	acoustic guitar	\N	\N
+77	\N	\N	\N	43f378cf-b099-46da-8ec3-a39b6f5e5258	classical guitar	\N	\N
+78	\N	\N	\N	7ee8ebf5-3aed-4fc8-8004-49f4a8c45a87	electric guitar	\N	\N
+79	\N	\N	\N	41d2c709-81e2-415c-9456-a0a3d14f48bd	slide guitar	\N	\N
+80	\N	\N	\N	921330d6-eb1b-4e59-b4b6-824ebcdb89c2	steel guitar	\N	\N
+81	\N	\N	\N	f0a6e89d-b828-4b73-885d-8c1560e5e49a	harp	\N	\N
+82	\N	\N	\N	39354e17-ab05-4aa5-b503-3092a6b4622c	violin family	\N	\N
+84	\N	\N	\N	0db03a60-1142-4b25-ab1b-72027d0dc357	cello	\N	\N
+85	\N	\N	\N	04a21d03-535a-4ace-9098-12013867b8e5	fiddle	\N	\N
+86	\N	\N	\N	089f123c-0f7d-4105-a64e-49de81ca8fa4	violin	\N	\N
+87	\N	\N	\N	377e007a-33fe-4825-9bef-136cf5cf581a	viola	\N	\N
+89	\N	\N	\N	9c48582f-f54f-4d08-ac3a-bb3520d3df09	aeolian harp	\N	\N
+90	\N	\N	\N	e618d02c-41c0-475c-be70-7ef0f92da7d0	Appalachian dulcimer	\N	\N
+91	\N	\N	\N	f6b51493-c7bd-41be-901b-245380ec96ce	balalaika	\N	\N
+92	\N	\N	\N	6bf88fc7-a235-4d95-a910-a4ce4a4853c6	banjo	\N	\N
+93	\N	\N	\N	c7651f8a-ce7e-494a-9764-cbdd2d9817c3	berimbau	\N	\N
+94	\N	\N	\N	1b165fa4-8510-4a3e-a2b5-2d38baf55176	biwa	\N	\N
+95	\N	\N	\N	2091cdd2-7953-453f-a29e-cfcbf5140d44	bouzouki	\N	\N
+96	\N	\N	\N	37fa9bb5-d5d7-4b0f-aa4d-531339ba9c32	mandolin	\N	\N
+97	\N	\N	\N	89e04164-5c7b-45df-94f4-e979b21da9bc	musical bow	\N	\N
+98	\N	\N	\N	f12c315c-317c-45d3-9dc0-c703d6486e40	crwth	\N	\N
+99	\N	\N	\N	73ab72a3-039d-422a-8ce8-a0f8211bd022	gayageum	\N	\N
+100	\N	\N	\N	8158f0e5-94ab-4c8f-b3ed-15b1b14b7d63	geomungo	\N	\N
+101	\N	\N	\N	9cbe04a2-0014-474c-b530-b0d4f4b73413	hammered dulcimer	\N	\N
+102	\N	\N	\N	13300a83-2776-481a-80fb-cd68f7be4051	hardingfele	\N	\N
+103	\N	\N	\N	303d4f1a-f799-4c42-9bac-dbedd9139e91	hurdy gurdy	\N	\N
+104	\N	\N	\N	ffaf7204-92f1-4c03-846a-748218ebf2a5	mouth harp	\N	\N
+106	\N	\N	\N	32de8d17-6ea8-4c46-8c95-c02b77883c50	kora	\N	\N
+107	\N	\N	\N	274717c1-b2d8-4a6a-8eaf-eb0c1e11b757	koto	\N	\N
+108	\N	\N	\N	38237fcc-b833-4cd6-8dc1-e5fe2f308a2b	lute	\N	\N
+109	\N	\N	\N	21bd4d63-a75a-4022-abd3-52ba7487c2de	lyre	\N	\N
+110	\N	\N	\N	4dc550d6-973f-42bd-8c9b-7dfd09bd3f6e	mbira	\N	\N
+111	\N	\N	\N	2f5aa3e2-993e-42ab-85a9-97cad29c430c	psaltery	\N	\N
+112	\N	\N	\N	c03753c7-1735-4e24-9c9a-8cb5994d6bc5	shamisen	\N	\N
+113	\N	\N	\N	9290b2c1-97c3-4355-a26f-c6dba89cf8ff	sitar	\N	\N
+114	\N	\N	\N	af1341bb-f62c-4e9b-af62-c3ea19fa54c6	ukulele	\N	\N
+115	\N	\N	\N	65b8bd3c-c194-415b-b075-1f3cd9d031bd	tres	\N	\N
+116	\N	\N	\N	69de43e4-1d92-4b65-8c63-2f9daf485f81	vielle	\N	\N
+117	\N	\N	\N	a11f1ba4-f2e1-4498-860e-f1b22b17f75b	Mexican vihuela	\N	\N
+118	\N	\N	\N	be34e4e5-6e77-46f5-ab56-c9641d3da213	viola da gamba	\N	\N
+119	\N	\N	\N	b47bdb4e-59ee-42d3-96ef-a1f0fdd61148	viola d'amore	\N	\N
+120	\N	\N	\N	8be32b8c-7845-4b6f-94dd-ff4d83169c26	violotta	\N	\N
+121	\N	\N	\N	b8471d2e-9b9d-4f52-822e-b19a37cd30ac	washtub bass	\N	\N
+122	\N	\N	\N	e7c17460-e42d-4ffc-8167-4bd6d7e4f2c5	xalam	\N	\N
+123	\N	\N	\N	c6a133d5-c1e0-47d6-bc30-30d102a78893	zither	\N	\N
+124	\N	\N	\N	8e9abdf1-0afc-4544-b201-c6fa768d01f4	percussion	\N	\N
+125	\N	\N	\N	3bccb7eb-cbca-42cd-b0ac-a5e959df7221	membranophone	\N	\N
+126	\N	\N	\N	12092505-6ee1-46af-a15a-b5b468b6b155	drums (drum set)	\N	\N
+127	\N	\N	\N	f3bd3292-1a33-4259-974d-b7375158d95d	congas	\N	\N
+128	\N	\N	\N	af593522-6dc8-45b3-8419-35f22adb5c03	bongos	\N	\N
+129	\N	\N	\N	947cca7d-74c6-4044-b6cc-71a1180d0b28	snare drum	\N	\N
+132	\N	\N	\N	e79fd941-dcdf-4a07-bafb-61ef5c47d7b2	timbales	\N	\N
+133	\N	\N	\N	63cfd648-2022-4390-8740-1ea86259574f	triangle	\N	\N
+134	\N	\N	\N	0b9887d6-e05d-42b0-bdfc-02c36b930642	slapstick	\N	\N
+136	\N	\N	\N	33b6ba89-8265-4d8f-bbdc-ecff41e29e8c	cabasa	\N	\N
+137	\N	\N	\N	dd53d958-d4dd-43df-bf61-2e62d4772109	castanets	\N	\N
+138	\N	\N	\N	4846eef6-2901-41cf-bae1-a27ff708fc54	claves	\N	\N
+140	\N	\N	\N	81c58ce0-65fa-4bab-8484-f8d68ae91c63	doyra	\N	\N
+141	\N	\N	\N	f297a140-d442-446d-9a2e-a7f1923f7df6	güiro	\N	\N
+142	\N	\N	\N	67e43590-f3c4-486c-9b86-f1dfe338c5e9	maracas	\N	\N
+143	\N	\N	\N	a5479f69-0c46-4bd3-8170-add906b9e688	monkey stick	\N	\N
+151	\N	\N	\N	c95c7129-d180-4218-afea-4b74ef70e2be	bell	\N	\N
+159	\N	\N	\N	a51219e5-fc36-4427-93a9-743e616c6f0c	electronic instruments	\N	\N
+160	\N	\N	\N	8dd115ee-f066-4d68-95ca-6a70d6a44b93	Denis d'or	\N	\N
+161	\N	\N	\N	515da853-78ae-49ac-9b02-471a4eb0a9df	Dubreq Stylophone	\N	\N
+162	\N	\N	\N	ce0eed13-58d8-4744-8ad0-b7d6182a2d0f	drum machine	\N	\N
+163	\N	\N	\N	51b6b587-43bb-4944-8b98-7fb04404b28a	ondes Martenot	\N	\N
+164	\N	\N	\N	fb6f5426-b6ec-4ffa-9bb1-d9fdf9b453ad	sampler	\N	\N
+165	\N	\N	\N	6b18e468-2ae1-4b4c-ad1f-5296894e956f	synclavier	\N	\N
+166	\N	\N	\N	4a29230c-5ab5-4eff-ac59-4a253f3561a0	synthesizer	\N	\N
+167	\N	\N	\N	4573bc1b-9388-47d6-b184-ed8a4d1fb47e	telharmonium	\N	\N
+168	\N	\N	\N	96c9c681-ee2f-42a7-894b-c50d983b9e7f	theremin	\N	\N
+170	\N	\N	\N	9f860a2b-e38f-4699-94a9-f9f5730afc02	calliope	\N	\N
+171	\N	\N	\N	0d14d4e0-9ac9-4a96-a595-4145d7794082	carillon	\N	\N
+172	\N	\N	\N	a1464d63-4f9d-4aaa-9513-a15d12baa408	celesta	\N	\N
+173	\N	\N	\N	eacc32ac-8ff4-4ebd-b9ef-148986524761	clavichord	\N	\N
+174	\N	\N	\N	bfe379dc-1d65-4862-acd8-60d53bb963a2	harpsichord	\N	\N
+175	\N	\N	\N	3715ab17-124b-4011-b324-d2bb2cd46f6b	mellotron	\N	\N
+176	\N	\N	\N	55a37f4f-39a4-45a7-851d-586569985519	organ	\N	\N
+177	\N	\N	\N	0fa6ef90-4c92-4456-9965-ad3f96c51db3	Hammond organ	\N	\N
+178	\N	\N	\N	c43c7647-077d-4d60-a01b-769de71b82f2	harmonium	\N	\N
+179	\N	\N	\N	39d85868-3476-45cc-94d0-3d43e3135921	pipe organ	\N	\N
+180	\N	\N	\N	b3eac5f9-7859-4416-ac39-7154e2e8d348	piano	\N	\N
+181	\N	\N	\N	e8694e08-43c7-4658-b39d-bfe8f85d573e	grand piano	\N	\N
+182	\N	\N	\N	aa3b54ec-9cc8-409c-a2d9-f960e65bf5f5	Rhodes piano	\N	\N
+184	\N	\N	\N	b236d895-ffc1-4be0-bdcb-8979ce50c2a5	upright piano	\N	\N
+185	\N	\N	\N	0a06dd9a-92d6-4891-a699-2b116a3d3f37	other instruments	\N	\N
+188	\N	\N	\N	9ea49871-d5db-45b0-983f-f1cbae748d9a	kazoo	\N	\N
+189	\N	\N	\N	159aa813-ee34-4a1d-a6c6-7db20afb182e	lasso d'amore	\N	\N
+190	\N	\N	\N	23171239-1d9d-4482-b057-1ba884bcfda6	musical saw	\N	\N
+191	\N	\N	\N	01571d2e-c4a0-4544-86d2-b289ef837498	singing bowl	\N	\N
+192	\N	\N	\N	e47f81f3-bc5c-489d-aedc-de967ee1e0d1	suikinkutsu	\N	\N
+194	\N	\N	\N	b3045913-62ac-433e-9211-ac683cdf6b5c	guest	\N	\N
+197	\N	\N	\N	443c51d5-44ca-4ed5-bda8-d405e9d43270	serpent	\N	\N
+198	\N	\N	\N	0d012882-abbf-4c93-8fa8-494a192dcca0	sackbut	\N	\N
+199	\N	\N	\N	6c73e2b6-76bc-40b1-ae7d-2768d23a9a79	euphonium	\N	\N
+200	\N	\N	\N	53e090c3-4376-470f-be04-09483324b668	sousaphone	\N	\N
+201	\N	\N	\N	5dd9c3cb-f206-4248-8c35-35314b739652	Wagner tuba	\N	\N
+202	\N	\N	\N	d00cec5f-f9bc-4235-a54f-6639a02d4e4c	bullroarer	\N	\N
+203	\N	\N	\N	371dd55f-5251-4905-a8b2-2d2acf352376	keyed brass instruments	\N	\N
+204	\N	\N	\N	8a0f37bb-65f1-48f9-a58f-95227d28470c	didgeridoo	\N	\N
+205	\N	\N	\N	8eb9019f-36ec-4fed-be43-e4f22cf87fb7	conch	\N	\N
+208	\N	\N	\N	2b75a5bc-f9ce-49e8-ace8-35e5925fff4a	cowbell	\N	\N
+209	\N	\N	\N	2e899f30-ac87-4ea9-88bf-9b4b573bab63	washboard	\N	\N
+210	\N	\N	\N	8dfbf2ce-239d-4e6e-90c1-4467a8c853ba	spoons	\N	\N
+211	\N	\N	\N	a140a41d-16eb-487d-ba31-d82fd16e14b3	ratchet	\N	\N
+212	\N	\N	\N	9c79b6a1-89bb-4603-9b52-e7b0b639d317	vibraslap	\N	\N
+213	\N	\N	\N	ec7a5fbf-f374-4bdb-8c1d-fabc7a8424c0	wood block	\N	\N
+214	\N	\N	\N	e599d391-7a7c-491d-9843-2cdd140b23d4	crotales	\N	\N
+215	\N	\N	\N	340b8043-e3c4-443e-afb8-7fce24fe0ce4	glockenspiel	\N	\N
+216	\N	\N	\N	c436b34a-3017-472d-a003-49a2b24d55da	marimba	\N	\N
+217	\N	\N	\N	7d86c75c-bccd-4c9d-a73d-4bb443e5110b	timpani	\N	\N
+218	\N	\N	\N	7d6964ff-b1f5-472b-bdd7-b53de3739ad3	tubular bells	\N	\N
+219	\N	\N	\N	799af440-c0e7-4d8f-83d5-ecfee8b25787	vibraphone	\N	\N
+220	\N	\N	\N	db95a035-6a3d-44b4-8694-74ff71b61768	xylophone	\N	\N
+222	\N	\N	\N	c49f1425-946e-43d4-8890-41d226a1ec69	temple blocks	\N	\N
+224	\N	\N	\N	d3bdf855-7161-40f5-945b-f261f7c0d6ba	shakuhachi	\N	\N
+226	\N	\N	\N	72ef1be2-d348-4d95-ad39-ff00a4636bd6	vertical viola	\N	\N
+227	\N	\N	\N	563a9f16-e84b-409a-bda5-2e4ce09d5573	clavinet	\N	\N
+228	\N	\N	\N	e659d40f-50b4-4726-b8d5-a3e254e8008b	bass trombone	\N	\N
+229	\N	\N	\N	63021302-86cd-4aee-80df-2270d54f4978	guitar	\N	\N
+230	\N	\N	\N	80d94f2e-e38f-4561-add2-c866f083d276	contralto vocals	\N	\N
+231	\N	\N	\N	629763ee-3dc7-4225-b209-0ebb6d49bfab	bass-baritone vocals	\N	\N
+232	\N	\N	\N	95b0c3d2-9606-4ef5-a019-9b7437f3adda	keyboard	\N	\N
+233	\N	\N	\N	1313dfa6-2073-4a55-b60e-904d47c704fa	reeds	\N	\N
+234	\N	\N	\N	6d46f715-b23f-4a1d-a716-fbce01916329	single reed	\N	\N
+236	\N	\N	\N	ae92e4be-1e62-40d8-85a8-2e56290a95fa	turntable	\N	\N
+237	\N	\N	\N	fe2e16fc-81b7-44e7-a96a-c3afac308a04	valve trombone	\N	\N
+238	\N	\N	\N	f5f66443-cb91-4845-a02e-207b33bf67f2	Chapman stick	\N	\N
+241	\N	\N	\N	18e6998b-e53b-415b-b484-d3ac286da99d	tabla	\N	\N
+242	\N	\N	\N	ddc4d5c6-8b2e-4c92-8cab-d430e0ce6258	madal	\N	\N
+248	\N	\N	\N	d307828e-e4e4-42ee-bce9-e1cd15ad3ec1	uilleann pipes	\N	\N
+249	\N	\N	\N	1759833f-e25d-41a1-9133-780b9c9ee506	bodhrán	\N	\N
+250	\N	\N	\N	97d2aa1e-b5e6-4930-ab0e-f2cfe508b253	sarod	\N	\N
+251	\N	\N	\N	1ebfe130-b68c-452a-8ee3-81b430d13ca3	bansuri	\N	\N
+261	\N	\N	\N	ede795b9-6bf8-4cc7-95c9-2bc9c5d5b858	heckelphone	\N	\N
+262	\N	\N	\N	58a2fe57-147c-4a48-a2af-cf87305fcaab	sho	\N	\N
+263	\N	\N	\N	007d6c88-c6fd-4fe7-9af7-8a0cac0d2526	bandoneón	\N	\N
+264	\N	\N	\N	218218d4-50fe-431d-bbca-55f4158beae0	fipple flute	\N	\N
+266	\N	\N	\N	987da87e-c5d3-42eb-805d-27b8c3f3ebde	willow flute	\N	\N
+267	\N	\N	\N	c1b42be7-f713-449b-a3a4-925351b5acbc	tin whistle	\N	\N
+268	\N	\N	\N	712646f2-7776-4ec5-975f-189c79bcc9dd	slide whistle	\N	\N
+269	\N	\N	\N	3fd7b592-fddd-4d46-a7c6-cac6b1fcba41	sáo trúc	\N	\N
+270	\N	\N	\N	e2e7de25-20d5-4c3f-8a23-2b99d3e44730	nose flute	\N	\N
+271	\N	\N	\N	d2f041b9-b6a6-4973-badd-1b07a37192c9	valved brass instruments	\N	\N
+272	\N	\N	\N	4a5da835-0f0d-4010-b013-76d0a48f8578	slide brass instruments	\N	\N
+273	\N	\N	\N	29b024c3-f6cd-4415-83ec-2b6765856881	cornett	\N	\N
+274	\N	\N	\N	20443ce3-cde1-4968-b7cc-65e45bb9714f	reed organ	\N	\N
+275	\N	\N	\N	4c1916f0-4643-45ce-afaf-c9c5dabbb4f7	bowed string instruments	\N	\N
+276	\N	\N	\N	3f7302e4-f10f-4905-8d71-ef61141da383	rebec	\N	\N
+277	\N	\N	\N	17f9f065-2312-4a24-8309-6f6dd63e2e33	bass guitar	\N	\N
+278	\N	\N	\N	5e36c381-11c0-47ec-ac74-df63e9e24af7	electric cello	\N	\N
+279	\N	\N	\N	837c7244-ece8-47ff-b215-78f4aa4f227d	treble violin	\N	\N
+280	\N	\N	\N	ba6af31f-8b2f-4c5e-903e-882f88f6d3a6	soprano violin	\N	\N
+281	\N	\N	\N	01ba56a2-4306-493d-8088-c7e9b671c74e	kemenche	\N	\N
+282	\N	\N	\N	5f4d4cf9-40fb-494d-8266-747b0289a84d	electric violin	\N	\N
+283	\N	\N	\N	90086448-eb94-4ee1-a3a6-1412398088b9	huqin	\N	\N
+284	\N	\N	\N	89e4a2ef-172f-4f50-a507-316917a9b98a	jinghu	\N	\N
+285	\N	\N	\N	988026a0-2cb7-42bb-9407-9110874fa401	erhu	\N	\N
+286	\N	\N	\N	e2cd6f0c-fb6b-444e-96ea-0a4ec0ea66f3	gaohu	\N	\N
+287	\N	\N	\N	e2be1d64-66ff-438e-8433-66ba7b99715d	zhonghu	\N	\N
+288	\N	\N	\N	c95361dd-f093-44bf-84a2-9067af7b1b12	cizhonghu	\N	\N
+289	\N	\N	\N	fdcced38-d8ca-403f-b5cf-1e0c8e5b980e	gehu	\N	\N
+290	\N	\N	\N	fa6e1499-d64f-4ff1-aa7b-e2c535d30416	diyingehu	\N	\N
+291	\N	\N	\N	7254d816-5cb5-4399-bbe9-4b7e14e67462	banhu	\N	\N
+292	\N	\N	\N	8c10a781-2414-4dbb-9a33-d8a156ac12f1	yehu	\N	\N
+293	\N	\N	\N	b1a367a1-6dde-4357-b7bb-0395dfb6c2dd	kokyu	\N	\N
+294	\N	\N	\N	1bf9e39f-5ffc-4588-990b-d48609613f8f	morin khuur	\N	\N
+295	\N	\N	\N	327938f3-0931-4dc9-bd64-5959089978e0	đàn nhị	\N	\N
+297	\N	\N	\N	83f85adc-472c-45ea-ba5e-22e5a825d49f	viola organista	\N	\N
+298	\N	\N	\N	3be28a98-61eb-403d-a9fb-62e04f9b79ac	nyckelharpa	\N	\N
+299	\N	\N	\N	a0185c49-36b3-445b-8949-474c0a7fdafb	bowed psaltery	\N	\N
+300	\N	\N	\N	0bcc6b50-1f8b-4c6b-86f3-f2cd61ae5f85	gudok	\N	\N
+301	\N	\N	\N	280ae6d4-03ad-4009-ba8d-de793e4c87c0	gadulka	\N	\N
+302	\N	\N	\N	b879ca9a-bf4b-41f8-b1a3-aa109f2e3bea	plucked string instruments	\N	\N
+303	\N	\N	\N	2c27736b-e774-4f8e-8290-604d3c468870	đàn tứ dây	\N	\N
+304	\N	\N	\N	758c62c1-39c9-4fe9-8cb0-07398f3cb15a	oud	\N	\N
+305	\N	\N	\N	2dd967cd-104e-4696-8a70-0f6fd37779e7	bağlama	\N	\N
+306	\N	\N	\N	d4d5309f-166e-4e14-9887-06692f2c1027	baglamas	\N	\N
+307	\N	\N	\N	7b935bb5-798b-43bd-92ad-85511a132e44	cittern	\N	\N
+308	\N	\N	\N	6bfa53af-7c17-47d2-9778-f31a4ab5fb91	mandola	\N	\N
+309	\N	\N	\N	30cb46c6-2694-4348-a7c6-3fb12666d7e5	rebab	\N	\N
+310	\N	\N	\N	d16da325-4ae5-45fd-a0ec-338766795391	yueqin	\N	\N
+311	\N	\N	\N	d096e1f9-6664-4c64-b793-842072e917ac	zhongruan	\N	\N
+312	\N	\N	\N	f427a934-2c14-49bc-a0fd-aee758821157	đàn nguyệt	\N	\N
+313	\N	\N	\N	8fcc9dea-8978-4dc9-8feb-acb35f8dca2c	đàn tỳ bà	\N	\N
+314	\N	\N	\N	ce8d4fc7-08cd-4d13-a84f-297f799e672f	sanxian	\N	\N
+315	\N	\N	\N	68c66335-c83e-49b9-8400-831788d792ff	sanshin	\N	\N
+316	\N	\N	\N	d7977da9-ed10-441a-b4e3-a64277db2cb6	electric sitar	\N	\N
+317	\N	\N	\N	c0727528-4b67-4e8f-9494-22ecf9816fd7	kinnor	\N	\N
+318	\N	\N	\N	dbf82b8f-1bc5-4a7d-9811-48e743546442	kithara	\N	\N
+319	\N	\N	\N	fd687fde-bb99-4bcd-8676-4ae4aa2fdfac	langeleik	\N	\N
+320	\N	\N	\N	b95fb59c-cb20-4bb7-bc11-8ab782d480f0	đàn tranh	\N	\N
+321	\N	\N	\N	75ef0f2e-0ca2-48ef-9a1c-56f23a900652	đàn bầu	\N	\N
+322	\N	\N	\N	8f59848c-c7f4-458f-8fc6-d3b7fc252c3f	struck string instruments	\N	\N
+323	\N	\N	\N	1e49948d-7522-4444-aa5d-633dfbeffb1f	Warr guitar	\N	\N
+324	\N	\N	\N	154ef6da-72e7-4c28-bf98-cf260f145a43	yangqin	\N	\N
+325	\N	\N	\N	29480d87-363a-467b-9950-058c0fe86fe6	santur	\N	\N
+326	\N	\N	\N	65194192-8cc9-48c2-ae47-7da3bb934e30	cimbalom	\N	\N
+327	\N	\N	\N	27cb4a0f-bdfa-4b1d-8b78-3768063154e3	đàn tam thập lục	\N	\N
+328	\N	\N	\N	bbd63209-8a4e-46b7-9527-1dd80629a8e0	toy piano	\N	\N
+329	\N	\N	\N	75b8297f-d9fe-455d-85cf-d62843f14da5	electric piano	\N	\N
+330	\N	\N	\N	0ec79cfa-0ace-491a-8ba4-8ef7843c6ef5	chamberlin	\N	\N
+331	\N	\N	\N	5a671386-5e8f-4381-8b0e-b9b0a9e56e60	tiple	\N	\N
+332	\N	\N	\N	298ee599-e2b1-4cc1-b579-5e1c90153004	vihuela	\N	\N
+333	\N	\N	\N	4431f7b0-69a4-49ee-b84f-15dda19fb70c	tambourine	\N	\N
+334	\N	\N	\N	1224a91c-5ba1-4f86-baf2-0a5b809f41e8	kortholt	\N	\N
+335	\N	\N	\N	f4e6ad5f-a0c2-4974-8607-df65e7e2c11b	djembe	\N	\N
+337	\N	\N	\N	22fc02a8-0f6e-4b69-895b-b4db47cc8eac	wooden fish	\N	\N
+338	\N	\N	\N	909f7bde-b162-450f-9252-6fb81cc85b9b	goblet drum	\N	\N
+340	\N	\N	\N	21e8f13c-aca2-4a34-83a3-951cc347c14a	gong	\N	\N
+342	\N	\N	\N	0fe1a768-45ba-49e4-8363-14db8e73ca85	cymbal	\N	\N
+344	\N	\N	\N	2bf75d8e-68f0-4e58-8042-3835265034c1	steelpan	\N	\N
+345	\N	\N	\N	3d7aca42-f7a7-46d8-9531-d39841a8aa6d	whistle	\N	\N
+346	\N	\N	\N	ee376c6e-128d-45be-b060-35e9655a612f	handbell	\N	\N
+347	\N	\N	\N	67115113-23f7-4080-a454-c4575b101c70	sênh tiền	\N	\N
+348	\N	\N	\N	c2c3a433-dc4b-4107-9d39-1f605ebedbaa	Moog	\N	\N
+349	\N	\N	\N	44b6cb78-ac8c-4caa-bde1-747802a3b130	Minimoog	\N	\N
+350	\N	\N	\N	310cb712-c512-419f-9b61-ab77325b6636	water drum	\N	\N
+351	\N	\N	\N	4cdeebe9-aaa5-4f13-9842-77a387d890ce	waterphone	\N	\N
+352	\N	\N	\N	a40f824f-8489-4bb1-b21c-dd5d1a914b35	omnichord	\N	\N
+354	\N	\N	\N	1d04494c-a06b-409e-9a95-bde7a94860dd	vocoder	\N	\N
+355	\N	\N	\N	40a1d1d3-ecba-4bb2-b35f-7424541f8887	k'lông pút	\N	\N
+356	\N	\N	\N	147b8ca4-462b-4301-98a2-5df86700d30e	song loan	\N	\N
+357	\N	\N	\N	10ee2ae4-d9b6-46af-9250-6d853af7051e	glass harmonica	\N	\N
+358	\N	\N	\N	9ace3b20-ff09-4a53-b737-79f9dc1ca90b	santoor	\N	\N
+359	\N	\N	\N	9c2b7d88-b301-4dca-9f7c-014a210d0da5	khim	\N	\N
+360	\N	\N	\N	896a4fc8-d9c2-4e02-9c34-9b6fb135c739	kanun	\N	\N
+361	\N	\N	\N	0de793bc-e676-4b26-bb55-ae5979cd6bfc	garklein recorder	\N	\N
+362	\N	\N	\N	db7a69ea-4cae-44ed-94ab-a112b6bd7a3c	sopranino recorder	\N	\N
+363	\N	\N	\N	1a625158-8e67-49b4-9dd5-fa6a0208bdcf	treble recorder / alto recorder	\N	\N
+364	\N	\N	\N	4a6559f5-cbd3-4f72-8386-af028547ff30	tenor recorder	\N	\N
+365	\N	\N	\N	1787a64f-f495-4829-96c6-39b000cbe6b0	bass recorder	\N	\N
+366	\N	\N	\N	27dfceab-1f17-4e62-a300-834836f77ae7	great bass recorder / c-bass recorder	\N	\N
+367	\N	\N	\N	f91f2462-7227-4897-9dcf-495febbc05aa	contrabass recorder	\N	\N
+368	\N	\N	\N	0385a06d-dbed-4112-bfab-31b78590dd8f	subcontrabass recorder	\N	\N
+369	\N	\N	\N	423760ab-c428-41c9-8dcc-986302448889	nai	\N	\N
+370	\N	\N	\N	ca17a349-e0e3-4b9b-b74d-898a2b54b43e	syrinx	\N	\N
+375	\N	\N	\N	a2d87653-559a-4c8e-9cb0-f72effb8df8f	vacuum cleaner	\N	\N
+376	\N	\N	\N	70230603-783c-4665-b518-94f427164c29	chromatic harmonica	\N	\N
+377	\N	\N	\N	31c3f6cc-d49c-4d63-8b85-576a545d33f2	baritone guitar	\N	\N
+379	\N	\N	\N	8e3196e6-2720-4562-8877-3cced6cdb063	phách	\N	\N
+380	\N	\N	\N	93edb5e2-d047-486f-90f3-809708f7ba2d	kèn bầu	\N	\N
+381	\N	\N	\N	4c44a7c0-6b80-4ea8-bf6c-dda8b10d6c96	t'rưng	\N	\N
+382	\N	\N	\N	ffe6c3f3-12a2-42e7-8cde-7ae24ff83fc5	trống bông	\N	\N
+383	\N	\N	\N	ce8bf63e-ffb2-44e9-a886-16ca6522525f	đing buốt	\N	\N
+384	\N	\N	\N	bd5a399f-c18e-41ad-af23-a01353c51d7c	ki pah	\N	\N
+385	\N	\N	\N	44c74dce-8a26-4837-9c19-918b412c6a6a	tràm plè	\N	\N
+386	\N	\N	\N	1c70cc38-deee-4a84-9b16-7a81c0f43aed	cò ke	\N	\N
+388	\N	\N	\N	953e5114-95f3-4415-bff5-38b1b8df0472	kèn lá	\N	\N
+389	\N	\N	\N	7a5b3204-0200-426c-88d5-3f26a225b757	hmông flute	\N	\N
+390	\N	\N	\N	fd5caadd-efab-487a-8954-cd243396fbe2	trắng lu	\N	\N
+391	\N	\N	\N	8045f4a3-7f12-4de4-957d-26908a2714eb	trắng jâu	\N	\N
+392	\N	\N	\N	92ec69b8-c35c-4d44-9e99-953d229d6e87	pang gu ly hu hmông	\N	\N
+393	\N	\N	\N	29872747-b9cf-43f5-a258-0997728ed058	sáo meò	\N	\N
+394	\N	\N	\N	44055718-26b6-4a25-9e76-5067ae5b9862	ding tac ta	\N	\N
+395	\N	\N	\N	c4c5d67b-0b98-4865-9d52-1bbdcec74c0e	khèn Mèo	\N	\N
+396	\N	\N	\N	39f40186-44a6-41a3-8c1d-4fd746e663bb	đing năm	\N	\N
+397	\N	\N	\N	8a4a2afb-609e-4316-b7fa-4a687aada9ee	brushes	\N	\N
+398	\N	\N	\N	b8d84cec-ef49-47ec-b754-c1e48146e255	handclaps	\N	\N
+399	\N	\N	\N	4a5a2a59-f5a8-4dc1-95b8-f3b3fb3cf2b6	Vietnamese guitar	\N	\N
+400	\N	\N	\N	c0ea0405-ae3f-4851-bf85-277fadff80e2	Hawaiian guitar	\N	\N
+401	\N	\N	\N	8882d96e-1efc-41b7-811a-b28f269adce0	tiêu	\N	\N
+402	\N	\N	\N	39d6fb0f-35a4-4c0a-b6c8-ca210c43f4a7	gumbri	\N	\N
+403	\N	\N	\N	182121b7-ecec-4a56-a480-563c895225f9	daf	\N	\N
+404	\N	\N	\N	bd9789d9-f270-4352-87f6-fc7cc3383b6d	ebow	\N	\N
+405	\N	\N	\N	fb2ea66c-ac2e-4ffc-acb3-2ad78a6c515f	zarb	\N	\N
+406	\N	\N	\N	0cebfc41-374f-4860-9340-90e4b6515cbe	riq	\N	\N
+407	\N	\N	\N	ccb8a525-85e0-4d20-ba76-5730a086cfc1	udu	\N	\N
+408	\N	\N	\N	c5aa7d98-c14d-4ff1-8afb-f8743c62496c	ghatam	\N	\N
+409	\N	\N	\N	76e5cc5f-aa37-4be3-a035-9e7518250ee5	ti bwa	\N	\N
+410	\N	\N	\N	5f0a32fa-82b2-49da-a9ee-78cad9cf756d	tanbou ka	\N	\N
+412	\N	\N	\N	27a9b513-5218-404f-a285-02d89aa358df	chacha	\N	\N
+413	\N	\N	\N	537a8fb2-a92e-420f-b0a8-22a6ed2f038e	cajón	\N	\N
+414	\N	\N	\N	2c8e50c2-f089-45b2-9e3e-7ca795039a7f	đàn tam	\N	\N
+415	\N	\N	\N	3b8cd68b-aadc-4e43-a13f-e575202d67ea	chimes	\N	\N
+416	\N	\N	\N	63f030d8-f116-4f11-9dee-0cb1cfeb8445	pí thiu	\N	\N
+417	\N	\N	\N	0d2ef84f-197b-405b-9a7c-293bbe331e30	shakers	\N	\N
+419	\N	\N	\N	c1002eda-e0b7-48e4-a181-05abddb9b872	darbuka	\N	\N
+420	\N	\N	\N	e9bb7775-e8a7-4daa-8c0f-6ef364f105ee	bendir	\N	\N
+421	\N	\N	\N	f7d3dd06-721b-4258-8c5e-cf3b5085b45c	frame drum	\N	\N
+422	\N	\N	\N	ebc071ab-24b6-4b2f-8981-340f1f76f2bd	transverse flute	\N	\N
+423	\N	\N	\N	c6e576de-0091-48f3-8d61-b846c4b0da69	alto flute	\N	\N
+424	\N	\N	\N	ac6f6b4c-a4ec-4483-a04e-9f425a914573	co	\N	\N
+425	\N	\N	\N	e0039285-6667-4f94-80d6-aa6520c6d359	executive	\N	\N
+426	\N	\N	\N	e632d6e3-23ec-41f5-bcce-79b8e231ce1e	theatre organ	\N	\N
+427	\N	\N	\N	e1b9fc01-a349-444f-b798-9893b5af83f4	crumhorn	\N	\N
+428	\N	\N	\N	906e1945-bfcb-4952-bba5-f43296d7aff6	metallophone	\N	\N
+429	\N	\N	\N	4ddf3737-9ef2-49c4-9de2-697a19884463	pipa	\N	\N
+431	\N	\N	\N	82ffe485-7729-479e-bf7e-afc5e6db60eb	concert harp	\N	\N
+432	\N	\N	\N	0326482a-37a4-40b1-bb06-06643865968e	electric harp	\N	\N
+433	\N	\N	\N	34c1af71-f7fc-4e34-a46a-5c29ee4c019b	folk harp	\N	\N
+434	\N	\N	\N	65116580-10f5-4123-9d86-5e379cd9ab83	wire-strung harp	\N	\N
+435	\N	\N	\N	e9b4bcb7-4731-42c3-9464-9d58fb12ec2d	Irish harp / clàrsach	\N	\N
+436	\N	\N	\N	bc542c3c-5cf6-4c31-b75f-a03d660cad75	German harp	\N	\N
+437	\N	\N	\N	4710ed73-78e7-4ba4-8c02-5bc2da1f611b	bones	\N	\N
+438	\N	\N	\N	356efa34-ceb1-4476-ba03-42d4bcd4e0e7	Northumbrian pipes	\N	\N
+439	\N	\N	\N	ba4550e2-5bf1-4778-a3b7-1e5552d6dba9	piano accordion	\N	\N
+440	\N	\N	\N	36f5262c-2761-4de7-9733-f0b89deeaed6	button accordion	\N	\N
+441	\N	\N	\N	842d3d24-f638-47e6-a239-8578723db09c	diatonic button accordion	\N	\N
+442	\N	\N	\N	3ac17d91-feb7-4c2e-9b74-5aa7c73c8e16	keyboard bass	\N	\N
+443	\N	\N	\N	73332fb8-bbf5-4094-a3ae-e636ae5cfcf6	amadinda	\N	\N
+444	\N	\N	\N	a48d42b3-0fa9-45f2-933d-2770f4ca273f	balafon	\N	\N
+445	\N	\N	\N	a26a663e-3add-42e1-ac07-ce289d5f330a	gamelan	\N	\N
+446	\N	\N	\N	1a03e9a1-f81f-40ce-9d57-65d6c1b9dcb3	slit drum	\N	\N
+447	\N	\N	\N	1fc7aaea-f808-4f37-9429-a85dd89d1764	kettle drum	\N	\N
+448	\N	\N	\N	c6842ddb-3226-49c0-b7af-37ebc607dc85	frottoir	\N	\N
+449	\N	\N	\N	f1e042f5-2a09-47b1-9cdf-1018d239d330	rhythm sticks	\N	\N
+450	\N	\N	\N	760558ba-a02a-4692-9046-b819cf75836f	sistrum	\N	\N
+451	\N	\N	\N	ebf4cb51-93b1-44ec-8e68-c92098b3e8d4	angklung	\N	\N
+453	\N	\N	\N	7aed0189-ff99-4b43-8ff0-52ca5626d0b7	ankle rattlers	\N	\N
+454	\N	\N	\N	53174999-953d-482b-9240-23acf2452fc9	wavedrum	\N	\N
+455	\N	\N	\N	2b2fa61b-2eae-4bf1-a0c0-37c5638b0660	rainstick	\N	\N
+456	\N	\N	\N	1a994b2a-c93e-4543-81f4-c5924c4ed9be	ocean drum	\N	\N
+457	\N	\N	\N	3b6d0bdc-2e39-424f-81d9-098be2efa707	talking drum	\N	\N
+458	\N	\N	\N	69e695d1-e4e0-4c18-9b9a-134b189ca2bc	taiko	\N	\N
+459	\N	\N	\N	a7e6594b-d952-4732-9410-3eb41a60605c	surdo	\N	\N
+460	\N	\N	\N	b4304bab-60a9-41b8-9b00-8da222fa4206	bin-sasara	\N	\N
+461	\N	\N	\N	c359be96-620a-435c-bd25-2eb0ce81a22e	other vocals	\N	\N
+462	\N	\N	\N	e23fb2a1-69bf-4c6e-baef-cf51f19a1b24	shekere	\N	\N
+463	\N	\N	\N	96c87e0e-4a33-4abe-b6fb-e7a3a3f67229	dholak	\N	\N
+464	\N	\N	\N	04e048dc-6aa6-4f6b-8d17-8180f7216003	gankogui	\N	\N
+465	\N	\N	\N	814b1c15-1f5c-470d-ab8f-5e7615ff8586	fortepiano	\N	\N
+466	\N	\N	\N	857ff05c-5367-4ba2-9b49-98eefa2badcc	lap steel guitar	\N	\N
+467	\N	\N	\N	4ffe5341-4d63-4b1f-8b00-b008954bc7a4	resonator guitar	\N	\N
+468	\N	\N	\N	8ecb065e-fa6a-4009-98bd-bd742307d0e8	table steel guitar	\N	\N
+469	\N	\N	\N	4a10b219-65ac-4b6c-950d-acc8461266c7	pedal steel guitar	\N	\N
+470	\N	\N	\N	3c5349ca-cf82-4537-851f-1957ac88bced	electric lap steel guitar	\N	\N
+471	\N	\N	\N	295ac276-dd44-4d96-96ff-e2ba104ba00c	continuum	\N	\N
+473	\N	\N	\N	b9362496-01a3-4298-b369-84313cec5ee1	tambura	\N	\N
+476	\N	\N	\N	3c84f7d8-c8c1-4ec5-8e71-4bc9a1625e10	bandura	\N	\N
+477	\N	\N	\N	a74533a5-ed6c-4b30-9519-43a449872f9d	transliterated	\N	\N
+478	\N	\N	\N	1a9bc5e0-b9f4-46df-8b64-4000b2253211	theorbo	\N	\N
+479	\N	\N	\N	b62ace3b-47e7-4319-8a3e-1b035ccd20b2	banjitar	\N	\N
+480	\N	\N	\N	e5e6de9d-bde7-4340-a591-f1c55c658c2c	duduk	\N	\N
+482	\N	\N	\N	862730d6-83bb-4e75-a686-6b0ca576005c	low whistle	\N	\N
+483	\N	\N	\N	8637075b-7d48-4093-ac36-a39e58636048	dohol	\N	\N
+484	\N	\N	\N	bc826dde-9200-43ad-81af-6ef2c52ca37b	bass pedals	\N	\N
+486	\N	\N	\N	9d718374-101c-495b-9402-7e3a5f2a3d0e	piccolo trumpet	\N	\N
+487	\N	\N	\N	174d408c-2e3c-4dd6-aeee-3583ea9b206e	electronic drum set	\N	\N
+488	\N	\N	\N	7a102d81-9c6c-446d-8560-4876cbe7a70a	soprano clarinet	\N	\N
+489	\N	\N	\N	2c4d2aa6-594f-4312-a317-7c201ae12de6	basset clarinet	\N	\N
+490	\N	\N	\N	f93d6f87-6447-4d10-8bfd-08500dfcdb33	basset horn	\N	\N
+491	\N	\N	\N	c0cffc5c-4473-4c11-a236-242462ab13f4	Irish bouzouki	\N	\N
+492	\N	\N	\N	0666c718-137e-4cc6-881d-fc6430d7dea4	zurna	\N	\N
+493	\N	\N	\N	b4f112c3-d666-47f2-bb85-bae28572ca13	shawm	\N	\N
+494	\N	\N	\N	dc17c2a5-a7be-4b78-a0c1-4aceee0875e1	autoharp	\N	\N
+495	\N	\N	\N	3b0b9c99-ea82-4716-8c11-c86c8dd99218	cümbüş	\N	\N
+496	\N	\N	\N	681639fb-9112-4b94-88b1-f78ef36465c0	davul	\N	\N
+497	\N	\N	\N	1456509e-1a34-469d-a899-e195a0afe183	treble flute	\N	\N
+498	\N	\N	\N	b524b7a7-2d87-43a7-9977-8a9081ff6e0f	soprano flute	\N	\N
+499	\N	\N	\N	3274e7ce-8487-4258-8706-4447c65c34e5	concert flute	\N	\N
+500	\N	\N	\N	3decd8ad-623a-482f-a8e5-27e2450e75c7	flûte d'amour	\N	\N
+501	\N	\N	\N	c3fddfb8-100a-4e25-897f-9129d5a6c39f	bass flute	\N	\N
+503	\N	\N	\N	ee71289c-5a64-4dbc-b623-af1c7d2ff7bd	venu	\N	\N
+504	\N	\N	\N	ae8e7fca-0be6-4cbc-9f53-7b2263e910ef	boatswain's pipe	\N	\N
+505	\N	\N	\N	cb2793f8-cbab-4eec-b54c-b5ee77956caf	violone	\N	\N
+506	\N	\N	\N	5bf8e03f-990c-4c9b-b648-ba4a0d2fa524	Baltic psalteries	\N	\N
+507	\N	\N	\N	e21ce008-8744-407b-ad7c-5caa3f69e610	kanklės	\N	\N
+508	\N	\N	\N	bb08cebd-ff6c-49e8-8f8f-914cc2d68c27	gusli	\N	\N
+509	\N	\N	\N	d96160fe-57f5-4dc0-a6ae-bc05314f9743	kantele	\N	\N
+510	\N	\N	\N	34be09ba-f2e4-47c7-82b3-c9c43108d510	tangent piano	\N	\N
+511	\N	\N	\N	d73de9d3-934b-419c-8c83-2e48a5773b14	parody	\N	\N
+512	\N	\N	\N	f83c4b45-3584-401a-90bf-4ec80e7add78	bağlama (saz) family	\N	\N
+513	\N	\N	\N	c8ea4d81-ec45-489e-8f68-1616f36966e3	Scottish smallpipes	\N	\N
+515	\N	\N	\N	7d401fc3-21ae-4299-abf9-075152446368	practice chanter	\N	\N
+516	\N	\N	\N	60f7b0f6-92c2-4027-81f3-63dfa6d6a64a	bonus	\N	\N
+517	\N	\N	\N	ed11fcb1-5a18-4e1d-b12c-633ed19c8ee1	translated	\N	\N
+518	\N	\N	\N	e78b40c0-acc8-4db8-911a-adf991e0c73d	bass drum	\N	\N
+519	\N	\N	\N	07ef7707-ab79-4a23-b2e3-260a46b26ec7	bombarde	\N	\N
+520	\N	\N	\N	087fd82c-cbf6-4e46-8f7c-11ef3a63cbd9	bayan	\N	\N
+521	\N	\N	\N	e5cab458-2079-4eb3-bd0e-e63aba7d9162	chromatic button accordion	\N	\N
+522	\N	\N	\N	a1baa57d-6ab4-461e-89df-448d6fd2c597	tenor guitar	\N	\N
+523	\N	\N	\N	96bec768-bee7-4b67-816e-3b4743df98ec	fretless bass	\N	\N
+524	\N	\N	\N	e3511ed1-3d73-4340-880f-c8ccc8eda11c	chalumeau	\N	\N
+525	\N	\N	\N	4fd3b255-a7d7-4424-9a63-40fa543b601c	original	\N	\N
+526	\N	\N	\N	8c4196b1-7053-4b16-921a-f22b2898ed44	assistant	\N	\N
+527	\N	\N	\N	8d23d2dd-13df-43ea-85a0-d7eb38dc32ec	associate	\N	\N
+528	\N	\N	\N	52009a6c-156b-40d4-abf5-c46084a7a69b	quena	\N	\N
+529	\N	\N	\N	d5cc3c69-218e-449a-b80d-8bd7a61311a1	12 string guitar	\N	\N
+531	\N	\N	\N	38c897e8-c2ca-46e5-8e85-7aa3f826e93c	cuatro	\N	\N
+532	\N	\N	\N	018753b1-f9d2-4d14-b66e-c348aa49a89c	taragot	\N	\N
+533	\N	\N	\N	7061c07c-e87a-4f5f-b45f-fb1138733e32	EWI	\N	\N
+534	\N	\N	\N	25cb4a8d-9928-4102-8933-1cc3b0998efe	Marxophone	\N	\N
+535	\N	\N	\N	e6b016f0-61bf-4c5b-99c4-8f8724ad12b5	shruti box	\N	\N
+536	\N	\N	\N	9447c0af-5569-48f2-b4c5-241105d58c91	bass saxophone	\N	\N
+537	\N	\N	\N	d069369c-cc96-43c9-bfa7-e2074f8949a6	sopranino saxophone	\N	\N
+538	\N	\N	\N	be8d7e28-4f6b-4c0f-b2d0-9694eb4779cc	contrabass saxophone	\N	\N
+539	\N	\N	\N	63d0f29f-37df-4c3e-bb3c-6a7c8f1b4c3d	electronic organ	\N	\N
+540	\N	\N	\N	40243f27-1011-491b-8b06-28c48749b960	farfisa	\N	\N
+541	\N	\N	\N	34787aa3-1027-498b-af38-4385665cc34c	finger snaps	\N	\N
+542	\N	\N	\N	b0f83029-6d38-4f6f-bd30-db44e427f497	voice synthesizer	\N	\N
+543	\N	\N	\N	984e4a24-7d34-4661-a6e4-0a28374ff89f	Stroh violin	\N	\N
+544	\N	\N	\N	2a01b8d1-7abd-466d-be5f-435263bdd76a	guzheng	\N	\N
+546	\N	\N	\N	9eecc5ee-d625-4330-85dd-a338d80ea433	talkbox	\N	\N
+547	\N	\N	\N	6d328aab-3bee-4d9d-b400-e1e71ff96f37	hi-hat	\N	\N
+548	\N	\N	\N	8fb042f2-32d1-4ab2-9417-e13c6c78f960	zill	\N	\N
+549	\N	\N	\N	e6571d23-5d79-4216-99d6-06e14e737da1	bass synthesizer	\N	\N
+550	\N	\N	\N	768fdb8c-494e-4dcd-9400-7345b7c3e399	Batá drum	\N	\N
+551	\N	\N	\N	e6c0f0f4-9e03-4177-8ccc-c4c99c8a9d83	kaval	\N	\N
+552	\N	\N	\N	79f5331d-d17c-4c2e-8ad0-44144432a754	sarangi	\N	\N
+553	\N	\N	\N	d6fa07a5-0060-4288-a974-156905cebcc3	dizi	\N	\N
+554	\N	\N	\N	74e8088e-d5b0-44bc-853a-74aa8c8aa5aa	finger cymbals	\N	\N
+555	\N	\N	\N	80eb5b78-b3eb-401a-b774-6a922cfee238	tom-tom	\N	\N
+556	\N	\N	\N	8bb9074d-5964-48bf-8d62-d8e6e4785e9c	tzoura	\N	\N
+557	\N	\N	\N	2f5f6a67-2b2b-4857-92b0-5b25d485f632	musical box	\N	\N
+558	\N	\N	\N	a9658be0-ffeb-4b64-ba96-bbe4e3c6db84	bass harmonica	\N	\N
+559	\N	\N	\N	557e7397-5878-4fc6-9d81-26f542a9f280	charango	\N	\N
+560	\N	\N	\N	dabdeb41-560f-4d84-aa6a-cf22349326fe	tar	\N	\N
+561	\N	\N	\N	d3a36e62-a7c4-4eb9-839f-adfebe87ac12	spoken vocals	\N	\N
+562	\N	\N	\N	faf35fe4-cbd2-497b-a5a3-40bc2c59c446	Wurlitzer electric piano	\N	\N
+563	\N	\N	\N	0d6efd24-2fe8-4a46-b34d-46633e30f642	soprano recorder	\N	\N
+564	\N	\N	\N	9880f5b8-bbe9-4415-9dc6-3ec65342de6a	shinobue	\N	\N
+565	\N	\N	\N	023adf58-6aa2-4659-8760-3b36f81d0352	chamber organ	\N	\N
+566	\N	\N	\N	ce9452ac-917f-4cab-ab13-75996816202b	saz	\N	\N
+567	\N	\N	\N	1e8536bd-6eda-3822-8e78-1c0f4d3d2113	cover	\N	\N
+568	\N	\N	\N	1f0299ce-dc34-30f1-b374-4749b30606e6	medium	\N	\N
+569	\N	\N	\N	5a2cd122-6104-3fae-a4c1-56f0b3ad07bc	medium 2	\N	\N
+570	\N	\N	\N	50352e25-05f8-3e62-b311-2c4b1be12937	medium 1	\N	\N
+571	\N	\N	\N	161dcdb0-bb27-36ef-bf06-e980938a9dea	medium 3	\N	\N
+572	\N	\N	\N	14b0cd02-4cfc-3fc2-9ac9-6982529e5b8a	medium 9	\N	\N
+573	\N	\N	\N	9d1c49a8-5148-35d9-a2b1-51fa8ecf5b37	medium 8	\N	\N
+574	\N	\N	\N	f82a59ec-6904-3225-8ce7-986042f40a1d	medium 7	\N	\N
+575	\N	\N	\N	679e4211-0ff4-32f3-ab48-2029bca4f827	medium 6	\N	\N
+576	\N	\N	\N	c196dec2-c2e5-3b5b-ac2b-4b3d151f69ab	medium 5	\N	\N
+577	\N	\N	\N	dc8950e8-f632-3a8e-9e8e-561aa470cc38	medium 4	\N	\N
+578	\N	\N	\N	70007db6-a8bc-46d7-a770-80e6a0bb551a	live	\N	\N
+579	\N	\N	\N	d2b63be6-91ec-426a-987a-30b47f8aae2d	partial	\N	\N
+580	\N	\N	\N	c031ed4f-c9bb-4394-8cf5-e8ce4db512ae	instrumental	\N	\N
+581	\N	\N	\N	d43cf2e2-cc1f-4448-97f6-7d291c8ebc87	oboe d'amore	\N	\N
+582	\N	\N	\N	112054d5-e706-4dd8-99ea-09aabee36cd6	video	\N	\N
+583	\N	\N	\N	f7306552-f9fc-44f0-8d62-0b48f4c4c278	kanjira	\N	\N
+584	\N	\N	\N	f689271c-37bc-4c49-92a3-a14b15ee5d0e	mridangam	\N	\N
+585	\N	\N	\N	41761936-5dbc-433f-b558-a7ef14fe9b08	Saraswati veena	\N	\N
+586	\N	\N	\N	16f816ec-9ecf-4236-8006-19a4b27797f1	tanbur	\N	\N
+587	\N	\N	\N	91eb1744-96d8-4c54-8aa2-f97ed7d88950	foot stomps	\N	\N
+588	\N	\N	\N	def0ce61-3d8f-4644-bbee-7c2824fb2787	bell tree	\N	\N
+589	\N	\N	\N	f8cbf484-c96d-4261-a06d-5a097a403956	thavil	\N	\N
+590	\N	\N	\N	4d256d61-4f35-49c4-a054-9cb78b417583	prepared piano	\N	\N
+591	\N	\N	\N	4fe225a3-6939-4fab-a416-d0cd38c96cb9	Cretan lyra	\N	\N
+592	\N	\N	\N	2c82a2d3-bead-4acd-8b8a-6ae3c87bd2bb	bawu	\N	\N
+593	\N	\N	\N	649c0df6-18d1-47dd-a96f-6713e7fd9496	xiao	\N	\N
+594	\N	\N	\N	961a2c0d-5ca6-476f-85d2-af19e0559f89	domra	\N	\N
+595	\N	\N	\N	8721ee8b-de77-4e38-a8ce-61bba705807b	haegeum	\N	\N
+596	\N	\N	\N	63daa0d3-9b63-4434-acff-4977c07808ca	solo	\N	\N
+597	\N	\N	\N	f341241c-6a19-4ed9-acb0-0b89fe0bfdef	agogô	\N	\N
+598	\N	\N	\N	41c3e01f-1449-4e60-984e-cb1c75db449d	bandora	\N	\N
+599	\N	\N	\N	b2cc0011-1bd1-4906-a77f-f15c7a5bae12	caxixi	\N	\N
+600	\N	\N	\N	e6fa08fe-bcc3-4715-9486-9d642ec38726	barrel organ	\N	\N
+601	\N	\N	\N	fa174c32-b348-4939-89b2-bde85af4ee02	cuíca	\N	\N
+602	\N	\N	\N	a089e86d-2e55-41e0-9d3a-3f71564eba8e	daegeum	\N	\N
+603	\N	\N	\N	e5b5ed95-f855-4493-a054-0fc4f39bc3e3	nohkan	\N	\N
+604	\N	\N	\N	5e17d5f8-65b1-464d-9f90-47259d832507	shehnai	\N	\N
+605	\N	\N	\N	0a050b86-ba63-4a5e-a384-1650996073d1	janggu	\N	\N
+606	\N	\N	\N	a0b1ba6b-6ea7-4489-a4af-c9e23d6e24da	dulcian	\N	\N
+607	\N	\N	\N	43c68c41-8b93-4330-b1af-524705ec289e	wind chime	\N	\N
+608	\N	\N	\N	e7494c7f-0c68-42c0-a37a-6e4fea80a062	kkwaenggwari	\N	\N
+609	\N	\N	\N	ad6477fe-3586-4d75-9914-de24900d148f	piri	\N	\N
+610	\N	\N	\N	6a0a53ab-1e66-45c4-af0d-2ec1e145b84e	body percussion	\N	\N
+611	\N	\N	\N	aea9661c-cbda-4bf3-a61d-d78697472f29	rudra veena	\N	\N
+612	\N	\N	\N	cf1343bf-0893-4a62-9c72-e25ee5be0309	pakhawaj	\N	\N
+613	\N	\N	\N	a9f76c33-1eaa-48c0-a43c-ee12754eb7bf	kamancheh	\N	\N
+614	\N	\N	\N	2fb619eb-c5b3-495a-967a-b747b976a7d9	bowed piano	\N	\N
+615	\N	\N	\N	d5b9c401-a32e-4d4c-951d-2e9d76d6e078	jug	\N	\N
+616	\N	\N	\N	6e6329ed-27c0-4ace-a6fd-bfc03ae68a40	guqin	\N	\N
+617	\N	\N	\N	65969e82-5ee5-4035-a211-00e6bf8a0f75	emeritus	\N	\N
+618	\N	\N	\N	d3362ce5-ea76-4cb4-854b-9540fc716078	principal	\N	\N
+619	\N	\N	\N	b4804589-9529-482e-86c9-4a288aae193f	archlute	\N	\N
+620	\N	\N	\N	430c0de2-e2fb-4f81-8889-69a4b71f9bc2	algozey	\N	\N
+621	\N	\N	\N	635db582-10ba-4488-8574-0a616090b599	virginal	\N	\N
+622	\N	\N	\N	28527011-9cf4-4dcd-a70c-22042a92a52c	cornamuse	\N	\N
+623	\N	\N	\N	b0edfd1a-e728-4b93-802e-96c1c2f9d84a	tumbi	\N	\N
+624	\N	\N	\N	d5b46baa-37fc-46cc-b99f-c455ce6e6a9c	handpan	\N	\N
+625	\N	\N	\N	59705bd6-e257-41ce-92b6-6593fc2e9b39	spilåpipa	\N	\N
+626	\N	\N	\N	996e6514-37a4-4b22-af71-e968f30913fd	fife	\N	\N
+627	\N	\N	\N	e5d0ff68-3005-4c5f-8cf1-61eaa3bbb332	laser harp	\N	\N
+628	\N	\N	\N	21468ce3-bad3-4f48-a2ff-01e6b0bc9ca2	17-string bass koto	\N	\N
+629	\N	\N	\N	a6a6d1b0-5d8a-4f8b-a89d-a6b6c5f8a1b0	valiha	\N	\N
+630	\N	\N	\N	571baf30-f258-419a-a4ec-fe2e8be478e1	launeddas	\N	\N
+631	\N	\N	\N	73064eb8-ecd8-4fa2-b79f-06094da5b119	orpharion	\N	\N
+632	\N	\N	\N	672c19ec-0ca3-4ece-9f6b-7f1c0018a0e6	tape	\N	\N
+633	\N	\N	\N	a6e9129c-63d3-4e38-bcc3-8f4662a8f247	baroque trumpet	\N	\N
+634	\N	\N	\N	218d072b-474a-4a9c-9d0f-c5b39891a4be	natural horn	\N	\N
+635	\N	\N	\N	3933adfe-f55b-47fd-b085-c9983d15cc9d	five-string banjo	\N	\N
+636	\N	\N	\N	aa129b27-d572-4eb7-9def-4a6869f21cda	cavaquinho	\N	\N
+637	\N	\N	\N	44715139-79f9-4093-a883-dc743d8bb466	kudüm	\N	\N
+638	\N	\N	\N	af1799a2-1088-4243-a0d2-8f89e3fc515c	typewriter	\N	\N
+639	\N	\N	\N	ea37234d-a59b-4823-954f-aa499970ca94	yaylı tanbur	\N	\N
+640	\N	\N	\N	0ddf2bbb-18bb-41da-b369-f145fc17fa50	bulbul tarang	\N	\N
+641	\N	\N	\N	105db479-f28e-40fb-9cbe-9305172238f9	esraj	\N	\N
+642	\N	\N	\N	57deb1b0-b7fe-4616-b9cb-bbd59bc0acd8	dilruba	\N	\N
+643	\N	\N	\N	b0acbf59-ffba-4e2f-8104-31aed56fa364	tef	\N	\N
+644	\N	\N	\N	a3c58697-eae3-454c-90c5-5f911a24376a	daire	\N	\N
+645	\N	\N	\N	e2f0cdf4-3651-4bb9-9153-0cdb16ce65ea	morsing	\N	\N
+646	\N	\N	\N	f5fe9a97-6595-4d4d-9b6b-a83c646c7143	kartal	\N	\N
+647	\N	\N	\N	9eda0cee-d33f-402e-b7bc-96b9e6962d5c	dhol	\N	\N
+648	\N	\N	\N	07504f21-f5b8-476a-8958-d0abe38c3748	chande	\N	\N
+649	\N	\N	\N	28a6a166-0df4-4d1a-aba1-70ed4265559d	maddale	\N	\N
+650	\N	\N	\N	12f20f43-c71d-4476-8ada-b968aab50900	electric fretless guitar	\N	\N
+651	\N	\N	\N	5888d65d-9d65-4d13-8454-3d68be9b3e55	acoustic fretless guitar	\N	\N
+652	\N	\N	\N	8460bc93-953f-4a48-9106-485d5703ec6f	ney	\N	\N
+653	\N	\N	\N	ad09a4ed-d1b6-47c3-ac85-acb531244a4d	kemençe of the Black Sea	\N	\N
+654	\N	\N	\N	b9692581-c117-47f3-9524-3deeb69c6d3f	classical kemençe	\N	\N
+655	\N	\N	\N	822083c6-d93d-4b5e-8117-33bf763096e8	komuz	\N	\N
+656	\N	\N	\N	ff696aa2-629e-41ef-b68d-d8fe4b52a34a	talharpa	\N	\N
+657	\N	\N	\N	c679782c-2d59-45b8-ab24-f19dd243fa03	ruan	\N	\N
+658	\N	\N	\N	1156c575-2165-4799-be3f-023ff1fc7655	daruan	\N	\N
+659	\N	\N	\N	da111bba-76e4-43ec-b03f-8fe8e558626e	hulusi	\N	\N
+660	\N	\N	\N	15cd573d-15a8-4f9f-a48f-f73218d85e14	suona	\N	\N
+661	\N	\N	\N	cecbc1f9-40b9-4f51-a357-286d622df956	jing'erhu	\N	\N
+662	\N	\N	\N	ce0a1033-3e33-4d7f-8230-1fb53a57651d	xiaoluo	\N	\N
+663	\N	\N	\N	f02ca577-d1ec-4c02-97c8-a15afff6bbfa	daluo	\N	\N
+664	\N	\N	\N	d28125ee-4bfc-4cff-95ca-fdc52f85669c	jing	\N	\N
+665	\N	\N	\N	81aa0df3-4533-42bc-a023-13b92177ea90	nagadou-daiko	\N	\N
+666	\N	\N	\N	e3154c4b-9da9-4ef2-abc4-58d577454e77	shime-daiko	\N	\N
+667	\N	\N	\N	1975ee04-30de-4835-9656-102ccd49c0c7	taishogoto	\N	\N
+669	\N	\N	\N	b35084cc-0e82-4047-9698-828c478f994f	kotsuzumi	\N	\N
+670	\N	\N	\N	6de2a79c-9658-4765-bbb2-c82dc015ca48	ōtsuzumi	\N	\N
+671	\N	\N	\N	57be0c41-d871-424d-a4e0-db6d5cbb6aea	tap dance	\N	\N
+672	\N	\N	\N	4809de55-92ba-4bac-b1b0-a609d2d41d18	wind synthesizer	\N	\N
+673	\N	\N	\N	f396f3a3-d4db-449b-8ab7-1b31508b310c	Lyricon	\N	\N
+674	\N	\N	\N	11329bb7-5657-4a6b-ac9e-917d9f77d784	Wiener Horn	\N	\N
+675	\N	\N	\N	c64428c0-bed0-4af9-8c71-d66f82117ee7	Xaphoon	\N	\N
+676	\N	\N	\N	ee8fcd03-bc67-4f6b-9d55-6821c80eb751	yatga	\N	\N
+677	\N	\N	\N	a7d2c5cd-508e-4bc3-9d63-44c94aa9a125	atarigane	\N	\N
+680	\N	\N	\N	75f77da4-41f2-4c64-9a5c-0528048f07e3	rondador	\N	\N
+681	\N	\N	\N	448eeddf-37a3-49f3-9e46-d46ccd821aaf	siku	\N	\N
+683	\N	\N	\N	54c58a0e-cd47-436b-872a-dc5fe89bd213	fujara	\N	\N
+684	\N	\N	\N	de947c13-0406-4e70-badb-689d26e7d11d	oboe da caccia	\N	\N
+685	\N	\N	\N	f8c53ee8-da8f-4639-af9d-ea977ef8cc3b	limbe	\N	\N
+686	\N	\N	\N	fd749773-a4c8-4fa9-85f9-a56eb016bcc3	E-flat clarinet	\N	\N
+687	\N	\N	\N	642a60e9-6ea3-4153-90de-748dae23324e	tonkori	\N	\N
+688	\N	\N	\N	3f3ea4f9-5b51-4f6f-833e-e3bd17e659b8	Reactable	\N	\N
+689	\N	\N	\N	acd0c109-e4dd-488a-8f7b-d7c7e5f333bf	buk	\N	\N
+690	\N	\N	\N	ac16043b-4727-40f9-bb2a-cb30ab4ce7a2	chikuzen biwa	\N	\N
+691	\N	\N	\N	ec478db3-c490-4fca-a688-0bdd9fb55806	heike biwa	\N	\N
+692	\N	\N	\N	de564c42-80db-4040-96c4-269ad9e063ac	satsuma biwa	\N	\N
+693	\N	\N	\N	42349583-c10d-4c6e-b553-28d916113856	bangu	\N	\N
+694	\N	\N	\N	ad0ddf4c-05ca-4d9b-a159-8caed25e6bf4	gralla	\N	\N
+695	\N	\N	\N	6c09e10d-7ed8-47a6-a9f2-8551b19b2d92	apito de samba	\N	\N
+696	\N	\N	\N	30ec9a37-d7a5-41ca-942d-55f27015ff2f	thon	\N	\N
+697	\N	\N	\N	76c83821-5b2e-41d9-b9c2-cef0dc1ddb77	hourglass drum	\N	\N
+698	\N	\N	\N	9cb81ffe-8ae9-47c5-8b13-65d54e10be58	friction drum	\N	\N
+699	\N	\N	\N	fdb869b9-cb9e-40d4-a7bf-f44c8d3bbac7	barrel drum	\N	\N
+701	\N	\N	\N	741715c4-1756-43f8-b56f-a4aca1dc2cfd	żafżafa	\N	\N
+702	\N	\N	\N	659128ed-9e82-41ee-a872-4b6f8b32234b	żaqq	\N	\N
+703	\N	\N	\N	23a2775f-4bf3-4432-beb2-97be32b9ef50	mirliton	\N	\N
+704	\N	\N	\N	9478e40f-bab3-4fcb-a52a-f3df65770bfa	żummara	\N	\N
+705	\N	\N	\N	e8e99279-0774-404a-9973-d4b06c759fc4	shudraga	\N	\N
+738	\N	\N	\N	3d082a7d-e8d9-4c7b-b8d0-513883a7d586	nose whistle	\N	\N
+739	\N	\N	\N	d6e67b1c-7b88-4157-9c67-aae74a163670	rauschpfeife	\N	\N
+740	\N	\N	\N	4d857424-16ba-40a1-a3c3-6342aef9fde9	duxianqin	\N	\N
+741	\N	\N	\N	7f025c8a-cfe8-4ac7-844a-346877fb2607	saron family	\N	\N
+742	\N	\N	\N	115d7724-356c-4086-be40-2fef51415260	dombra	\N	\N
+743	\N	\N	\N	8c17c50a-c955-4cd4-b14e-87999d31e0f1	naobo	\N	\N
+744	\N	\N	\N	03de7e59-d275-4b21-b16a-ab363e909df6	mandocello	\N	\N
+745	\N	\N	\N	0dadbeee-4790-4730-9492-965f500c06fb	octave mandolin	\N	\N
+746	\N	\N	\N	88f0d4fb-e7cc-4825-9d05-bcf974953790	disk drive	\N	\N
+747	\N	\N	\N	ff7fe5a4-6360-469e-991d-4c1b9b7fd42a	hard disk drive	\N	\N
+748	\N	\N	\N	9bc6f6d5-db01-400b-8a59-ce455ca05921	floppy disk drive	\N	\N
+749	\N	\N	\N	7b14c118-e243-459c-a18a-0c478a3ea6f4	baryton	\N	\N
+750	\N	\N	\N	37da3398-5d1b-4acb-be25-df95e33e423c	medley	\N	\N
+751	\N	\N	\N	1487a644-3720-4ea9-8e37-3de180b5be85	pedal piano	\N	\N
+752	\N	\N	\N	1bf0ba6f-b062-4efe-a56f-33cc1035f6bb	tar	\N	\N
+753	\N	\N	\N	cbf5a4cb-7174-4eb6-8fbe-0b0b06118250	đàn tứ	\N	\N
+754	\N	\N	\N	6c62497a-8990-4709-86a8-78bcc4f45a06	liuqin	\N	\N
+755	\N	\N	\N	859ea9b3-00a1-4cc5-8f90-6f0e0f20539c	mouth organ	\N	\N
+756	\N	\N	\N	5053c10b-0a2c-4298-946f-b9a608827874	khene	\N	\N
+757	\N	\N	\N	b4d38ac1-7f12-437c-a61a-be2796ffc559	vichitra veena	\N	\N
+758	\N	\N	\N	7aa50be7-d31a-4e89-9fb2-a32ad290b255	qilaut	\N	\N
+759	\N	\N	\N	e16bb6a7-fac3-46da-8ee4-e65c12b65388	ranat ek	\N	\N
+760	\N	\N	\N	c7a69b51-7105-4d4c-ab4a-ec118e24d1f0	tenor violin	\N	\N
+761	\N	\N	\N	b3b3d5f8-d2cd-4c98-ad19-60876a0176da	hichiriki	\N	\N
+762	\N	\N	\N	1878af04-5a26-46e4-9389-a1ef93030e5d	ryuteki	\N	\N
+763	\N	\N	\N	83225061-4655-4c2b-bce2-dc2a931dd4af	ching	\N	\N
+764	\N	\N	\N	46b796c3-269e-4c64-8ec4-7b051e5740ed	chap	\N	\N
+765	\N	\N	\N	5af2c8f2-0153-46c0-8f79-ca03194bcab7	ranat thum	\N	\N
+766	\N	\N	\N	b6aa8ec7-3ede-4f8b-92f1-45f4568e3261	khong wong	\N	\N
+767	\N	\N	\N	936cc15c-58ce-4e3b-8d84-30143ccf05ee	khong wong lek	\N	\N
+768	\N	\N	\N	4ed60977-fbcf-4802-bfce-cdbdc23e6dcc	khong wong yai	\N	\N
+769	\N	\N	\N	28db0a69-5191-41ad-98b4-be1ff876868f	saw duang	\N	\N
+770	\N	\N	\N	7e57165e-404c-4e11-9e3d-5273b48db40f	saw u	\N	\N
+771	\N	\N	\N	e4f188db-5bb8-4d22-ac90-a76877fb4ea6	post horn	\N	\N
+772	\N	\N	\N	faa2699d-2d3c-42e0-9e67-73239603693a	chakhe	\N	\N
+773	\N	\N	\N	551e553a-cadd-4363-8723-f72aab5431d0	rammana	\N	\N
+774	\N	\N	\N	b3cf8cff-f7c7-4311-bf4e-cfc09bdb07ca	dutar	\N	\N
+775	\N	\N	\N	f1299271-c5d7-4f7c-8b72-d64aa152c3bb	setar	\N	\N
+776	\N	\N	\N	751a051c-833e-46cf-91b7-9a462b8d674c	ukeke	\N	\N
+777	\N	\N	\N	56c8b6ff-b442-4adf-bd51-b2e26f28338b	lamellaphone	\N	\N
+778	\N	\N	\N	1ed1ea53-0365-43ac-bdb5-1c4cd571baa6	marímbula	\N	\N
+779	\N	\N	\N	3adfcaab-611b-4117-b370-54842244dd24	arghul	\N	\N
+780	\N	\N	\N	927f1238-6638-4f6a-9484-404def8cdd3b	diddley bow	\N	\N
+781	\N	\N	\N	7e704071-7d7c-42f2-af03-a15eb66916d2	tack piano	\N	\N
+782	\N	\N	\N	36174229-0e11-4eaf-82c8-e2502ddbbd30	Mark tree	\N	\N
+783	\N	\N	\N	ddc0d7a5-cadb-4598-ac8d-83e17bde9816	chime bar	\N	\N
+784	\N	\N	\N	af48ce3d-80de-40cb-8cc9-e8acc138d19d	gong bass drum	\N	\N
+785	\N	\N	\N	36163737-93f2-4794-bf67-f964bf227f23	chau gong	\N	\N
+786	\N	\N	\N	5efb3f0e-6b8c-472a-81b1-52aa5beee1e7	taepyeongso	\N	\N
+787	\N	\N	\N	51d4054b-b13a-47bd-9ff4-cfc42009c42c	ajaeng	\N	\N
+788	\N	\N	\N	a59c5830-5ec7-38fe-9a21-c7ea54f6650a	number	\N	\N
+789	\N	\N	\N	ba30c0de-373c-44e4-ac28-594c4f316ab0	gopichant	\N	\N
+790	\N	\N	\N	b55abfb4-c40a-44e8-876b-e8de1834892a	ganzá	\N	\N
+791	\N	\N	\N	f156be0c-4663-463f-8202-23f7973797c2	guitalele	\N	\N
+792	\N	\N	\N	f37cf81c-0443-4e50-81ea-a63da88a7c4a	sabar	\N	\N
+793	\N	\N	\N	ba4705aa-ff1d-48d5-ae80-7b2046fb451e	Portuguese guitar	\N	\N
+794	\N	\N	\N	2fe389f3-e357-4df8-9fe7-604aa6f50c01	electric viola	\N	\N
+795	\N	\N	\N	af7f5463-cda7-4503-b2f9-3ab865a2e92a	duck call	\N	\N
+796	\N	\N	\N	cecb2656-7032-4dc3-8e95-6bb641aba0f4	vessel flute	\N	\N
+797	\N	\N	\N	f9b9fdfb-24fb-4d28-a6c0-9663a6e76faf	xun	\N	\N
+798	\N	\N	\N	1bb67401-1501-4259-803a-c7c8e45c7624	krakeb	\N	\N
+799	\N	\N	\N	26d4b233-19a2-4b73-b59f-0cae9895ac96	steel-string acoustic guitar	\N	\N
+800	\N	\N	\N	364d2c49-9ee3-4cfd-9512-df0b15eca28d	archtop guitar	\N	\N
+801	\N	\N	\N	f74ce97d-84f2-4bdd-b31c-8748c59dcad2	buzuq	\N	\N
+802	\N	\N	\N	23e2ec76-a834-462c-8af9-4f80026d4f90	four-string banjo	\N	\N
+803	\N	\N	\N	9f8e485d-6be5-428c-ae5a-ac24f52254ff	tenor banjo	\N	\N
+804	\N	\N	\N	b7227963-9456-4b09-98ad-766634ceb51a	cylindrical drum	\N	\N
+805	\N	\N	\N	a10fdd7a-c00f-4a5c-993e-c7d215b44959	dunun	\N	\N
+806	\N	\N	\N	a3d55b72-7a93-4d75-bc2a-e266683cc5b4	viola caipira	\N	\N
+807	\N	\N	\N	c042d8e2-389f-47ed-98d7-c2c853b85290	violino piccolo	\N	\N
+808	\N	\N	\N	35e94803-4462-407a-8a01-3e474a45aaaf	tenor trombone	\N	\N
+810	\N	\N	\N	8aa8133e-4297-4e78-8d35-a337b8b56c96	Paraguayan harp	\N	\N
+811	\N	\N	\N	9086ef0c-37f8-4627-92f1-b42ce7794956	ranat kaeo	\N	\N
+812	\N	\N	\N	0f2a75c7-f10b-49cc-8acf-70fc0b5e2c9e	khlui	\N	\N
+813	\N	\N	\N	ae081074-8cf5-4a9b-b7eb-052139c41af8	pi	\N	\N
+814	\N	\N	\N	bcbf73cd-168c-4b82-832f-e559606f0bdf	pi nai	\N	\N
+815	\N	\N	\N	24c693ab-d71e-4d18-9317-cb5f370e8059	taphon	\N	\N
+816	\N	\N	\N	6cafdd5b-a469-4c29-9b54-8c7ed4739569	klong yao	\N	\N
+817	\N	\N	\N	14b450f8-0b7e-497e-ac78-be000b62748c	klong khaek	\N	\N
+818	\N	\N	\N	a421a3fc-2138-44c4-9b84-090ac035430f	klong song na	\N	\N
+819	\N	\N	\N	380ef985-7fc8-41de-85b3-b6726da63103	klong that	\N	\N
+820	\N	\N	\N	06266b6a-2fb8-4c71-9894-186edbac5dff	idiophone	\N	\N
+821	\N	\N	\N	95f47dc2-22f1-4ed0-9f76-7d04669e825b	struck idiophone	\N	\N
+823	\N	\N	\N	2706e403-bdef-47d8-9492-6f3ff4f78a0b	effects	\N	\N
+824	\N	\N	\N	0d19007b-a5b9-4121-8717-291ba0ecd9b2	helicon	\N	\N
+825	\N	\N	\N	dd37a6b6-5d95-4bd7-a77d-e4a8a1b43b26	Schwyzerörgeli	\N	\N
+826	\N	\N	\N	26fccd38-1a9e-42d4-8e42-b0cb1b79e579	šargija	\N	\N
+827	\N	\N	\N	7a3a18d5-2e8b-4826-ae2f-502ab094dde3	harp guitar	\N	\N
+828	\N	\N	\N	c96f5acf-1d1a-42bf-8e09-184879d85655	electric grand piano	\N	\N
+829	\N	\N	\N	9e5409ce-4bdd-4a49-b060-a3e2cef58336	guan	\N	\N
+830	\N	\N	\N	ebd303c3-7f57-452a-aa3b-d780ebad868d	time	\N	\N
+831	\N	\N	\N	4e22ddb3-6908-4a5f-a9ae-b8a7440f6c7c	nabal	\N	\N
+832	\N	\N	\N	f95fca04-8fcd-4a98-8344-d154d762e7a2	yonggo	\N	\N
+833	\N	\N	\N	de830e4e-5f29-4f63-ac3c-dc48bdc75d12	nagak	\N	\N
+834	\N	\N	\N	433631a2-68b7-49e6-90b4-5af19e26fc75	treble vocals	\N	\N
+835	\N	\N	\N	c1dbb66d-2356-417a-81ad-f688fee33257	guitarrón mexicano	\N	\N
+836	\N	\N	\N	d3889c67-56e6-4373-bbd3-820d19798281	guitarrón chileno	\N	\N
+837	\N	\N	\N	ab0ed8e9-c02e-4824-bf1a-c8bb06f7cfe9	dramyin	\N	\N
+838	\N	\N	\N	53c2545b-6430-4185-a106-42c0fa6a3a64	pocket trumpet	\N	\N
+839	\N	\N	\N	b0f2f2b0-3ccf-4478-8dc7-a0e970b76808	säckpipa	\N	\N
+840	\N	\N	\N	3a2a5c61-ad2d-415e-b141-c9b22a6bf836	zhaleika	\N	\N
+841	\N	\N	\N	67cf878f-d93d-42e8-bf31-e6e51f154bf6	violoncello piccolo	\N	\N
+842	\N	\N	\N	6e33958d-741f-4669-955a-5a29a99f72e1	tubax	\N	\N
+843	\N	\N	\N	2474c241-d267-433a-a404-688b13c51d11	jouhikko	\N	\N
+844	\N	\N	\N	55d5c4e6-e9e2-48f4-a1fb-b6fdbdaa81d7	ģīga	\N	\N
+845	\N	\N	\N	c53c3a34-1125-4db9-be50-b0dfdcd9e491	lirone	\N	\N
+846	\N	\N	\N	7c7468e5-85aa-4c7a-b9a8-5d385b769918	tromba marina	\N	\N
+847	\N	\N	\N	62c8a609-5ecd-4347-aadf-4518358ace5f	shichepshin	\N	\N
+848	\N	\N	\N	3e16a431-d473-47da-a621-935cf4643ac1	pkhachich	\N	\N
+849	\N	\N	\N	c0cc863c-ea65-4b8a-b365-28b81b72d846	friction idiophone	\N	\N
+851	\N	\N	\N	8f009f9b-dc32-4797-897d-f05f284d24ae	xylorimba	\N	\N
+852	\N	\N	\N	ba99bd20-8e61-4246-9d69-685485254e8d	laouto	\N	\N
+853	\N	\N	\N	8947e594-91fe-4143-9acd-d567963224aa	lavta	\N	\N
+854	\N	\N	\N	5f9bb15a-738f-48bb-8676-55e62547726f	doshpuluur	\N	\N
+855	\N	\N	\N	9bae90ea-9729-4c30-bd3e-f8319cdf4051	igil	\N	\N
+856	\N	\N	\N	c8906a6c-2786-40e7-ba03-74cafeabfb43	topshuur	\N	\N
+857	\N	\N	\N	a5e7d80a-57aa-47a5-83d5-8e1385c8fa3d	hotchiku	\N	\N
+858	\N	\N	\N	041e4a26-8ddb-45dc-961a-23bcf6e0615b	mukkuri	\N	\N
+859	\N	\N	\N	73bf4431-d576-46d1-a1c3-158b4de0764d	wot	\N	\N
+860	\N	\N	\N	c1d76a22-ab32-45af-be76-f3abd1eb2b2a	saw sam sai	\N	\N
+861	\N	\N	\N	42055c06-6b7b-4b88-9ad0-f3c5180ba60e	chanzy	\N	\N
+862	\N	\N	\N	49a67de0-b00e-44df-9fd7-0e1269c06e43	nyatiti	\N	\N
+863	\N	\N	\N	432b23ed-c179-4421-9bde-bf7872885499	zabumba	\N	\N
+864	\N	\N	\N	06aaeafb-8dce-468f-8b46-7607a30438cb	swarmandal	\N	\N
+865	\N	\N	\N	14f7b643-2348-4ae5-838a-715541b02961	afoxé	\N	\N
+866	\N	\N	\N	5801d468-6617-40dd-939f-0b64e96f1b6c	alfaia	\N	\N
+867	\N	\N	\N	46ec6044-6c57-4ebe-8c1e-762f19b66340	atabaque	\N	\N
+868	\N	\N	\N	526ca2ae-ceba-4194-a786-139b3bef9519	anvil	\N	\N
+869	\N	\N	\N	2a3cc2ad-f9ab-48ad-940b-bf83d90012e6	reco-reco	\N	\N
+870	\N	\N	\N	d4b0543a-8ded-49b8-8e9c-c951a8f9de29	repinique	\N	\N
+871	\N	\N	\N	a96bbbd1-7e44-4e79-b12e-a03ac232db98	tamborim	\N	\N
+872	\N	\N	\N	18c75d4c-279a-4301-95de-d3116a918212	tinya	\N	\N
+873	\N	\N	\N	a29f5eaa-0217-422d-ac08-d86bc6f894bf	suling	\N	\N
+874	\N	\N	\N	d22b8841-1553-4aa3-89f3-f050c81cfc1f	pātē	\N	\N
+875	\N	\N	\N	92ed7e3f-0892-4440-b747-3b987632ecd7	bass trumpet	\N	\N
+876	\N	\N	\N	41e8a9c1-f860-40c7-a066-ed1b71f35b68	bajo sexto	\N	\N
+877	\N	\N	\N	e5951e63-3d8b-4945-8026-cadb726d4ac8	ngɔni	\N	\N
+878	\N	\N	\N	426bfbc7-848a-455a-bd1c-da49f012996f	suka	\N	\N
+879	\N	\N	\N	104b6bfb-d695-4214-9ea7-1117857065c3	rototom	\N	\N
+880	\N	\N	\N	d3667988-a354-4fc4-9c1e-9baea9a43c06	bass oboe	\N	\N
+881	\N	\N	\N	77b29599-96c7-4571-9fae-09e7e42b8175	piccolo oboe	\N	\N
+882	\N	\N	\N	2ab4c035-374a-4188-bb7a-81c2558254f7	krar	\N	\N
+883	\N	\N	\N	c62f263e-3fcf-4614-8d59-4ed9ef8db4c4	musette de cour	\N	\N
+884	\N	\N	\N	65f12def-0e45-470e-996c-2259a9797457	Cristal Baschet	\N	\N
+885	\N	\N	\N	f67af2c0-3952-45e2-826a-63d140ef5c56	luthéal	\N	\N
+886	\N	\N	\N	c104db3d-30c6-41a6-a7d3-214598fcc301	nadaswaram	\N	\N
+887	\N	\N	\N	f711b03f-86c6-4e67-86eb-c6716ddbe1c1	kös	\N	\N
+888	\N	\N	\N	6682190e-1ead-40cf-903f-76cbe351c019	çevgen	\N	\N
+889	\N	\N	\N	ed6df8f9-d2d1-4013-9046-dd7fc300bbe0	bazooka	\N	\N
+890	\N	\N	\N	504f30a8-92b3-444a-82e0-fbeb316b5ded	flumpet	\N	\N
+891	\N	\N	\N	bc090764-54f3-4bc4-a4eb-d9ba2bc1afd5	bicycle bell	\N	\N
+892	\N	\N	\N	5ecc4a53-28eb-415e-81b0-79d5ab5b310c	chitra veena	\N	\N
+893	\N	\N	\N	54076fb4-ce44-4f9a-b579-f42318bd14a0	bolon	\N	\N
+894	\N	\N	\N	6dbf2716-9556-4324-9c06-a0a985cd8e78	tololoche	\N	\N
+895	\N	\N	\N	74dd2d22-adf6-4536-b290-8a20b51cf77f	akete	\N	\N
+896	\N	\N	\N	a66b7f37-5aa2-43b8-85eb-0dea87aae930	gramorimba	\N	\N
+897	\N	\N	\N	0a9f3342-e58a-4317-bc9b-cd09a7b9df78	sarrusophone	\N	\N
+898	\N	\N	\N	034322f8-c537-4bea-acb1-d4848bd1ddc2	dolceola	\N	\N
+900	\N	\N	\N	729287b9-cc0c-4e7f-b40b-60672f6f435b	minipiano	\N	\N
+901	\N	\N	\N	e1461782-0353-4f3a-a6e0-ce984f3190db	quinto	\N	\N
+902	\N	\N	\N	959b623e-0b32-4d08-975c-b24d6cd9d6be	ravanahatta	\N	\N
+903	\N	\N	\N	c3ff2412-ea4e-4299-b93e-ca011c647dde	quijada	\N	\N
+904	\N	\N	\N	4af93445-7eea-4253-aa61-afade8fb43d7	garifuna drum	\N	\N
+905	\N	\N	\N	c9fb1652-1a07-4f3d-b886-ec961efcc7c8	segunda	\N	\N
+906	\N	\N	\N	39b5634a-4802-4a66-a27a-58f37677c197	primero	\N	\N
+907	\N	\N	\N	e2894ea4-6ac2-4c1c-98ff-2a1fac4b8f42	oktawka	\N	\N
+908	\N	\N	\N	98aa22df-731f-4697-b5a0-f5525293e630	sopilka	\N	\N
+909	\N	\N	\N	bfdf6c16-d143-46cd-a11f-cd7364a0e5b2	citole	\N	\N
+910	\N	\N	\N	3c411e3b-f219-4fb2-b888-4f44ab7eeb81	buisine	\N	\N
+911	\N	\N	\N	0282b785-f94a-4f7e-b51d-062152ac6700	guitar synthesizer	\N	\N
+912	\N	\N	\N	b1c85f31-40b0-43cc-bf99-2d65ff29facf	lautenwerck	\N	\N
+913	\N	\N	\N	44accbb9-f7b4-42ad-9d4b-fce69407ae11	glass harp	\N	\N
+914	\N	\N	\N	bc18fdfa-b868-4f04-bd49-87363a2c3d15	mandolute	\N	\N
+915	\N	\N	\N	c3cd152f-e04d-4592-8d0b-9f7de44b3551	marimba lumina	\N	\N
+916	\N	\N	\N	1c3a672f-fbde-418c-aa06-cd3fe0d7536e	ütőgardon	\N	\N
+918	\N	\N	\N	bd57c6a6-616b-4c00-bcde-f0f34e8d6eb0	dulzaina	\N	\N
+919	\N	\N	\N	e8577662-ebda-404b-8bd8-be8448a5f429	bandurria	\N	\N
+920	\N	\N	\N	3e439f48-e677-4aea-b064-b1436476d7b3	txalaparta	\N	\N
+921	\N	\N	\N	efd89258-fb07-48e9-acf9-0a54ce03606d	cancelled	\N	\N
+922	\N	\N	\N	e7c39993-6362-4bee-908d-6b17c2ffb56d	dulce melos	\N	\N
+923	\N	\N	\N	b11361d3-643f-4ccb-bc3b-0ba26f7e01d4	keytar	\N	\N
+924	\N	\N	\N	e346ac37-b617-4c12-b54d-d25474b6c7b7	tubon	\N	\N
+925	\N	\N	\N	463262da-3f12-4175-a78b-f0183946ac12	donso ngɔni	\N	\N
+926	\N	\N	\N	55098411-b918-4fc7-a7bc-e1062cfb7b23	calabash	\N	\N
+927	\N	\N	\N	4d4e45e0-660d-4456-89cd-47a3fa14bb7c	accordina	\N	\N
+928	\N	\N	\N	1eb5e0b3-4fde-482f-a7b3-6d1f69f9dd46	craviola	\N	\N
+929	\N	\N	\N	fd6f9e0b-c720-44e8-81f5-d88831c28dbf	claviola	\N	\N
+930	\N	\N	\N	d7dd3b43-50e9-4418-bf7b-f999a80dfa08	taonga pūoro	\N	\N
+931	\N	\N	\N	c046a87f-c44e-4830-97ed-5c5e32f52fb2	kōauau	\N	\N
+932	\N	\N	\N	68064791-4108-4c97-812f-990c45d1ba0d	nguru	\N	\N
+933	\N	\N	\N	5c5cf664-4685-4089-bce0-b8c7e16ac698	rehu	\N	\N
+934	\N	\N	\N	98837460-d363-4af3-920c-cc016b48d98d	pūmotomoto	\N	\N
+935	\N	\N	\N	00a005c8-45e7-45c6-ba25-fcd5c5ac2c58	pūtōrino	\N	\N
+936	\N	\N	\N	2561db4d-1018-4a40-9b15-93bcbd0887d4	pōrutu	\N	\N
+937	\N	\N	\N	7631a763-6c36-4fc6-b04a-1021cd60e7e5	pūkaea	\N	\N
+938	\N	\N	\N	beb9fd97-5bd1-47aa-ae4d-f230a55d9c04	pūtātara	\N	\N
+939	\N	\N	\N	5ed5bf1f-ca26-4aeb-b4dd-88a52b1a17e7	pahū pounamu	\N	\N
+940	\N	\N	\N	2e345a93-045e-403a-80a9-4c6835c3a49e	pūrerehua	\N	\N
+941	\N	\N	\N	b6649fb6-d4cc-477e-ae8d-39145fb46d06	poi āwhiowhio	\N	\N
+942	\N	\N	\N	0e229ccc-5fea-45f5-8efc-abc6c1c17dea	Pianet	\N	\N
+943	\N	\N	\N	2cd8f5f1-0c0e-4a7e-92f3-14e795473a3b	Cembalet	\N	\N
+944	\N	\N	\N	9465df95-c901-4402-a169-7005756fdcaf	Guitaret	\N	\N
+945	\N	\N	\N	8e1cadfb-6f00-49f7-ad1e-b2fc0482b69c	gizmo	\N	\N
+946	\N	\N	\N	42d9a141-2a20-4c6d-bdb9-ab7e7e4bec42	spinet	\N	\N
+947	\N	\N	\N	23af87b9-81a5-45ed-9d2e-cf4c64bfd932	piano spinet	\N	\N
+948	\N	\N	\N	2c27460e-5af0-4b0d-a1db-3618ae04865a	spinettone	\N	\N
+949	\N	\N	\N	b0818d20-2065-4e4b-bce2-21ffa5389b07	bronze lur	\N	\N
+950	\N	\N	\N	0e7f913b-4451-45dd-bbd6-004c5226b1ef	birch lur	\N	\N
+951	\N	\N	\N	fbe05c17-5b15-4f7b-88c9-e1d9e16681d8	gittern	\N	\N
+952	\N	\N	\N	9b72452f-550e-4ace-93ed-fb8789cdc245	re	\N	\N
+953	\N	\N	\N	056d3d57-ec0f-40e3-82ab-afd1af420cb1	laúd	\N	\N
+954	\N	\N	\N	b6c87b0e-5f2b-49a4-bc0e-457e0e4951b9	saduk	\N	\N
+955	\N	\N	\N	676c2b33-388a-48e6-8892-e588ba4dc129	three-hole pipe	\N	\N
+956	\N	\N	\N	2a2dec1a-e7a7-41d6-8b99-316c244a52fd	tabor	\N	\N
+957	\N	\N	\N	e31dd801-6cc3-49c1-b2f9-fc7700ce5ac1	pipe and tabor	\N	\N
+958	\N	\N	\N	f10484f0-5905-4f0b-bb0b-db91653ab6e9	trautonium	\N	\N
+959	\N	\N	\N	fa4d4038-cc89-4ead-aa2e-129446c585b6	aman khuur	\N	\N
+960	\N	\N	\N	d0feefd4-147a-4ed9-a07c-c267b436f47f	temür khuur	\N	\N
+961	\N	\N	\N	26ed69bd-3828-4c49-8e74-0fb4399a06d3	khulsan khuur	\N	\N
+962	\N	\N	\N	dab65378-7024-48a2-b7ec-93d22b1443f6	ashiko	\N	\N
+963	\N	\N	\N	b975e1d8-8508-436b-a5ac-9c4116fd195d	analog synthesizer	\N	\N
+964	\N	\N	\N	ed8f3295-0d30-4406-a08b-ec259a4b58bc	ondioline	\N	\N
+965	\N	\N	\N	83b8eb05-6bff-4f61-a050-bf44945a5c0a	clavioline	\N	\N
+966	\N	\N	\N	efca0287-2791-4209-b29b-1019891cb8d2	sursingar	\N	\N
+967	\N	\N	\N	68a64027-1bc3-4057-bd51-165697322aca	kamale ngɔni	\N	\N
+968	\N	\N	\N	3df89368-10e2-4a3a-878a-88ec1a17ccfd	härjedalspipa	\N	\N
+969	\N	\N	\N	a50ac178-588a-45c2-8e7e-8d24da9e6895	barbat	\N	\N
+970	\N	\N	\N	daec749f-9b0f-4020-a7a1-e9a1fd5e535b	contrabass flute	\N	\N
+971	\N	\N	\N	174e4a7a-dad6-4b3b-95e2-e3010b53a0ca	chirimía	\N	\N
+972	\N	\N	\N	6bcb239b-e739-4d47-81e7-c2eec8e7b1ea	chirimía and drum	\N	\N
+973	\N	\N	\N	2db86733-2865-4053-ad8c-da93505275cc	arpeggione	\N	\N
+974	\N	\N	\N	24b88b3f-a63e-49a0-94d4-c0b82257d6bd	bisernica	\N	\N
+975	\N	\N	\N	7476e255-3856-4066-b93f-8c7dcb1508c1	brač	\N	\N
+976	\N	\N	\N	685ed909-d7c6-411a-9340-ea206770ab1b	bugarija	\N	\N
+977	\N	\N	\N	7a9311bd-24d1-4d46-b83e-80731c8a4332	čelo	\N	\N
+978	\N	\N	\N	0a455deb-11be-4f9c-a0e3-81efe262a329	berda	\N	\N
+979	\N	\N	\N	a19ae157-702a-40c6-892f-9bcb97328b7b	tanpura	\N	\N
+980	\N	\N	\N	291e2d38-cdc9-4b9e-b592-5d653f32da6c	samica	\N	\N
+981	\N	\N	\N	bc026c3e-066b-492a-8cd1-b140f75461cf	banjolin	\N	\N
+982	\N	\N	\N	3e444ea5-b48d-48a2-8e6a-13217d443957	banjo-ukulele	\N	\N
+983	\N	\N	\N	bac20474-624a-46ce-a517-871eea3486b1	bouzar / gouzouki	\N	\N
+984	\N	\N	\N	6dadb008-cb59-40cb-8b3a-a07942ffb818	viololyra	\N	\N
+985	\N	\N	\N	8889a04e-467e-4319-9974-4bd77bb6463c	guitorgan	\N	\N
+986	\N	\N	\N	1fb90aa8-2b49-4685-a1e5-03da74531136	mandoguitar	\N	\N
+987	\N	\N	\N	22d644a0-4458-4a18-8d7d-c8ca9f89cfc8	English concertina	\N	\N
+988	\N	\N	\N	7ecc30ac-8335-43f0-a168-e19a7b13c2cc	German concertina	\N	\N
+989	\N	\N	\N	26b4608d-acc3-46f3-b509-d83bd798e122	Anglo concertina	\N	\N
+990	\N	\N	\N	cc996d06-87dc-420e-9ed7-a52867ca6e1e	vibrandoneon	\N	\N
+991	\N	\N	\N	9df8eaec-98e9-477b-b356-43f6b96642b3	dulcitone	\N	\N
+992	\N	\N	\N	999dbad8-5d0a-423c-bef2-6e50e7bcb7c7	orphica	\N	\N
+993	\N	\N	\N	fb751686-80c2-4bd0-9ae3-06cb9a37d02b	flageolet	\N	\N
+994	\N	\N	\N	bfa5b262-34cf-418b-a9c5-b629a24a96ee	English flageolet	\N	\N
+995	\N	\N	\N	d548d806-cd6b-464e-8b87-cfb5adaedbfb	flabiol	\N	\N
+996	\N	\N	\N	8251d55c-fa4b-4a2f-90e6-e8259501bc06	Tonette	\N	\N
+997	\N	\N	\N	b34f161a-56ea-4567-b2e4-509238fe7691	trikiti	\N	\N
+998	\N	\N	\N	c498b4b0-7cbf-4b48-b7f6-18b32df02df1	elektronium	\N	\N
+999	\N	\N	\N	7a0733b6-5140-49c5-851d-b9f0de21e63d	kagurabue	\N	\N
+1000	\N	\N	\N	e0b0f1c6-25e9-49b9-8164-131a251e8dce	djoza	\N	\N
+1001	\N	\N	\N	b34c3736-17fb-4462-a311-3d20539773d8	duggi	\N	\N
+1002	\N	\N	\N	f28b4f77-fc67-4433-a49f-1cdd7708df5a	Blaster Beam	\N	\N
+1003	\N	\N	\N	ab2edb77-e1ff-406b-bdf4-7c4d659a554e	game console sound chip	\N	\N
+1004	\N	\N	\N	a11e9091-1182-4d79-90a1-dcaa282e4a98	jeli ngɔni	\N	\N
+1005	\N	\N	\N	79230fb5-5836-4344-88ca-ddbf7cfd7a36	txistu	\N	\N
+1006	\N	\N	\N	a4f10af3-d440-4ee7-9093-c60a121df41a	kōauau ponga ihu	\N	\N
+1007	\N	\N	\N	fdc68c28-cc0c-4ae6-bd9e-dd0b68e3cf1a	hue puruwai	\N	\N
+1008	\N	\N	\N	fdcacb6d-7f3d-446d-aa65-fff4c9afb7f6	hue puruhau	\N	\N
+1009	\N	\N	\N	0c5e5de9-605c-4487-b454-ef70ef8c1996	rōria	\N	\N
+1010	\N	\N	\N	1b425878-18c7-4bcd-9129-bed989295e5f	te kū	\N	\N
+1011	\N	\N	\N	f7e7dd09-eef7-4c66-a226-c8eb6ba378e1	pūpakapaka	\N	\N
+1012	\N	\N	\N	908b5372-2a64-4248-8c27-3e9c76951aa1	porotiti	\N	\N
+1013	\N	\N	\N	938c3958-7a02-4b36-866d-8a3f1b1d589e	tumutumu	\N	\N
+1014	\N	\N	\N	925959ba-97d4-4e6f-b9dc-3ba8c4a773c4	pahū	\N	\N
+1015	\N	\N	\N	90bd690b-f86d-4ea3-b87d-f945b1ab9e38	tōkere	\N	\N
+1016	\N	\N	\N	9fb5bbba-2ee3-4791-98f5-e256429e353b	poi	\N	\N
+1017	\N	\N	\N	3158f700-4e47-4cc5-b641-228b0c5e5a4a	pākuru	\N	\N
+1018	\N	\N	\N	25dfb08e-9b99-44db-b30c-1d6ec6747af8	translator	\N	\N
+1019	\N	\N	\N	305d384f-e5ca-4c34-9803-0075e442d803	half	\N	\N
+1020	\N	\N	\N	7c9857cd-a821-4956-b9c3-a89bf0626744	step	\N	\N
+1021	\N	\N	\N	3a3280ea-b231-4083-8d20-9f043ca58808	gemshorn	\N	\N
+1022	\N	\N	\N	0d30c5ce-ea08-4a9a-8816-549a7abf996a	tenora	\N	\N
+1023	\N	\N	\N	fa084f70-c9de-403f-bf9d-c411e4d2e5b4	tarota	\N	\N
+1024	\N	\N	\N	dffe56f5-cd75-4392-ad31-1c3abf2b8e37	tible	\N	\N
+1025	\N	\N	\N	db6a575f-b581-4176-a1d8-2c0d948b23f5	kannel	\N	\N
+1026	\N	\N	\N	f1c020ff-ec49-452c-a556-eb65381c3795	tubulum	\N	\N
+1027	\N	\N	\N	3a6a4d43-ac19-4604-b099-82cc4394fca9	boobam	\N	\N
+1028	\N	\N	\N	45d888f0-2fc5-4326-9a30-7713cbc39280	octoban	\N	\N
+1029	\N	\N	\N	826a3a61-75ce-4620-9890-241f118d99e9	mijwiz	\N	\N
+1030	\N	\N	\N	4485dfdb-6000-4602-8b18-5f84e34d8aed	act	\N	\N
+1031	\N	\N	\N	1d05bc4b-9884-4c9f-9f69-616f119047f3	movement	\N	\N
+1032	\N	\N	\N	f4c9322b-2bfa-4c55-bb96-254be574b365	number	\N	\N
+1033	\N	\N	\N	5821a77f-f805-4c4f-beae-2fedb6ca5278	part of collection	\N	\N
+1034	\N	\N	\N	81b96fc2-932b-4eb7-a17d-b0c4238988e1	vuvuzela	\N	\N
+1035	\N	\N	\N	2f625ae3-a07c-4ca5-84cf-93dc1a763b07	Irish flute	\N	\N
+1036	\N	\N	\N	d90655c0-184d-4dd6-852c-c683a11c3b5f	oval spinet	\N	\N
+1037	\N	\N	\N	ed1628bd-8541-4874-b8ca-2cec8b4c5140	baandu	\N	\N
+1038	\N	\N	\N	81b68590-5c82-47a3-9790-1570ca60f711	fundeh	\N	\N
+1039	\N	\N	\N	30aeef52-3ebf-405e-9baa-ef6c6f3ef6d5	repeater	\N	\N
+1040	\N	\N	\N	7e42e637-c7b4-422c-ad56-f7fafbd961bb	rubab	\N	\N
+1041	\N	\N	\N	112f9cb7-7d0e-457c-a184-a24b789ab286	birbynė	\N	\N
+1042	\N	\N	\N	f9159e56-0908-4b37-b0db-7b6bc4872a94	yoochin	\N	\N
+1043	\N	\N	\N	b673ed30-fe14-47b4-9a1b-8b5f77862e7a	lap harp	\N	\N
+1044	\N	\N	\N	ac40beac-a9c4-46a6-82c5-615182440439	tungso	\N	\N
+1045	\N	\N	\N	7b95d4e0-7a5f-4d09-b2fb-700b90322450	olifant	\N	\N
+1046	\N	\N	\N	cf226d13-3080-4d39-bfbb-ad509989dc14	hydraulophone	\N	\N
+1047	\N	\N	\N	cd61c818-2937-442d-a12e-a02baefa7848	Otamatone	\N	\N
+1048	\N	\N	\N	b624a0f8-5fc6-484a-ac15-6310e1d30365	yu	\N	\N
+1049	\N	\N	\N	a6165957-c2eb-486e-80b3-25021313fcf8	junjung	\N	\N
+1050	\N	\N	\N	4e32c83a-891f-4215-b005-572d28f1a419	kokle	\N	\N
+1051	\N	\N	\N	19143e79-1a3e-4696-b030-36d379ef59a7	harpejji	\N	\N
+1052	\N	\N	\N	8659d5b5-6e07-4497-a903-5dd41619492b	mandora / gallichon	\N	\N
+1053	\N	\N	\N	87849940-ff7f-4999-ad7d-b4532f007e25	optional	\N	\N
+1054	\N	\N	\N	0f12e34a-b764-4c50-82d4-72436f3f256a	renaissance rackett	\N	\N
+1055	\N	\N	\N	dd93de8f-c32a-4bcf-8e90-4463c79676ea	baroque rackett	\N	\N
+1056	\N	\N	\N	07bffa5f-17a9-4945-bff4-d716af5b6d4e	violin octet	\N	\N
+1057	\N	\N	\N	8f15287f-48c1-4a7c-a7f7-30653c490279	viol family	\N	\N
+1058	\N	\N	\N	e1abddc8-4942-4674-a567-6aeb2f2329ea	bass violin	\N	\N
+1059	\N	\N	\N	3e394f5c-374e-447d-8154-c6a1a72d272e	Gravikord	\N	\N
+1060	\N	\N	\N	a31bdea5-7ef5-4a35-81c9-2abed9850d6d	meane vocals	\N	\N
+1061	\N	\N	\N	bcca3b4d-85ca-453e-8b5a-86a330b0ac39	quadruple reed	\N	\N
+1062	\N	\N	\N	88dad742-e0b7-4ad4-811d-e32b6d2b847d	caixa	\N	\N
+1063	\N	\N	\N	586352fa-7129-4324-ad92-367364fa6bc8	clapper	\N	\N
+1064	\N	\N	\N	f96573d5-a52c-44b6-8af4-8a7f010bb2d8	hyoshigi	\N	\N
+1065	\N	\N	\N	37ebafcb-34d7-436e-ba6e-b8646086f665	chuurqin	\N	\N
+1066	\N	\N	\N	17ed4105-1345-4235-82b2-6fd81f69ee1d	zhuihu	\N	\N
+1067	\N	\N	\N	708c6d50-c768-4f93-a5c7-b41fb3cf029f	string quartet	\N	\N
+1068	\N	\N	\N	0e7c8402-0603-4aff-880b-bb7eedbf5c01	traditional basque ensemble	\N	\N
+1069	\N	\N	\N	d76c5a9e-bc07-4088-99d5-b76fbda1eaec	Serbo-Croatian tamburica orchestra	\N	\N
+1070	\N	\N	\N	2cb56c59-0eee-40ad-80b5-42594f49e760	piano trio	\N	\N
+1071	\N	\N	\N	e954558e-8ec5-4d1e-b89f-23dd907cc483	claviorganum	\N	\N
+1072	\N	\N	\N	c55f5f41-a4e1-4b9a-971a-6f79324cb2a0	natural trumpet	\N	\N
+1073	\N	\N	\N	db36bd83-0606-42b9-91a0-d759ba52d0da	trumpet family	\N	\N
+1074	\N	\N	\N	6efec29d-013a-4687-b710-fe25800eb358	string trio	\N	\N
+1075	\N	\N	\N	7cbd040f-6217-48d0-ac43-3e8ecb4b4b0b	bass viol	\N	\N
+1076	\N	\N	\N	08450be5-f6d2-46d6-8be0-67087c02162c	baroque guitar	\N	\N
+1077	\N	\N	\N	fc02e955-db77-4854-908e-efb04b1ab6a3	regal	\N	\N
+1079	\N	\N	\N	c8fdfd9e-cdf2-4c6b-b9df-73fffbd7a327	anniversary	\N	\N
+1080	\N	\N	\N	1fb983fb-d6c2-4fe5-b67a-d6216a3a78dd	amount	\N	\N
+1081	\N	\N	\N	c77a49cb-7472-4fa0-9b3b-9062b0d07601	bhapang	\N	\N
+1082	\N	\N	\N	85d0d4b3-2bf0-4925-a3ad-3ebb49d04728	treble viol	\N	\N
+1083	\N	\N	\N	47005798-5f13-4768-b16b-6e88350358e3	tenor viol	\N	\N
+1084	\N	\N	\N	4d62efe7-5a87-458c-8476-049c86ed2412	alto viol	\N	\N
+1085	\N	\N	\N	47ce1322-27d4-42ad-a020-f3dccfab9431	pardessus de viole	\N	\N
+1086	\N	\N	\N	cf7b9cd2-e8ab-48d0-bcaa-cd8fd39df8ff	lyra viol	\N	\N
+1087	\N	\N	\N	4d2ccf72-e9fb-47e2-95be-991eaabf04d1	danso	\N	\N
+1088	\N	\N	\N	c264a81d-1307-4d83-acc5-c46e2096196c	sasando	\N	\N
+1089	\N	\N	\N	18043a39-9b83-4d83-b9a7-76fc9c6dab3f	cimbasso	\N	\N
+1090	\N	\N	\N	205acba3-c6aa-4e47-be4c-2be043cfd511	plucked idiophone	\N	\N
+1091	\N	\N	\N	d50ba107-4930-4e0b-8b3f-ffbea4a1ade1	ghaychak	\N	\N
+1092	\N	\N	\N	0d766870-3021-47ce-bd51-78d2d2484e1b	ghijak	\N	\N
+1094	\N	\N	\N	15eea3b8-5655-43c8-b2c2-dd03c901a79b	eponymous	\N	\N
+1095	\N	\N	\N	06b3aae9-ad08-4607-9ea3-767b5dee897b	The Great Stalacpipe Organ	\N	\N
+1096	\N	\N	\N	6afeed40-2392-43c4-87a0-44d0f58fea6d	octobass	\N	\N
+1097	\N	\N	\N	e11d6ef4-857d-462e-b91c-ef9f9f4a2760	njarka	\N	\N
+1098	\N	\N	\N	cba4f354-f7ff-45fd-a91b-0e8e5e1dba05	güira	\N	\N
+1099	\N	\N	\N	9483eb06-fd5a-4792-844f-72bc4cb1c0a1	flamenco guitar	\N	\N
+1100	\N	\N	\N	f05efa5a-f0ac-4839-b2a8-637605026545	chitarra battente	\N	\N
+1101	\N	\N	\N	d32661fd-b2d3-4c6d-9daa-96dbeee1e19a	octavilla	\N	\N
+1102	\N	\N	\N	efe98275-ad37-44cc-9471-bc0081924a39	octavina	\N	\N
+1103	\N	\N	\N	c03b445f-2790-4518-95b8-6b7fd600c6b9	saxophone quartet	\N	\N
+1104	\N	\N	\N	a4711cb9-800f-4b6b-b7fc-23fd1d494d9b	veena	\N	\N
+1105	\N	\N	\N	e5408785-e228-4919-9e79-6f997bcdfea5	tube zither	\N	\N
+1106	\N	\N	\N	6ac6bd46-c0a9-453a-b7df-17386973cfb1	tritantri veena	\N	\N
+1107	\N	\N	\N	1ed558ad-1628-4e5f-8d14-e18e54375cd5	surbahar	\N	\N
+1108	\N	\N	\N	6ceaa056-1bfd-470e-ae4a-320e1428648a	kachva sitar	\N	\N
+1109	\N	\N	\N	404b8ce3-27c1-45b4-a5cf-86756b044b1d	boomwhacker	\N	\N
+1110	\N	\N	\N	9e427607-3f0e-4d8c-bd59-aa6f361d961c	krap	\N	\N
+1111	\N	\N	\N	1fcabebf-a5f5-4920-afe0-43a00d274e5a	krap khū	\N	\N
+1112	\N	\N	\N	fd90b00e-e861-4494-b493-a125148db3b1	krap phuang	\N	\N
+1113	\N	\N	\N	bb9e55c7-9163-475f-95d1-c75488ed3d4f	krap sēphā	\N	\N
+1114	\N	\N	\N	dbd1ec09-34fd-412e-b73b-124e46cf7cdf	scraped idiophone	\N	\N
+1115	\N	\N	\N	bd734382-68be-4b7b-adbd-cbdf35cdf740	shaken idiophone	\N	\N
+1116	\N	\N	\N	5e2209c2-4d1c-4eb3-9cbb-29fe7d6a2681	clapstick	\N	\N
+1117	\N	\N	\N	a30e17d9-505d-48df-ae38-16c47879bc2b	guban	\N	\N
+1118	\N	\N	\N	c641bccc-2060-4871-9c12-e2df2523e53c	paiban	\N	\N
+1119	\N	\N	\N	bf6af06a-5033-4af5-a6b8-7f235b0cff51	concussion idiophone	\N	\N
+1120	\N	\N	\N	a2783aac-898d-48a3-a7fd-34457cccf10a	percussion idiophone	\N	\N
+1121	\N	\N	\N	4dda992c-4aa5-478b-91d6-220ce4a55e4e	arrabel	\N	\N
+1122	\N	\N	\N	580a5cdd-920a-43f9-bb0a-981cf357d96c	gendèr	\N	\N
+1123	\N	\N	\N	73173277-b7ef-4d5e-83b2-205cd2f12488	slenthem	\N	\N
+1124	\N	\N	\N	efcb65d1-e987-4dd9-b8c7-65a379cb2556	lithophone	\N	\N
+1125	\N	\N	\N	a9c89d47-dd31-4b3d-8837-ce9fceafb752	subject	\N	\N
+1126	\N	\N	\N	8509dad6-d315-48b4-8e3e-7f7e57f509e5	composition	\N	\N
+1127	\N	\N	\N	1cbf2c63-6222-4790-8331-6a9dd7830e3c	electronic music	\N	\N
+1128	\N	\N	\N	340400c2-ebaa-49fe-9bea-356ec09c035d	other	\N	\N
+1130	\N	\N	\N	ade9432a-e379-4b74-81be-5dab0056cd1c	conducting	\N	\N
+1131	\N	\N	\N	0c2909d8-673b-43b6-b14c-b2d4d0cf3af0	early music	\N	\N
+1132	\N	\N	\N	39e94360-98ad-4504-9adc-c1e2355c7e50	jazz	\N	\N
+1133	\N	\N	\N	0726ee9c-eb48-4c51-abc2-96a39bfb4f7a	folk music	\N	\N
+1134	\N	\N	\N	060b86cf-27bf-40e4-bf86-af90eb59ca1f	improvisation	\N	\N
+1135	\N	\N	\N	7c08195f-d526-4c94-ae09-f3501e81d843	level of studies	\N	\N
+1136	\N	\N	\N	6622fb9b-0d61-466d-b473-d0a41e713486	master’s degree	\N	\N
+1137	\N	\N	\N	528fa848-5769-43d5-907f-86b0b8d927fd	bachelor’s degree	\N	\N
+1139	\N	\N	\N	782cc243-b283-4612-ae4f-a543b8145ee5	doctoral degree	\N	\N
+1140	\N	\N	\N	30d1a6e4-84e7-4e59-94d2-bcf148cadb32	slentho	\N	\N
+1141	\N	\N	\N	e6e4a5e0-437c-49e3-acce-1bce7c36ab18	musicology	\N	\N
+1142	\N	\N	\N	ffa61786-07ed-48ed-b7bb-a17d248fba8c	piano quartet	\N	\N
+1143	\N	\N	\N	ffafb925-3f23-4b29-a8f2-6bfa311ddd79	saluang	\N	\N
+1144	\N	\N	\N	dda8aef8-a19f-4026-bb0d-f4e617125e94	ugal	\N	\N
+1145	\N	\N	\N	9063d25e-87e4-4adc-81d4-8fdee23bd26f	bedug	\N	\N
+1146	\N	\N	\N	b75af767-27a6-4259-a4d5-5dd8cb982921	bonang	\N	\N
+1147	\N	\N	\N	93ccd14f-9629-403f-8e5c-993621a7c290	bonang barung	\N	\N
+1148	\N	\N	\N	7e024f24-f778-4942-8fba-6f33ebfb2ac6	bonang panerus	\N	\N
+1149	\N	\N	\N	559bac75-fe66-4d4d-ba0e-c6718ad51add	bonang panembung	\N	\N
+1150	\N	\N	\N	39867b3b-0f1e-40d5-b602-4f3936b7f486	task	\N	\N
+1151	\N	\N	\N	ed220196-6250-456d-ab7b-465bee605b16	whistling	\N	\N
+1152	\N	\N	\N	12937176-5f04-4c8e-b75a-56f18754684e	reyong	\N	\N
+1153	\N	\N	\N	6e180df5-6df9-46bb-8ebf-c576a010fb5a	calung	\N	\N
+1154	\N	\N	\N	dededbf9-ee13-496a-9903-29d70d11452c	kantilan	\N	\N
+1155	\N	\N	\N	8dd31b5e-a96e-4bf8-8f55-59930bb89dc9	pemade	\N	\N
+1156	\N	\N	\N	75bca310-73ac-484d-9f2b-5dcdf3915bab	gambang	\N	\N
+1157	\N	\N	\N	8c4382b9-33ee-48d2-b1ad-edb8ce0da05d	kecer	\N	\N
+1158	\N	\N	\N	1c4ab081-1500-4372-9820-cbd1f93325c4	jegogan	\N	\N
+1159	\N	\N	\N	395bab77-bb77-4696-96d6-dfcade201c6d	jublag	\N	\N
+1160	\N	\N	\N	b3203b9f-327a-4d7e-97f7-5e783e5b99a1	gong-chime	\N	\N
+1161	\N	\N	\N	2c235622-4671-4112-9c1d-0550125db907	kempli	\N	\N
+1162	\N	\N	\N	5ae71a3c-062f-49c3-ab7c-c73779597c8c	bellowed reed	\N	\N
+1163	\N	\N	\N	e0350378-0d4b-49d5-ad81-8f74e1b54efc	kempul	\N	\N
+1164	\N	\N	\N	17ea56e2-44b2-4331-a368-54a5849074b0	kenong	\N	\N
+1165	\N	\N	\N	beb10494-f892-4865-b2aa-9f4c21824ee0	kethuk	\N	\N
+1166	\N	\N	\N	e42151f8-efb2-41e1-9aad-fb8fa115c233	kempyang	\N	\N
+1167	\N	\N	\N	dd430e7f-36ba-49a5-825b-80a525e69190	kemanak	\N	\N
+1168	\N	\N	\N	9b3d2812-e676-40de-902c-73c7769fb4f2	kendang	\N	\N
+1169	\N	\N	\N	14acd267-2e1b-459d-b41e-058d2c106345	kendhang gendhing	\N	\N
+1170	\N	\N	\N	176ce29f-bcf0-47f5-beda-c97ef6df6480	kendhang ketipung	\N	\N
+1171	\N	\N	\N	f6b76abc-fdef-444c-97b1-27b12e3e3c0b	kendhang batangan	\N	\N
+1172	\N	\N	\N	4ac4b541-116d-40c1-93c7-160153ca53ac	kendhang wayangan	\N	\N
+1173	\N	\N	\N	cff9e432-7483-4739-a8de-4b4dbb688acf	kendang lanang	\N	\N
+1174	\N	\N	\N	71dee195-aeb9-49fe-b853-28400b28837c	kendang wadon	\N	\N
+1175	\N	\N	\N	c588cc24-e139-44a9-8a48-7963eb693dd1	kendhang indung	\N	\N
+1176	\N	\N	\N	292a95fd-9bc7-4052-aa6e-844c8f4f4905	kendhang kulanter	\N	\N
+1177	\N	\N	\N	d5daaae4-fc89-41ac-a0b5-44b336bfa513	kepyak	\N	\N
+1178	\N	\N	\N	08a63d8e-0e93-4609-8555-c8cdf35fcf38	kacapi	\N	\N
+1179	\N	\N	\N	3740ddf9-0067-44d6-8634-9787084ae0f8	kacapi siter	\N	\N
+1180	\N	\N	\N	33e7df58-014a-4af6-95cd-62fda521c688	kacapi indung	\N	\N
+1181	\N	\N	\N	896bc919-e1db-4939-9555-857f5727faa8	kacapi rincik	\N	\N
+1182	\N	\N	\N	50ae3eb1-0034-4a34-8367-aff6c30dee9a	gendèr panerus	\N	\N
+1183	\N	\N	\N	60cd46dd-45d5-47ff-8d7e-a501e9c7938c	gendèr barung	\N	\N
+1184	\N	\N	\N	809f4e7f-918f-4e7e-884a-dc7faa4e52c1	gendèr wayang	\N	\N
+1185	\N	\N	\N	81da5ec5-4a2f-4481-b01d-fb8ab9ea116d	saron demung	\N	\N
+1186	\N	\N	\N	5b159ed5-2c58-4200-accb-c2ac5c9ace7f	saron barung	\N	\N
+1187	\N	\N	\N	2656be9c-b531-4cbb-a5b5-30454054343c	saron panerus	\N	\N
+1188	\N	\N	\N	b3fe02dc-f412-464e-b216-8c3fe45de456	saron peking	\N	\N
+1189	\N	\N	\N	3b7be43c-0b3b-42dd-8560-d61e41f6bd61	saron wayang	\N	\N
+1190	\N	\N	\N	3dbbb5ff-103b-4260-8cf6-679a73a7c552	Indonesian rebab	\N	\N
+1191	\N	\N	\N	efa5b047-95e7-4ebb-9987-b07208a1ac27	bīn	\N	\N
+1192	\N	\N	\N	872b72a2-541c-4115-b7ce-2dfed3e84884	bin-sitar	\N	\N
+1193	\N	\N	\N	9869ff82-9ba5-41a7-b2b2-e19f4e4a1083	seni rebab	\N	\N
+1194	\N	\N	\N	1a28f232-38ee-4293-9f4c-e0daed92b926	lute family	\N	\N
+1195	\N	\N	\N	6060f9c4-10ee-48b7-a2d8-e97f944afa70	lira da braccio	\N	\N
+1196	\N	\N	\N	085a89e6-1003-4320-98b8-e09c54a5e40e	bowed lute	\N	\N
+1197	\N	\N	\N	3e3bf175-86a7-42b7-937a-3fb1b3bfea03	bowed lyre	\N	\N
+1198	\N	\N	\N	f7f486a1-5811-4a13-be6b-1123058b4d3d	spike-fiddle	\N	\N
+1199	\N	\N	\N	81b63e68-8483-4bbd-b9ff-52e1de3ad3fd	singing	\N	\N
+1200	\N	\N	\N	6659faeb-c5c0-4521-b1ce-b772acfde49b	popular / rock music	\N	\N
+1201	\N	\N	\N	2acf8c95-4580-465d-99e8-f4227d76be12	music production	\N	\N
+1202	\N	\N	\N	9453afd2-3738-4399-9036-d8783da091d7	music education	\N	\N
+1203	\N	\N	\N	34f083b8-02d9-45de-8f80-ef268f527bca	music therapy	\N	\N
+1204	\N	\N	\N	dedcbf8a-7d06-4a68-aba3-fedd7a7e3281	classical music	\N	\N
+1205	\N	\N	\N	c8aa14af-c525-4325-80bd-e6d9b0ad8709	footbass	\N	\N
+1206	\N	\N	\N	66345913-2e2c-4527-a27d-403f619c3b3d	portative	\N	\N
+1207	\N	\N	\N	eafabec6-af67-4a49-be38-4401e7200494	melophone	\N	\N
+1208	\N	\N	\N	51e92fd2-e56e-4576-8547-acb63e8b8446	Pierrot ensemble	\N	\N
+1209	\N	\N	\N	0a49e297-8430-44cd-be7b-1fd22560b6e1	piano duo	\N	\N
+1210	\N	\N	\N	c3f3aacc-d9c0-4b6e-92e8-05df9af50e17	piano four hands	\N	\N
+1211	\N	\N	\N	d43c2380-efe5-4488-b08f-777296d0c95c	pluriarc	\N	\N
+1212	\N	\N	\N	e46bffd3-15a3-426a-923f-705839128609	viol consort	\N	\N
+1213	\N	\N	\N	3cfca17d-eb2c-4b40-9a9a-ca3111a55b54	keyed box zither	\N	\N
+1214	\N	\N	\N	bd5fa79a-ea6f-4e11-9463-f6f43cca363c	akkordolia	\N	\N
+1215	\N	\N	\N	9a808a67-a3ca-4690-9b55-05f10d237ba5	hummel	\N	\N
+1216	\N	\N	\N	ebf1c87b-b936-47e1-9a67-bd28c2bbdca6	stick zither	\N	\N
+1217	\N	\N	\N	b52a98c1-150f-4bde-9ac4-f44c528fc514	jantar	\N	\N
+1218	\N	\N	\N	d2385a89-bb39-4316-b562-27b2c19ff531	string quintet	\N	\N
+1219	\N	\N	\N	bfffdc20-3234-489b-a35d-a6ac122a6c43	postgraduate	\N	\N
+1220	\N	\N	\N	9c5496b6-89cf-4ed3-a294-b83779614ec3	opera	\N	\N
+1221	\N	\N	\N	809b3485-bb5e-4f90-89a0-27aab82e6101	musical theatre	\N	\N
+1222	\N	\N	\N	8dde2119-83fd-4449-80c0-7c7f2182a614	music theory	\N	\N
+1223	\N	\N	\N	ae96b377-061c-45a6-bf0b-69a6a2cb8cc7	chamber music	\N	\N
+1224	\N	\N	\N	f3e26215-c7de-406a-8aa6-d9fc2d7841ee	choral conducting	\N	\N
+1225	\N	\N	\N	ed79d01a-6199-45e9-88b6-53b04601b9f2	other	\N	\N
+1226	\N	\N	\N	54fc9c17-b16f-4d10-a372-c3f1bb6da70f	string synthesizer	\N	\N
+1227	\N	\N	\N	b8528f20-b056-47cd-9c58-463510eab14d	contemporary music	\N	\N
+1261	\N	\N	\N	3d984f6e-bbe2-4620-9425-5f32e945b60d	karaoke	\N	\N
+1262	\N	\N	\N	8f03b5fc-1e29-4fc0-9d51-818090dd50b4	antara	\N	\N
+1263	\N	\N	\N	7548dc7a-4f44-451e-84b6-b2c673b7e0a1	walaycho	\N	\N
+1264	\N	\N	\N	7c166511-91b1-4a18-80f8-74122946e6f0	ronroco	\N	\N
+1265	\N	\N	\N	091ecfa0-a0b7-405c-b14c-82806cccc465	bombo legüero	\N	\N
+1266	\N	\N	\N	d6ac9f9f-2352-4aea-9a1a-dd8c8443c5e9	bell plate	\N	\N
+1267	\N	\N	\N	b7ebf30d-ca2f-4795-ad29-409f9f754b46	Great Highland bagpipe	\N	\N
+1268	\N	\N	\N	648deac1-43a7-4ea0-8ef4-b77d88eba354	flutina	\N	\N
+1269	\N	\N	\N	3ec414ba-6b15-4a78-8ac0-d399eff41b3c	garmon	\N	\N
+1270	\N	\N	\N	025d1189-c74b-4f04-8ea0-c00c483b8296	pedal accordion	\N	\N
+1271	\N	\N	\N	68785e1c-0541-4db7-af12-2e4e7eb0b7e3	gaida	\N	\N
+1272	\N	\N	\N	e0e1d384-09fa-4eba-ad0a-a659ac9f194d	gaita sanabresa	\N	\N
+1273	\N	\N	\N	c421096d-865e-4a92-8ee7-b52091d91fbd	gaita gallega	\N	\N
+1274	\N	\N	\N	b8f262ad-d5a4-4c45-a4ab-74056ff5261c	gaita asturiana	\N	\N
+1275	\N	\N	\N	ff8d50d0-e0b8-4644-a091-e82b0437bf43	gaita de boto	\N	\N
+1308	\N	\N	\N	768169d7-d59a-4186-be38-9445b6fac208	gajdy	\N	\N
+1309	\N	\N	\N	79345283-e218-409c-b7d5-98bed8d243bb	torupill	\N	\N
+1310	\N	\N	\N	4521ce8e-3d24-4b64-9805-59df6f3a4740	sub	\N	\N
+1311	\N	\N	\N	27d05e5b-1801-4596-8646-c091ed545fe8	tulum	\N	\N
+1312	\N	\N	\N	d1781a9c-43dd-45af-a6bd-b7b8619f91b7	biniou	\N	\N
+1345	\N	\N	\N	aa5474ab-93d1-4628-80d6-4fcf282ed9fc	accompanying	\N	\N
+1346	\N	\N	\N	34be0675-ba92-4c8c-9924-94abc3d21829	wind/brass conducting	\N	\N
+1347	\N	\N	\N	ee317e9a-f915-49b2-ba17-95adcb3ffe10	arranging	\N	\N
+1348	\N	\N	\N	75978651-19cb-4db7-93c7-42f794711617	music history	\N	\N
+1349	\N	\N	\N	391e9291-b697-4fc8-adae-ea0dde4c18f8	counterpoint	\N	\N
+1350	\N	\N	\N	8bcab991-dabe-4ddc-b785-4003212828cd	harmony	\N	\N
+1351	\N	\N	\N	66d1c896-ed0f-40d7-9659-1842d089d81b	solfeggio	\N	\N
+1352	\N	\N	\N	1118a18a-c6d0-4c28-9e2c-a811911b3196	electroacoustic music	\N	\N
+1353	\N	\N	\N	288b973a-26ea-4880-8eca-45af4b8e8665	pre	\N	\N
+1354	\N	\N	\N	07b91470-b63e-41e4-88e6-11c4acac064f	charumera	\N	\N
+1355	\N	\N	\N	24d10276-4a95-46e6-9aa3-b2b018ee9cb0	artist diploma	\N	\N
+1388	\N	\N	\N	814816db-3368-4889-a8cd-aa34bd1043f0	piffero	\N	\N
+1389	\N	\N	\N	063e29ce-d1c5-4b20-9105-58e8c57d0d4e	fiscorn	\N	\N
+1390	\N	\N	\N	ff9804db-c0a0-4427-b4c0-8926c8f135d8	cobla	\N	\N
+1391	\N	\N	\N	21d5d4ec-f8ef-44dc-b02f-e564de057dcc	xeremies	\N	\N
+1392	\N	\N	\N	1464f316-aca0-4690-9115-28805720f846	reclam de xeremies	\N	\N
+1393	\N	\N	\N	2bdc15fd-5223-4352-84b9-dba247dcdeba	sac de gemecs	\N	\N
+1394	\N	\N	\N	03cb0f96-5fd0-4641-a0df-411623ffcb9a	cobla de tres quartans	\N	\N
+1395	\N	\N	\N	fc4a9a4d-3901-4c67-bfe5-5acbcdaef535	cornemuse du Centre	\N	\N
+1396	\N	\N	\N	07b7ae55-2b8e-4945-bab2-041919953e46	sordellina	\N	\N
+1397	\N	\N	\N	7186ac40-8154-49d0-8d24-33efd8c2a41e	zampogna	\N	\N
+1398	\N	\N	\N	86cf0eb3-b12d-40eb-bc32-928a1aebe3b1	tsampouna	\N	\N
+1399	\N	\N	\N	09750a43-cf70-490f-8fcb-8199bff6c0cb	cimpoi	\N	\N
+1400	\N	\N	\N	dca4f345-ce72-4ef0-b7af-fb7e55a0ae4d	cabrette	\N	\N
+1401	\N	\N	\N	699655a2-24b9-4ed0-b250-8e633fa02cc2	veuze	\N	\N
+1402	\N	\N	\N	47985fa9-1793-4b45-b573-c7893029cb34	piva	\N	\N
+1403	\N	\N	\N	0139871c-60da-4356-99d0-89c87cde2ca2	somu dūdas	\N	\N
+1404	\N	\N	\N	84c0f0f8-a468-4291-99da-f6821e0ac111	matstsyanka	\N	\N
+1405	\N	\N	\N	e8b3e285-3193-4b60-89d5-69d4743d67bb	Magyar duda	\N	\N
+1406	\N	\N	\N	4721e916-56c5-4e23-8828-33aedc7a8103	acappella	\N	\N
+1407	\N	\N	\N	95144855-a019-4076-bd2e-95ab461a69d3	dudy wielkopolskie	\N	\N
+1408	\N	\N	\N	f6505e4e-fa59-4194-8d79-fad78d1c33a5	dudy podhalanskie	\N	\N
+1409	\N	\N	\N	112b11a3-9b39-4ebc-86bd-4c9289e1ec81	dudy	\N	\N
+1410	\N	\N	\N	2306cbdc-35b0-4ac0-8a86-cde04abb9b85	dūdmaišis	\N	\N
+1411	\N	\N	\N	63a3e51d-a27a-4304-8dd0-67f954004824	hümmelchen	\N	\N
+1412	\N	\N	\N	c1ab8f12-4168-47ce-821c-5002d7089565	neyanban	\N	\N
+1413	\N	\N	\N	5f948a81-90ce-4d4a-b1d8-863ff1052c88	parkapzuk	\N	\N
+1414	\N	\N	\N	e1a801ee-da51-469f-94c0-8522aaffb631	mashak	\N	\N
+1415	\N	\N	\N	cd085f1b-639e-46fb-bf9d-4121ad2d732e	mezwed	\N	\N
+1416	\N	\N	\N	24fb671b-b699-4887-a9ed-668a646088ca	winner	\N	\N
+1417	\N	\N	\N	47bfd345-2acc-444b-ae3b-82781c7c40ca	demo	\N	\N
+1418	\N	\N	\N	175fb0a7-996d-4819-801b-6ce616c8cca2	orchestration	\N	\N
+1451	\N	\N	\N	068b3fc6-c11f-4ae7-bd85-ca5725b2b9f4	tun tuna	\N	\N
+1452	\N	\N	\N	198ecbd1-48fa-43cc-bda9-370206689074	Radhika's Mohan veena	\N	\N
+1453	\N	\N	\N	9a2b6ae1-a5fb-42ab-b18c-9985e8b606c4	VM Bhatt's Mohan veena	\N	\N
+1454	\N	\N	\N	c10707b4-a612-4002-9fc5-9100daf07d9e	electronic shruti box	\N	\N
+1455	\N	\N	\N	39e0c607-be04-48fd-b098-3b391efbaf36	swaragat	\N	\N
+1456	\N	\N	\N	f0c80c56-eb1c-4691-9a95-c4d1ae1158a8	khamak	\N	\N
+1457	\N	\N	\N	be1f10d2-dda4-4fa3-86dd-fcd78d3fb4bd	kinnari vina	\N	\N
+1458	\N	\N	\N	9b3df089-7736-49e0-a63d-35a8f4aeda36	yazh	\N	\N
+1459	\N	\N	\N	6fda4e1b-3af5-4f9f-abf0-588afcfad903	bateria	\N	\N
+1460	\N	\N	\N	c9af11ea-cb3a-492c-90bb-f4b57637824a	tarol	\N	\N
+1461	\N	\N	\N	79309e4b-3d59-4296-8069-016c2eed0cb1	screen music	\N	\N
+1462	\N	\N	\N	ae969978-699b-4d87-a3c2-5057a4a7e941	pandeiro	\N	\N
+1463	\N	\N	\N	ed222f0e-85bc-4974-a8b7-a1a6333bc9b0	pandero	\N	\N
+1464	\N	\N	\N	20b3884a-738f-4bfd-b4b9-bb942655d0ee	adufe	\N	\N

@@ -1,0 +1,411 @@
+200
+{
+  "aliases": [
+    {
+      "begin": null,
+      "end": null,
+      "ended": false,
+      "locale": null,
+      "name": "Mr. Self Destruct",
+      "primary": null,
+      "sort-name": "Mr. Self Destruct",
+      "type": null,
+      "type-id": null
+    }
+  ],
+  "artist-credit": [
+    {
+      "artist": {
+        "aliases": [
+          {
+            "begin": null,
+            "end": null,
+            "ended": false,
+            "locale": null,
+            "name": "N.I.N.",
+            "primary": null,
+            "sort-name": "N.I.N.",
+            "type": null,
+            "type-id": null
+          },
+          {
+            "begin": null,
+            "end": null,
+            "ended": false,
+            "locale": null,
+            "name": "NIN",
+            "primary": null,
+            "sort-name": "NIN",
+            "type": "Artist name",
+            "type-id": "894afba6-2816-3c24-8072-eadb66bd04bc"
+          },
+          {
+            "begin": null,
+            "end": null,
+            "ended": false,
+            "locale": null,
+            "name": "NIИ",
+            "primary": null,
+            "sort-name": "NIИ",
+            "type": null,
+            "type-id": null
+          },
+          {
+            "begin": null,
+            "end": null,
+            "ended": false,
+            "locale": "en",
+            "name": "Nine Inch Nails",
+            "primary": true,
+            "sort-name": "Nine Inch Nails",
+            "type": "Artist name",
+            "type-id": "894afba6-2816-3c24-8072-eadb66bd04bc"
+          },
+          {
+            "begin": null,
+            "end": null,
+            "ended": false,
+            "locale": "es",
+            "name": "Nine Inch Nails",
+            "primary": true,
+            "sort-name": "Nine Inch Nails",
+            "type": "Artist name",
+            "type-id": "894afba6-2816-3c24-8072-eadb66bd04bc"
+          },
+          {
+            "begin": null,
+            "end": null,
+            "ended": false,
+            "locale": "fr",
+            "name": "Nine Inch Nails",
+            "primary": true,
+            "sort-name": "Nine Inch Nails",
+            "type": "Artist name",
+            "type-id": "894afba6-2816-3c24-8072-eadb66bd04bc"
+          },
+          {
+            "begin": null,
+            "end": null,
+            "ended": false,
+            "locale": null,
+            "name": "Nine Inch Nails Live",
+            "primary": null,
+            "sort-name": "Nine Inch Nails Live",
+            "type": null,
+            "type-id": null
+          },
+          {
+            "begin": null,
+            "end": null,
+            "ended": false,
+            "locale": null,
+            "name": "NineInchNails",
+            "primary": null,
+            "sort-name": "NineInchNails",
+            "type": null,
+            "type-id": null
+          },
+          {
+            "begin": null,
+            "end": null,
+            "ended": false,
+            "locale": null,
+            "name": "И1И31ИCHИ41L5",
+            "primary": null,
+            "sort-name": "NINEINCHNAILS",
+            "type": "Artist name",
+            "type-id": "894afba6-2816-3c24-8072-eadb66bd04bc"
+          },
+          {
+            "begin": null,
+            "end": null,
+            "ended": false,
+            "locale": "ja",
+            "name": "ナイン・インチ・ネイルズ",
+            "primary": true,
+            "sort-name": "ナイン・インチ・ネイルズ",
+            "type": "Artist name",
+            "type-id": "894afba6-2816-3c24-8072-eadb66bd04bc"
+          }
+        ],
+        "country": "US",
+        "disambiguation": "",
+        "id": "b7ffd2af-418f-4be2-bdd1-22f8b48613da",
+        "name": "Nine Inch Nails",
+        "sort-name": "Nine Inch Nails",
+        "type": "Group",
+        "type-id": "e431f5f6-b5d2-343d-8b36-72607fffb74b"
+      },
+      "joinphrase": "",
+      "name": "Nine Inch Nails"
+    }
+  ],
+  "disambiguation": "",
+  "first-release-date": "1994-03-08",
+  "id": "96f64611-49df-4e54-84e7-0f9a30f01766",
+  "isrcs": [
+    "USIR19400525"
+  ],
+  "length": 270573,
+  "relations": [
+    {
+      "artist": {
+        "country": "US",
+        "disambiguation": "",
+        "id": "bc880664-6751-4998-984d-ebdbff15d229",
+        "name": "Trent Reznor",
+        "sort-name": "Reznor, Trent",
+        "type": "Person",
+        "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df"
+      },
+      "attribute-ids": {},
+      "attribute-values": {},
+      "attributes": [],
+      "begin": null,
+      "direction": "backward",
+      "end": null,
+      "ended": false,
+      "source-credit": "",
+      "target-credit": "",
+      "target-type": "artist",
+      "type": "arranger",
+      "type-id": "22661fb8-cdb7-4f67-8385-b2a8be6c9f0d"
+    },
+    {
+      "artist": {
+        "country": "US",
+        "disambiguation": "",
+        "id": "73c3f499-60e2-44e1-81dd-7fe2191461fa",
+        "name": "Adrian Belew",
+        "sort-name": "Belew, Adrian",
+        "type": "Person",
+        "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df"
+      },
+      "attribute-credits": {
+        "guitar": "texture generating guitars"
+      },
+      "attribute-ids": {
+        "guitar": "63021302-86cd-4aee-80df-2270d54f4978"
+      },
+      "attribute-values": {},
+      "attributes": [
+        "guitar"
+      ],
+      "begin": null,
+      "direction": "backward",
+      "end": null,
+      "ended": false,
+      "source-credit": "",
+      "target-credit": "",
+      "target-type": "artist",
+      "type": "instrument",
+      "type-id": "59054b12-01ac-43ee-a618-285fd397e461"
+    },
+    {
+      "artist": {
+        "country": "US",
+        "disambiguation": "",
+        "id": "bc880664-6751-4998-984d-ebdbff15d229",
+        "name": "Trent Reznor",
+        "sort-name": "Reznor, Trent",
+        "type": "Person",
+        "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df"
+      },
+      "attribute-credits": {},
+      "attribute-ids": {
+        "electric bass guitar": "0b9d87fa-93fa-4956-8b6a-a419566cc915"
+      },
+      "attribute-values": {},
+      "attributes": [
+        "electric bass guitar"
+      ],
+      "begin": null,
+      "direction": "backward",
+      "end": null,
+      "ended": false,
+      "source-credit": "",
+      "target-credit": "",
+      "target-type": "artist",
+      "type": "instrument",
+      "type-id": "59054b12-01ac-43ee-a618-285fd397e461"
+    },
+    {
+      "artist": {
+        "country": "US",
+        "disambiguation": "",
+        "id": "bc880664-6751-4998-984d-ebdbff15d229",
+        "name": "Trent Reznor",
+        "sort-name": "Reznor, Trent",
+        "type": "Person",
+        "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df"
+      },
+      "attribute-credits": {},
+      "attribute-ids": {
+        "electric guitar": "7ee8ebf5-3aed-4fc8-8004-49f4a8c45a87"
+      },
+      "attribute-values": {},
+      "attributes": [
+        "electric guitar"
+      ],
+      "begin": null,
+      "direction": "backward",
+      "end": null,
+      "ended": false,
+      "source-credit": "",
+      "target-credit": "",
+      "target-type": "artist",
+      "type": "instrument",
+      "type-id": "59054b12-01ac-43ee-a618-285fd397e461"
+    },
+    {
+      "artist": {
+        "country": "US",
+        "disambiguation": "",
+        "id": "bc880664-6751-4998-984d-ebdbff15d229",
+        "name": "Trent Reznor",
+        "sort-name": "Reznor, Trent",
+        "type": "Person",
+        "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df"
+      },
+      "attribute-credits": {},
+      "attribute-ids": {
+        "keyboard": "95b0c3d2-9606-4ef5-a019-9b7437f3adda"
+      },
+      "attribute-values": {},
+      "attributes": [
+        "keyboard"
+      ],
+      "begin": null,
+      "direction": "backward",
+      "end": null,
+      "ended": false,
+      "source-credit": "",
+      "target-credit": "",
+      "target-type": "artist",
+      "type": "instrument",
+      "type-id": "59054b12-01ac-43ee-a618-285fd397e461"
+    },
+    {
+      "artist": {
+        "country": "GB",
+        "disambiguation": "producer and engineer",
+        "id": "1b75cdb6-4d61-4ff5-b699-28075b867b4c",
+        "name": "Alan Moulder",
+        "sort-name": "Moulder, Alan",
+        "type": "Person",
+        "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df"
+      },
+      "attribute-ids": {},
+      "attribute-values": {},
+      "attributes": [],
+      "begin": null,
+      "direction": "backward",
+      "end": null,
+      "ended": false,
+      "source-credit": "",
+      "target-credit": "",
+      "target-type": "artist",
+      "type": "mix",
+      "type-id": "3e3102e1-1896-4f50-b5b2-dd9824e46efe"
+    },
+    {
+      "artist": {
+        "country": "GB",
+        "disambiguation": "British producer Mark Ellis",
+        "id": "f1461e6c-c008-414b-bad0-bce88f71724e",
+        "name": "Flood",
+        "sort-name": "Flood",
+        "type": "Person",
+        "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df"
+      },
+      "attribute-ids": {},
+      "attribute-values": {},
+      "attributes": [],
+      "begin": null,
+      "direction": "backward",
+      "end": null,
+      "ended": false,
+      "source-credit": "",
+      "target-credit": "",
+      "target-type": "artist",
+      "type": "producer",
+      "type-id": "5c0ceac3-feb4-41f0-868d-dc06f6e27fc0"
+    },
+    {
+      "artist": {
+        "country": "US",
+        "disambiguation": "",
+        "id": "bc880664-6751-4998-984d-ebdbff15d229",
+        "name": "Trent Reznor",
+        "sort-name": "Reznor, Trent",
+        "type": "Person",
+        "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df"
+      },
+      "attribute-ids": {},
+      "attribute-values": {},
+      "attributes": [],
+      "begin": null,
+      "direction": "backward",
+      "end": null,
+      "ended": false,
+      "source-credit": "",
+      "target-credit": "",
+      "target-type": "artist",
+      "type": "producer",
+      "type-id": "5c0ceac3-feb4-41f0-868d-dc06f6e27fc0"
+    },
+    {
+      "artist": {
+        "country": "US",
+        "disambiguation": "",
+        "id": "bc880664-6751-4998-984d-ebdbff15d229",
+        "name": "Trent Reznor",
+        "sort-name": "Reznor, Trent",
+        "type": "Person",
+        "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df"
+      },
+      "attribute-ids": {},
+      "attribute-values": {},
+      "attributes": [],
+      "begin": null,
+      "direction": "backward",
+      "end": null,
+      "ended": false,
+      "source-credit": "",
+      "target-credit": "",
+      "target-type": "artist",
+      "type": "programming",
+      "type-id": "36c50022-44e0-488d-994b-33f11d20301e"
+    },
+    {
+      "artist": {
+        "country": "US",
+        "disambiguation": "",
+        "id": "bc880664-6751-4998-984d-ebdbff15d229",
+        "name": "Trent Reznor",
+        "sort-name": "Reznor, Trent",
+        "type": "Person",
+        "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df"
+      },
+      "attribute-credits": {},
+      "attribute-ids": {
+        "lead vocals": "8e2a3255-87c2-4809-a174-98cb3704f1a5"
+      },
+      "attribute-values": {},
+      "attributes": [
+        "lead vocals"
+      ],
+      "begin": null,
+      "direction": "backward",
+      "end": null,
+      "ended": false,
+      "source-credit": "",
+      "target-credit": "",
+      "target-type": "artist",
+      "type": "vocal",
+      "type-id": "0fdbe3c6-7700-4a31-ae54-b53f06ae1cfa"
+    }
+  ],
+  "title": "Mr Self Destruct",
+  "video": false
+}
