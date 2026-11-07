@@ -33,8 +33,8 @@ Options (each has an environment variable fallback):
   -h, --help               this help
   -V, --version            the version
 
-import builds a store (a directory) from dump archives (mbdump.tar.bz2, mbdump-derived.tar.bz2,
-mbdump-cover-art-archive.tar.bz2) or directories they were unpacked into, without serving it.
+import builds a store from dump archives (mbdump.tar.bz2, mbdump-derived.tar.bz2, mbdump-cover-art-archive.tar.bz2)
+or directories they were unpacked into, without serving it. --out is a new directory (it must not exist).
 
 Logging: RUST_LOG (default info).";
 

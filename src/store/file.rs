@@ -43,9 +43,11 @@ impl Mapped {
     }
 }
 
-/// Maps a store file. Store files are written once, by the importer, into a directory that is only opened once it
-/// is complete, and are never written to again (an update writes a new store and removes the old one after it is
-/// no longer served): the mapping never sees the file change.
+/// Maps a store file. Store files are written once, by the importer, into a new directory (a build refuses an
+/// existing one) that is only opened once it is complete, and are never written to again: an update builds a new
+/// store beside the served one, and the replaced store is unlinked, which leaves open mappings intact. Files
+/// rewritten during a build are written under new names and renamed over the old ones. So a mapping never sees its
+/// file change, unless something outside this program writes into a store.
 #[allow(unsafe_code)]
 fn map(file: &File) -> io::Result<memmap2::Mmap> {
     // SAFETY: the file is never modified or truncated while mapped (see above).

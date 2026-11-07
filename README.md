@@ -133,8 +133,8 @@ A check for a new dump is one small request (`LATEST`); the served store is name
 dump is never downloaded twice. An interrupted download resumes; every archive is checked against the dump's
 `SHA256SUMS`. A dump whose build fails is skipped until the next start (or the next dump).
 
-With updates off it serves the newest store in the data directory. `musicbrainz-mirror import` builds one from
-archives (or directories they were unpacked into) without serving it:
+With updates off it serves the newest store in the data directory. `musicbrainz-mirror import` builds one (into a
+new directory) from archives (or directories they were unpacked into) without serving it:
 
 ```sh
 musicbrainz-mirror import --out /srv/musicbrainz/musicbrainz-local \
@@ -156,7 +156,9 @@ memory-mapped when served ([src/store](src/store)):
 
 Memory stays bounded while building: rows that arrive out of order go through temporary files, sorted in buckets.
 Nothing is loaded when serving: answers read the mapped files, so the operating system's page cache holds what is
-used.
+used. A store's files never change once it is built: a new dump becomes a new store beside the served one,
+and the old one is deleted once no request uses it. Don't write into a store that is being served (copying files
+over it, restoring a backup into it): put a store in place as a new directory, as updates do.
 
 The JSON follows musicbrainz-server's serializer, including which fields appear where (an artist at the top level
 has a life span and its areas, the same artist in an artist credit doesn't), the order of relationships, and the

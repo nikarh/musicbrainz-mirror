@@ -36,6 +36,8 @@ pub enum BuildError {
     },
     #[error("no {0} table in the dump")]
     Missing(&'static str),
+    #[error("{0} exists: a store is built into a new directory")]
+    Exists(PathBuf),
     #[error("the import was interrupted")]
     Interrupted,
     #[error("{0}")]
@@ -528,7 +530,7 @@ const COMPRESS_MIN: u64 = 64 << 10;
 /// zstd's level for rows.
 const COMPRESS_LEVEL: i32 = 3;
 
-/// Builds a complete store into `out` (created; it must not exist): the tables, the derived files, the search
+/// Builds a complete store into `out` (created: it must not exist): the tables, the derived files, the search
 /// indexes, the rows compressed (when asked), and `meta.json` last (a store without it is unfinished).
 pub fn build(
     sources: &[PathBuf],
@@ -537,7 +539,15 @@ pub fn build(
     options: &BuildOptions,
 ) -> Result<Summary, BuildError> {
     let started = Instant::now();
-    std::fs::create_dir_all(out).map_err(|e| BuildError::Io(out.to_owned(), e))?;
+    // A new directory, never an existing one: its files are created by truncating whatever has their names, which
+    // under a store being served (memory-mapped) would change the bytes it reads.
+    if let Some(parent) = out.parent().filter(|p| !p.as_os_str().is_empty()) {
+        std::fs::create_dir_all(parent).map_err(|e| BuildError::Io(parent.to_owned(), e))?;
+    }
+    std::fs::create_dir(out).map_err(|e| match e.kind() {
+        std::io::ErrorKind::AlreadyExists => BuildError::Exists(out.to_owned()),
+        _ => BuildError::Io(out.to_owned(), e),
+    })?;
     let summary = tables(sources, out)?;
     let store = super::Store::partial(out).map_err(|e| BuildError::Io(out.to_owned(), e))?;
     super::derive::build(&store).map_err(|e| BuildError::Io(out.to_owned(), e))?;
@@ -620,6 +630,20 @@ fn compress(out: &Path, threads: usize) -> Result<(), BuildError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn never_builds_into_an_existing_directory() {
+        let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("target/tmp/build-exists");
+        std::fs::create_dir_all(&dir).unwrap();
+        let options = BuildOptions {
+            threads: 1,
+            memory_mb: 50,
+            compress_rows: false,
+        };
+        let result = build(&[dir.join("nothing")], "x", &dir, &options);
+        assert!(matches!(result, Err(BuildError::Exists(_))));
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
 
     #[test]
     fn uuids() {
