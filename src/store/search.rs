@@ -16,8 +16,8 @@ use tantivy::query::{
     BooleanQuery, Occur as TOccur, PhraseQuery, Query, RangeQuery, RegexQuery, TermQuery,
 };
 use tantivy::schema::{
-    FAST, Field as TField, INDEXED, IndexRecordOption, STRING, Schema, TextFieldIndexing,
-    TextOptions, Value as _,
+    Field as TField, IndexRecordOption, NumericOptions, Schema, TextFieldIndexing, TextOptions,
+    Value as _,
 };
 use tantivy::tokenizer::{
     AsciiFoldingFilter, LowerCaser, RemoveLongFilter, SimpleTokenizer, TextAnalyzer,
@@ -42,13 +42,20 @@ pub enum FieldKind {
     Number,
     /// A partial date given as text (`2001`, `2001-05`): a range of packed dates.
     Date,
+    /// The MBID of an entity of this table, indexed as its id (resolved through the store when searching: an
+    /// index of UUIDs as text would be most of the index).
+    Mbid(&'static str),
+    /// The MBID of the document's own entity (the `id` field).
+    OwnMbid,
+    /// The MBID of a track of the document's recording (resolved to the recording, the `id` field).
+    TrackMbid,
 }
 
 /// The search fields of an entity type: (index field, kind, the query field names that mean it).
 #[allow(clippy::too_many_lines)] // a table
 #[must_use]
 pub fn fields(kind: Kind) -> Vec<(&'static str, FieldKind, &'static [&'static str])> {
-    use FieldKind::{Date, Exact, Number, Text};
+    use FieldKind::{Date, Exact, Mbid, Number, OwnMbid, Text, TrackMbid};
     let mut common = vec![
         ("alias", Text(true), &["alias"][..]),
         ("comment", Text(true), &["comment"][..]),
@@ -58,7 +65,7 @@ pub fn fields(kind: Kind) -> Vec<(&'static str, FieldKind, &'static [&'static st
         Kind::Artist => vec![
             ("name", Text(true), &["artist", "artistaccent", "name"]),
             ("sortname", Text(true), &["sortname"]),
-            ("arid", Exact, &["arid"]),
+            ("arid", OwnMbid, &["arid"]),
             ("type", Exact, &["type"]),
             ("gender", Exact, &["gender"]),
             ("country", Exact, &["country"]),
@@ -80,10 +87,10 @@ pub fn fields(kind: Kind) -> Vec<(&'static str, FieldKind, &'static [&'static st
             ),
             ("label", Text(true), &["label"]),
             ("catno", Text(true), &["catno"]),
-            ("reid", Exact, &["reid"]),
-            ("rgid", Exact, &["rgid"]),
-            ("arid", Exact, &["arid"]),
-            ("laid", Exact, &["laid"]),
+            ("reid", OwnMbid, &["reid"]),
+            ("rgid", Mbid("release_group"), &["rgid"]),
+            ("arid", Mbid("artist"), &["arid"]),
+            ("laid", Mbid("label"), &["laid"]),
             ("barcode", Exact, &["barcode"]),
             ("asin", Exact, &["asin"]),
             ("country", Exact, &["country"]),
@@ -107,9 +114,9 @@ pub fn fields(kind: Kind) -> Vec<(&'static str, FieldKind, &'static [&'static st
                 &["artist", "artistname", "creditname"],
             ),
             ("release", Text(false), &["release"]),
-            ("rgid", Exact, &["rgid"]),
-            ("reid", Exact, &["reid"]),
-            ("arid", Exact, &["arid"]),
+            ("rgid", OwnMbid, &["rgid"]),
+            ("reid", Mbid("release"), &["reid"]),
+            ("arid", Mbid("artist"), &["arid"]),
             ("primarytype", Exact, &["primarytype", "type"]),
             ("secondarytype", Exact, &["secondarytype"]),
             ("status", Exact, &["status"]),
@@ -124,11 +131,11 @@ pub fn fields(kind: Kind) -> Vec<(&'static str, FieldKind, &'static [&'static st
                 &["artist", "artistname", "creditname"],
             ),
             ("release", Text(false), &["release"]),
-            ("rid", Exact, &["rid"]),
-            ("arid", Exact, &["arid"]),
-            ("reid", Exact, &["reid"]),
-            ("rgid", Exact, &["rgid"]),
-            ("tid", Exact, &["tid"]),
+            ("rid", OwnMbid, &["rid"]),
+            ("arid", Mbid("artist"), &["arid"]),
+            ("reid", Mbid("release"), &["reid"]),
+            ("rgid", Mbid("release_group"), &["rgid"]),
+            ("tid", TrackMbid, &["tid"]),
             ("isrc", Exact, &["isrc"]),
             ("dur", Number, &["dur"]),
             ("qdur", Number, &["qdur"]),
@@ -146,15 +153,15 @@ pub fn fields(kind: Kind) -> Vec<(&'static str, FieldKind, &'static [&'static st
         Kind::Work => vec![
             ("name", Text(true), &["work", "workaccent"]),
             ("artist", Text(true), &["artist"]),
-            ("wid", Exact, &["wid"]),
+            ("wid", OwnMbid, &["wid"]),
             ("iswc", Exact, &["iswc"]),
             ("type", Exact, &["type"]),
             ("lang", Exact, &["lang"]),
-            ("arid", Exact, &["arid"]),
+            ("arid", Mbid("artist"), &["arid"]),
         ],
         Kind::Label => vec![
             ("name", Text(true), &["label", "labelaccent"]),
-            ("laid", Exact, &["laid"]),
+            ("laid", OwnMbid, &["laid"]),
             ("type", Exact, &["type"]),
             ("code", Number, &["code", "labelcode"]),
             ("country", Exact, &["country"]),
@@ -166,7 +173,7 @@ pub fn fields(kind: Kind) -> Vec<(&'static str, FieldKind, &'static [&'static st
         ],
         Kind::Area => vec![
             ("name", Text(true), &["area", "areaaccent"]),
-            ("aid", Exact, &["aid"]),
+            ("aid", OwnMbid, &["aid"]),
             ("type", Exact, &["type"]),
             ("iso1", Exact, &["iso", "iso1"]),
             ("iso2", Exact, &["iso2"]),
@@ -176,28 +183,28 @@ pub fn fields(kind: Kind) -> Vec<(&'static str, FieldKind, &'static [&'static st
         Kind::Place => vec![
             ("name", Text(true), &["place", "placeaccent"]),
             ("address", Text(true), &["address"]),
-            ("pid", Exact, &["pid"]),
+            ("pid", OwnMbid, &["pid"]),
             ("type", Exact, &["type"]),
             ("area", Text(true), &["area"]),
             ("ended", Exact, &["ended"]),
         ],
         Kind::Event => vec![
             ("name", Text(true), &["event", "eventaccent"]),
-            ("eid", Exact, &["eid"]),
+            ("eid", OwnMbid, &["eid"]),
             ("type", Exact, &["type"]),
             ("begin", Date, &["begin"]),
             ("ended", Exact, &["ended"]),
-            ("arid", Exact, &["arid"]),
+            ("arid", Mbid("artist"), &["arid"]),
         ],
         Kind::Instrument => vec![
             ("name", Text(true), &["instrument", "instrumentaccent"]),
             ("description", Text(true), &["description"]),
-            ("iid", Exact, &["iid"]),
+            ("iid", OwnMbid, &["iid"]),
             ("type", Exact, &["type"]),
         ],
         Kind::Series => vec![
             ("name", Text(true), &["series", "seriesaccent"]),
-            ("sid", Exact, &["sid"]),
+            ("sid", OwnMbid, &["sid"]),
             ("type", Exact, &["type"]),
         ],
         Kind::Genre | Kind::Url => return Vec::new(),
@@ -251,7 +258,9 @@ pub fn words(text: &str) -> Vec<String> {
 
 fn schema(kind: Kind) -> (Schema, HashMap<&'static str, (TField, FieldKind)>, TField) {
     let mut builder = Schema::builder();
-    let id = builder.add_u64_field("id", FAST);
+    let id = builder.add_u64_field("id", NumericOptions::default().set_indexed().set_fast());
+    // Norms only where scores use them (text); none for values compared as a whole.
+    let number = || NumericOptions::default().set_indexed();
     let mut map = HashMap::new();
     for (name, field_kind, _) in fields(kind) {
         let field = match field_kind {
@@ -266,8 +275,19 @@ fn schema(kind: Kind) -> (Schema, HashMap<&'static str, (TField, FieldKind)>, TF
                     .set_index_option(record);
                 builder.add_text_field(name, TextOptions::default().set_indexing_options(indexing))
             }
-            FieldKind::Exact => builder.add_text_field(name, STRING),
-            FieldKind::Number | FieldKind::Date => builder.add_u64_field(name, INDEXED),
+            FieldKind::Exact => builder.add_text_field(
+                name,
+                TextOptions::default().set_indexing_options(
+                    TextFieldIndexing::default()
+                        .set_tokenizer("raw")
+                        .set_index_option(IndexRecordOption::Basic)
+                        .set_fieldnorms(false),
+                ),
+            ),
+            FieldKind::Number | FieldKind::Date | FieldKind::Mbid(_) => {
+                builder.add_u64_field(name, number())
+            }
+            FieldKind::OwnMbid | FieldKind::TrackMbid => id,
         };
         map.insert(name, (field, field_kind));
     }
@@ -317,6 +337,7 @@ impl SearchIndex {
     /// Searches an entity type: a page of (id, score), and how many matched.
     pub fn search(
         &self,
+        store: &Store,
         kind: Kind,
         query: &[(Occur, Node)],
         offset: usize,
@@ -325,7 +346,7 @@ impl SearchIndex {
         let Some(index) = self.kinds.get(&kind) else {
             return Ok((Vec::new(), 0));
         };
-        let Some(query) = build_query(kind, &index.fields, query) else {
+        let Some(query) = build_query(kind, &index.fields, query, &resolver(store, kind)) else {
             return Ok((Vec::new(), 0));
         };
         let searcher = index.reader.searcher();
@@ -350,9 +371,14 @@ impl SearchIndex {
     }
 
     /// The best score of a query (the first result's), to scale scores to 0-100.
-    pub fn top_score(&self, kind: Kind, query: &[(Occur, Node)]) -> tantivy::Result<f32> {
+    pub fn top_score(
+        &self,
+        store: &Store,
+        kind: Kind,
+        query: &[(Occur, Node)],
+    ) -> tantivy::Result<f32> {
         Ok(self
-            .search(kind, query, 0, 1)?
+            .search(store, kind, query, 0, 1)?
             .0
             .first()
             .map_or(1.0, |r| r.1))
@@ -372,7 +398,9 @@ impl SearchIndex {
         let clauses: Vec<(TOccur, Box<dyn Query>)> = query
             .iter()
             .filter(|(_, n)| matches!(n.field(), None | Some("tag")))
-            .filter_map(|(o, n)| node_query(&fields, &["name"], n, true).map(|q| (occur(*o), q)))
+            .filter_map(|(o, n)| {
+                node_query(&fields, &["name"], n, &|_, _| None).map(|q| (occur(*o), q))
+            })
             .collect();
         if clauses.is_empty() {
             return Ok((Vec::new(), 0));
@@ -412,10 +440,11 @@ fn build_query(
     kind: Kind,
     fields: &HashMap<&'static str, (TField, FieldKind)>,
     query: &[(Occur, Node)],
+    resolve: Resolve<'_>,
 ) -> Option<Box<dyn Query>> {
     let mut clauses = Vec::new();
     for (o, node) in query {
-        match field_query(kind, fields, node) {
+        match field_query(kind, fields, node, resolve) {
             Some(q) => clauses.push((occur(*o), q)),
             // An unknown field (or nothing searchable) matches nothing.
             None if *o == Occur::Must => return None,
@@ -432,6 +461,7 @@ fn field_query(
     kind: Kind,
     fields: &HashMap<&'static str, (TField, FieldKind)>,
     node: &Node,
+    resolve: Resolve<'_>,
 ) -> Option<Box<dyn Query>> {
     let names: Vec<&'static str> = match node.field() {
         None => default_fields(kind).to_vec(),
@@ -442,7 +472,7 @@ fn field_query(
             vec![index_field]
         }
     };
-    node_query(fields, &names, node, false)
+    node_query(fields, &names, node, resolve)
 }
 
 /// A node in one or more fields (more: any of them).
@@ -450,12 +480,12 @@ fn node_query(
     fields: &HashMap<&'static str, (TField, FieldKind)>,
     names: &[&str],
     node: &Node,
-    _tags: bool,
+    resolve: Resolve<'_>,
 ) -> Option<Box<dyn Query>> {
     let per_field: Vec<Box<dyn Query>> = names
         .iter()
         .filter_map(|n| fields.get(n))
-        .filter_map(|(f, k)| one_field(*f, *k, node))
+        .filter_map(|(f, k)| one_field(*f, *k, node, resolve))
         .collect();
     match per_field.len() {
         0 => None,
@@ -467,12 +497,17 @@ fn node_query(
 }
 
 /// A node in one field.
-fn one_field(field: TField, kind: FieldKind, node: &Node) -> Option<Box<dyn Query>> {
+fn one_field(
+    field: TField,
+    kind: FieldKind,
+    node: &Node,
+    resolve: Resolve<'_>,
+) -> Option<Box<dyn Query>> {
     match (node, kind) {
         (Node::Group { children, .. }, _) => {
             let clauses: Vec<(TOccur, Box<dyn Query>)> = children
                 .iter()
-                .filter_map(|(o, n)| one_field(field, kind, n).map(|q| (occur(*o), q)))
+                .filter_map(|(o, n)| one_field(field, kind, n, resolve).map(|q| (occur(*o), q)))
                 .collect();
             if clauses.is_empty() {
                 return None;
@@ -531,7 +566,37 @@ fn one_field(field: TField, kind: FieldKind, node: &Node) -> Option<Box<dyn Quer
             let to = to.as_deref().and_then(date_range).map(|r| r.1);
             Some(range(field, from, to))
         }
+        (
+            Node::Term { text, .. } | Node::Phrase { text, .. },
+            FieldKind::Mbid(_) | FieldKind::OwnMbid | FieldKind::TrackMbid,
+        ) => {
+            let id = resolve(kind, text.trim())?;
+            Some(Box::new(TermQuery::new(
+                Term::from_field_u64(field, id),
+                IndexRecordOption::Basic,
+            )))
+        }
         (Node::Range { .. }, _) => None,
+    }
+}
+
+/// Finds the id an MBID field's value stands for (`None`: no such entity).
+type Resolve<'a> = &'a dyn Fn(FieldKind, &str) -> Option<u64>;
+
+/// The id an MBID of a field stands for, in a store.
+fn resolver(store: &Store, kind: Kind) -> impl Fn(FieldKind, &str) -> Option<u64> + '_ {
+    move |field, mbid| {
+        let id = match field {
+            FieldKind::Mbid(table) => store.resolve(
+                table,
+                Kind::ALL.into_iter().find(|k| k.table() == table),
+                mbid,
+            ),
+            FieldKind::OwnMbid => store.resolve(kind.table(), Some(kind), mbid),
+            FieldKind::TrackMbid => store.t("track").by_gid(mbid)?.u32("recording"),
+            _ => None,
+        };
+        id.map(u64::from)
     }
 }
 
@@ -634,7 +699,7 @@ fn credit_names(
                 doc.text(field, artist.str("name"));
             }
             if let Some(arid) = arid {
-                doc.exact(arid, Some(&artist.gid()));
+                doc.number(arid, Some(artist.id));
             }
         }
     }
@@ -651,7 +716,7 @@ fn common(store: &Store, kind: Kind, row: &Row<'_>, doc: &mut Doc) {
     doc.text("comment", row.str("comment"));
     if kind.has_tags() {
         for tag in store.t(&format!("{t}_tag")).by("entity", row.id) {
-            if tag.u32("count").is_some_and(|c| c > 0 && c < u32::MAX) {
+            if tag.i32("count").is_some_and(|c| c > 0) {
                 doc.exact(
                     "tag",
                     tag.u32("tag")
@@ -685,12 +750,10 @@ fn country_codes(store: &Store, area: Option<u32>) -> Vec<String> {
 fn document(store: &Store, kind: Kind, row: &Row<'_>) -> Doc {
     let mut doc = Doc::default();
     common(store, kind, row, &mut doc);
-    let gid = row.gid();
     match kind {
         Kind::Artist => {
             doc.text("name", row.str("name"));
             doc.text("sortname", row.str("sort_name"));
-            doc.exact("arid", Some(&gid));
             doc.exact("type", type_name(store, "artist_type", row.u32("type")));
             doc.exact("gender", type_name(store, "gender", row.u32("gender")));
             let country = row.u32("area").and_then(|a| store.derived.area_country(a));
@@ -725,16 +788,15 @@ fn document(store: &Store, kind: Kind, row: &Row<'_>) -> Doc {
             for rl in store.t("release_label").by("release", row.id) {
                 if let Some(label) = rl.u32("label").and_then(|l| store.t("label").get(l)) {
                     doc.text("label", label.str("name"));
-                    doc.exact("laid", Some(&label.gid()));
+                    doc.number("laid", Some(label.id));
                 }
                 doc.text("catno", rl.str("catalog_number"));
             }
-            doc.exact("reid", Some(&gid));
             if let Some(rg) = row
                 .u32("release_group")
                 .and_then(|g| store.t("release_group").get(g))
             {
-                doc.exact("rgid", Some(&rg.gid()));
+                doc.number("rgid", Some(rg.id));
                 doc.exact(
                     "primarytype",
                     type_name(store, "release_group_primary_type", rg.u32("type")),
@@ -801,7 +863,6 @@ fn document(store: &Store, kind: Kind, row: &Row<'_>) -> Doc {
                 "artist",
                 Some("arid"),
             );
-            doc.exact("rgid", Some(&gid));
             doc.exact(
                 "primarytype",
                 type_name(store, "release_group_primary_type", row.u32("type")),
@@ -823,7 +884,7 @@ fn document(store: &Store, kind: Kind, row: &Row<'_>) -> Doc {
             for r in store.t("release").by("release_group", row.id) {
                 releases += 1;
                 doc.text("release", r.str("name"));
-                doc.exact("reid", Some(&r.gid()));
+                doc.number("reid", Some(r.id));
                 doc.exact(
                     "status",
                     type_name(store, "release_status", r.u32("status")),
@@ -843,7 +904,6 @@ fn document(store: &Store, kind: Kind, row: &Row<'_>) -> Doc {
                 "artist",
                 Some("arid"),
             );
-            doc.exact("rid", Some(&gid));
             doc.number("dur", row.u32("length"));
             doc.number("qdur", row.u32("length").map(|l| l / 2000));
             doc.exact(
@@ -860,7 +920,6 @@ fn document(store: &Store, kind: Kind, row: &Row<'_>) -> Doc {
             }
             let mut seen_releases = Vec::new();
             for track in store.t("track").by("recording", row.id) {
-                doc.exact("tid", Some(&track.gid()));
                 doc.number("tnum", track.u32("position"));
                 doc.exact("number", track.str("number"));
                 let Some(medium) = track.u32("medium").and_then(|m| store.t("medium").get(m))
@@ -883,7 +942,7 @@ fn document(store: &Store, kind: Kind, row: &Row<'_>) -> Doc {
                 }
                 seen_releases.push(release.id);
                 doc.text("release", release.str("name"));
-                doc.exact("reid", Some(&release.gid()));
+                doc.number("reid", Some(release.id));
                 doc.exact(
                     "status",
                     type_name(store, "release_status", release.u32("status")),
@@ -892,7 +951,7 @@ fn document(store: &Store, kind: Kind, row: &Row<'_>) -> Doc {
                     .u32("release_group")
                     .and_then(|g| store.t("release_group").get(g))
                 {
-                    doc.exact("rgid", Some(&rg.gid()));
+                    doc.number("rgid", Some(rg.id));
                     doc.exact(
                         "primarytype",
                         type_name(store, "release_group_primary_type", rg.u32("type")),
@@ -908,7 +967,6 @@ fn document(store: &Store, kind: Kind, row: &Row<'_>) -> Doc {
         }
         Kind::Work => {
             doc.text("name", row.str("name"));
-            doc.exact("wid", Some(&gid));
             doc.exact("type", type_name(store, "work_type", row.u32("type")));
             for iswc in store.t("iswc").by("work", row.id) {
                 doc.exact("iswc", iswc.str("iswc"));
@@ -919,13 +977,12 @@ fn document(store: &Store, kind: Kind, row: &Row<'_>) -> Doc {
             for rel in store.t("l_artist_work").by("entity1", row.id) {
                 if let Some(artist) = rel.u32("entity0").and_then(|a| store.t("artist").get(a)) {
                     doc.text("artist", artist.str("name"));
-                    doc.exact("arid", Some(&artist.gid()));
+                    doc.number("arid", Some(artist.id));
                 }
             }
         }
         Kind::Label => {
             doc.text("name", row.str("name"));
-            doc.exact("laid", Some(&gid));
             doc.exact("type", type_name(store, "label_type", row.u32("type")));
             doc.number("code", row.u32("label_code"));
             for code in country_codes(store, row.u32("area")) {
@@ -946,7 +1003,6 @@ fn document(store: &Store, kind: Kind, row: &Row<'_>) -> Doc {
         }
         Kind::Area => {
             doc.text("name", row.str("name"));
-            doc.exact("aid", Some(&gid));
             doc.exact("type", type_name(store, "area_type", row.u32("type")));
             for (field, table) in [
                 ("iso1", "iso_3166_1"),
@@ -965,7 +1021,6 @@ fn document(store: &Store, kind: Kind, row: &Row<'_>) -> Doc {
         Kind::Place => {
             doc.text("name", row.str("name"));
             doc.text("address", row.str("address"));
-            doc.exact("pid", Some(&gid));
             doc.exact("type", type_name(store, "place_type", row.u32("type")));
             doc.text("area", area_name(store, row.u32("area")));
             doc.exact(
@@ -975,7 +1030,6 @@ fn document(store: &Store, kind: Kind, row: &Row<'_>) -> Doc {
         }
         Kind::Event => {
             doc.text("name", row.str("name"));
-            doc.exact("eid", Some(&gid));
             doc.exact("type", type_name(store, "event_type", row.u32("type")));
             doc.date("begin", row.date("begin"));
             doc.exact(
@@ -984,19 +1038,17 @@ fn document(store: &Store, kind: Kind, row: &Row<'_>) -> Doc {
             );
             for rel in store.t("l_artist_event").by("entity1", row.id) {
                 if let Some(artist) = rel.u32("entity0").and_then(|a| store.t("artist").get(a)) {
-                    doc.exact("arid", Some(&artist.gid()));
+                    doc.number("arid", Some(artist.id));
                 }
             }
         }
         Kind::Instrument => {
             doc.text("name", row.str("name"));
             doc.text("description", row.str("description"));
-            doc.exact("iid", Some(&gid));
             doc.exact("type", type_name(store, "instrument_type", row.u32("type")));
         }
         Kind::Series => {
             doc.text("name", row.str("name"));
-            doc.exact("sid", Some(&gid));
             doc.exact("type", type_name(store, "series_type", row.u32("type")));
         }
         Kind::Genre | Kind::Url => {}
@@ -1011,34 +1063,50 @@ fn document(store: &Store, kind: Kind, row: &Row<'_>) -> Doc {
 pub fn field_values(store: &Store, kind: Kind, row: &Row<'_>) -> Vec<(&'static str, String)> {
     let doc = document(store, kind, row);
     let spec = fields(kind);
-    let query_name = |name: &str| {
-        spec.iter()
-            .find(|f| f.0 == name)
-            .map(|f| (f.2.first().copied(), f.1))
+    let query_name = |name: &'static str| {
+        spec.iter().find(|f| f.0 == name).map_or((name, None), |f| {
+            (f.2.first().copied().unwrap_or(name), Some(f.1))
+        })
     };
     let mut out = Vec::new();
     for (name, value) in doc.text.iter().chain(&doc.exact) {
-        out.push((
-            query_name(name).and_then(|q| q.0).unwrap_or(name),
-            value.clone(),
-        ));
+        out.push((query_name(name).0, value.clone()));
     }
     for (name, value) in &doc.numbers {
-        let Some((q, field_kind)) = query_name(name) else {
-            out.push((*name, value.to_string()));
-            continue;
-        };
-        let text = if field_kind == FieldKind::Date {
-            let (y, m, d) = (value / 10000, value / 100 % 100, value % 100);
-            match (m, d) {
-                (99, _) => format!("{y:04}"),
-                (_, 99) => format!("{y:04}-{m:02}"),
-                _ => format!("{y:04}-{m:02}-{d:02}"),
+        let (q, field_kind) = query_name(name);
+        let text = match field_kind {
+            Some(FieldKind::Date) => {
+                let (y, m, d) = (value / 10000, value / 100 % 100, value % 100);
+                match (m, d) {
+                    (99, _) => format!("{y:04}"),
+                    (_, 99) => format!("{y:04}-{m:02}"),
+                    _ => format!("{y:04}-{m:02}-{d:02}"),
+                }
             }
-        } else {
-            value.to_string()
+            Some(FieldKind::Mbid(table)) => u32::try_from(*value)
+                .ok()
+                .and_then(|id| store.t(table).get(id))
+                .map(|r| r.gid())
+                .unwrap_or_default(),
+            _ => value.to_string(),
         };
-        out.push((q.unwrap_or(name), text));
+        out.push((q, text));
+    }
+    // The MBIDs that aren't in the document (resolved to its id).
+    for (_, field_kind, names) in &spec {
+        let Some(&q) = names.first() else { continue };
+        match field_kind {
+            FieldKind::OwnMbid => out.push((q, row.gid())),
+            FieldKind::TrackMbid => {
+                out.extend(
+                    store
+                        .t("track")
+                        .by("recording", row.id)
+                        .map(|t| (q, t.gid())),
+                );
+            }
+            _ => {}
+        }
     }
     out
 }

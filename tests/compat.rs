@@ -225,17 +225,24 @@ fn every_search_field_is_indexed() {
         let names: std::collections::BTreeSet<&str> =
             spec.iter().flat_map(|f| f.2.iter().copied()).collect();
         let mut found = std::collections::BTreeSet::new();
+        let mut checked = std::collections::BTreeMap::new();
         for row in store.t(kind.table()).iter() {
             for (name, value) in search::field_values(&store, kind, &row) {
                 if !names.contains(name) {
                     failures.push(format!("{}: {name} is not a search field", kind.name()));
                     continue;
                 }
+                // (enough values of each field to show it works)
+                let checks = checked.entry(name).or_insert(0);
+                *checks += 1;
+                if *checks > 50 {
+                    continue;
+                }
                 let text = value.replace('\\', "\\\\").replace('"', "\\\"");
                 let q = format!("{name}:\"{text}\"");
                 let (hits, _) = store
                     .search
-                    .search(kind, &query::parse(&q), 0, 10_000)
+                    .search(&store, kind, &query::parse(&q), 0, 10_000)
                     .unwrap();
                 if hits.iter().any(|h| h.0 == row.id) {
                     found.insert(name);

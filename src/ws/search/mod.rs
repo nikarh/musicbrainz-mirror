@@ -29,12 +29,12 @@ pub fn search(store: &Store, kind: Kind, query: &str, page: Page) -> Answer {
     let parsed = query::parse(query);
     let result = store
         .search
-        .search(kind, &parsed, page.offset, page.limit)
+        .search(store, kind, &parsed, page.offset, page.limit)
         .and_then(|(rows, count)| {
             let top = if page.offset == 0 {
                 rows.first().map_or(1.0, |r| r.1)
             } else {
-                store.search.top_score(kind, &parsed)?
+                store.search.top_score(store, kind, &parsed)?
             };
             Ok((rows, count, top))
         });

@@ -6,15 +6,16 @@
 //! - `area.country`: the area whose ISO 3166-1 code is an area's country (itself, else the nearest country
 //!   containing it); `area.descendants`: the areas in an area ("part of", transitively).
 //! - `tag.genre`: the genre a tag is (by name).
-//! - `<entity>.annotation`: the latest annotation of each entity.
+//! - `<entity>.annotation`: the latest annotation of each entity (the others are removed from `annotation`).
 //! - `cover_art.types`: the art types of each image, as bits of art type ids.
 
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 use std::io::{self, BufWriter, Write as _};
 use std::path::Path;
 
 use super::Store;
-use super::file::{Csr, CsrWriter, Mapped, NONE, u32_at};
+use super::file::{Csr, CsrWriter, Mapped, NONE, PoolWriter, RowsWriter, u32_at, with_ext};
+use super::schema::Ty;
 use crate::kind::Kind;
 
 /// The link type of "part of" between areas.
@@ -147,7 +148,8 @@ pub fn build(store: &Store) -> io::Result<()> {
     }
     write_array(&dir.join("tag.genre"), &genres)?;
 
-    // The latest annotation of each entity: by creation time, then id.
+    // The latest annotation of each entity: by creation time, then id. Only those are kept.
+    let mut keep = BTreeSet::new();
     for kind in Kind::ALL.into_iter().filter(|k| k.has_annotations()) {
         let table = format!("{}_annotation", kind.table());
         let mut latest: HashMap<u32, (String, u32)> = HashMap::new();
@@ -170,9 +172,11 @@ pub fn build(store: &Store) -> io::Result<()> {
         let mut csr = CsrWriter::create(&base)?;
         for (entity, (_, annotation)) in latest {
             csr.add(entity, 0, annotation)?;
+            keep.insert(annotation);
         }
         csr.write(&base)?;
     }
+    compact(store, "annotation", &keep)?;
 
     // Cover art types, as bits of type ids (there are about 20 types).
     let cover_art = store.t("cover_art");
@@ -194,6 +198,44 @@ pub fn build(store: &Store) -> io::Result<()> {
         }
     }
     write_array(&dir.join("cover_art.types"), &types)
+}
+
+/// Rewrites a table (without indexes) with only these rows, and only their strings.
+fn compact(store: &Store, name: &str, keep: &BTreeSet<u32>) -> io::Result<()> {
+    let table = store.t(name);
+    let spec = &table.spec;
+    let base = store.dir.join(name);
+    let tmp = store.dir.join(format!("{name}.compact"));
+    let mut rows = RowsWriter::create(&with_ext(&tmp, "rows"), spec.width, false)?;
+    let interned = spec.fields.iter().any(|f| f.ty == Ty::InternedStr);
+    let mut pool = PoolWriter::create(&with_ext(&tmp, "strings"), interned)?;
+    for &id in keep {
+        let Some(row) = table.get(id) else { continue };
+        let mut bytes = row.bytes.to_vec();
+        for f in spec
+            .fields
+            .iter()
+            .filter(|f| matches!(f.ty, Ty::Str | Ty::InternedStr))
+        {
+            let offset = pool.add(row.str(&f.name), f.ty == Ty::InternedStr)?;
+            if let Some(slot) = bytes.get_mut(f.offset..f.offset + 4) {
+                slot.copy_from_slice(&offset.to_le_bytes());
+            }
+        }
+        rows.put(u64::from(id), &bytes)?;
+    }
+    rows.finish()?;
+    pool.finish()?;
+    for ext in ["rows", "strings"] {
+        std::fs::rename(with_ext(&tmp, ext), with_ext(&base, ext))?;
+    }
+    let (ids, old_ids) = (with_ext(&tmp, "rows.ids"), with_ext(&base, "rows.ids"));
+    if ids.exists() {
+        std::fs::rename(ids, old_ids)?;
+    } else if old_ids.exists() {
+        std::fs::remove_file(old_ids)?;
+    }
+    Ok(())
 }
 
 fn first_release_dates(store: &Store, dir: &Path) -> io::Result<()> {

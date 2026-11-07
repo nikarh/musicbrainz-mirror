@@ -167,7 +167,8 @@ impl Pool {
     }
 }
 
-/// The rows of a table by a key: CSR.
+/// The rows of a table by a key: CSR. `values` holds each key's rows as zigzag varints of the difference to the
+/// previous row (mostly one byte: rows of a key are mostly close and ascending); `offsets` are byte offsets in it.
 pub struct Csr {
     /// Sparse: the keys that have rows, sorted. Empty: dense (`offsets` has an entry per key, plus one).
     keys: Mapped,
@@ -213,9 +214,48 @@ impl Csr {
                 (start as usize, end as usize)
             }
         });
-        let values = self.values.bytes();
-        (start..end).map(move |i| u32_at(values, i * 4))
+        let mut bytes = self.values.bytes().get(start..end).unwrap_or_default();
+        let mut previous = 0i64;
+        std::iter::from_fn(move || {
+            let mut value = 0u64;
+            let mut shift = 0;
+            loop {
+                let (&b, rest) = bytes.split_first()?;
+                bytes = rest;
+                value |= u64::from(b & 0x7f) << shift;
+                shift += 7;
+                if b & 0x80 == 0 {
+                    break;
+                }
+            }
+            previous += unzigzag(value);
+            u32::try_from(previous).ok()
+        })
     }
+}
+
+fn zigzag(v: i64) -> u64 {
+    ((v << 1) ^ (v >> 63)).cast_unsigned()
+}
+
+fn unzigzag(v: u64) -> i64 {
+    (v >> 1).cast_signed() ^ -((v & 1).cast_signed())
+}
+
+/// Writes a varint into `buf`, returning its length.
+fn varint(mut v: u64, buf: &mut [u8; 5]) -> usize {
+    let mut n = 0;
+    for slot in buf.iter_mut() {
+        let b = u8::try_from(v & 0x7f).unwrap_or(0);
+        v >>= 7;
+        n += 1;
+        if v == 0 {
+            *slot = b;
+            break;
+        }
+        *slot = b | 0x80;
+    }
+    n
 }
 
 /// An MBID index: row ids sorted by the MBID at `gid_offset` of their rows.
@@ -549,10 +589,28 @@ impl CsrWriter {
                 slice.sort_by_key(|p| p.0);
             }
         }
+        // Each key's rows as varints of the difference to the previous row (zigzag: rows in another order
+        // than by id go back too); the offsets are of bytes.
         let mut values = BufWriter::with_capacity(1 << 20, File::create(with_ext(base, "values"))?);
-        for p in &placed {
-            values.write_all(&p.1.to_le_bytes())?;
+        let mut byte_starts = Vec::with_capacity(starts.len());
+        let mut written = 0u64;
+        let mut buf = [0u8; 5];
+        for w in starts.windows(2) {
+            byte_starts.push(u32::try_from(written).map_err(io::Error::other)?);
+            let (a, b) = (
+                w.first().copied().unwrap_or(0),
+                w.last().copied().unwrap_or(0),
+            );
+            let mut previous = 0i64;
+            for p in placed.get(a as usize..b as usize).unwrap_or_default() {
+                let delta = i64::from(p.1) - previous;
+                previous = i64::from(p.1);
+                let n = varint(zigzag(delta), &mut buf);
+                values.write_all(buf.get(..n).unwrap_or_default())?;
+                written += n as u64;
+            }
         }
+        byte_starts.push(u32::try_from(written).map_err(io::Error::other)?);
         values
             .into_inner()
             .map_err(io::IntoInnerError::into_error)?;
@@ -562,21 +620,21 @@ impl CsrWriter {
         // Dense when that is no bigger than sparse (4 bytes per possible key, against 8 per key with rows).
         if keys < distinct * 2 {
             let _ = std::fs::remove_file(with_ext(base, "keys"));
-            for o in &starts {
+            for o in &byte_starts {
                 offsets.write_all(&o.to_le_bytes())?;
             }
         } else {
             let mut keys_file =
                 BufWriter::with_capacity(1 << 20, File::create(with_ext(base, "keys"))?);
-            for (k, w) in (0u32..).zip(starts.windows(2)) {
+            for ((k, w), offset) in (0u32..).zip(starts.windows(2)).zip(&byte_starts) {
                 if let [a, b] = *w
                     && b > a
                 {
                     keys_file.write_all(&k.to_le_bytes())?;
-                    offsets.write_all(&a.to_le_bytes())?;
+                    offsets.write_all(&offset.to_le_bytes())?;
                 }
             }
-            offsets.write_all(&u32::try_from(n).map_err(io::Error::other)?.to_le_bytes())?;
+            offsets.write_all(&byte_starts.last().copied().unwrap_or(0).to_le_bytes())?;
             keys_file
                 .into_inner()
                 .map_err(io::IntoInnerError::into_error)?;
@@ -779,6 +837,21 @@ mod tests {
         assert_eq!(gids.find(&rows, 0, 9_000_000), Some(9_000_000));
         assert_eq!(gids.find(&rows, 0, 8), None);
         std::fs::remove_dir_all(&d).unwrap();
+    }
+
+    #[test]
+    fn csr_rows_far_apart_both_ways() {
+        let d = dir("csr-far");
+        let mut csr = CsrWriter::create(&d.join("t.k")).unwrap();
+        for (order, row) in [(0, 4_000_000_000u32), (1, 7), (2, u32::MAX - 1), (3, 0)] {
+            csr.add(1, order, row).unwrap();
+        }
+        csr.write(&d.join("t.k")).unwrap();
+        let csr = Csr::open(&d.join("t.k")).unwrap();
+        assert_eq!(
+            csr.get(1).collect::<Vec<_>>(),
+            vec![4_000_000_000, 7, u32::MAX - 1, 0]
+        );
     }
 
     #[test]
