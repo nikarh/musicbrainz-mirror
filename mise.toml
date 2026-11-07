@@ -1,0 +1,44 @@
+# Development tools and tasks. Rust itself comes from rust-toolchain.toml.
+[tools]
+git-cliff = "2.14.2"
+cargo-deny = "0.20.2"
+
+[tasks.dev]
+description = "Serve dev-data/musicbrainz-*.sqlite on 127.0.0.1:5000 without updates (mise run import builds one)"
+run = "cargo run --release -- serve --data-dir dev-data --listen 127.0.0.1:5000 --update-interval 0"
+
+[tasks.import]
+description = "Build dev-data/musicbrainz-local.sqlite from the archives or unpacked dumps given as arguments"
+run = "cargo run --release -- import --out dev-data/musicbrainz-local.sqlite"
+
+[tasks.fmt]
+description = "Format the code"
+run = "cargo fmt"
+
+[tasks.lint]
+description = "rustfmt check and clippy"
+run = ["cargo fmt --check", "cargo clippy --locked --all-targets"]
+
+[tasks.test]
+description = "Run the tests"
+run = "cargo test --locked"
+
+[tasks.deny]
+description = "Audit dependencies: advisories, licenses, duplicates, sources"
+run = "cargo deny check"
+
+[tasks.check]
+description = "Everything CI checks"
+depends = ["lint", "test", "deny"]
+
+[tasks.build]
+description = "Release build of the binary"
+run = "cargo build --locked --release"
+
+[tasks.docker]
+description = "Build the container image as musicbrainz-mirror:dev"
+run = "{{env.CONTAINER_ENGINE | default(value='docker')}} build -t musicbrainz-mirror:dev ."
+
+[tasks.changelog]
+description = "Print the changelog of the unreleased commits"
+run = "git cliff --offline --unreleased"
