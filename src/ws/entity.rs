@@ -67,6 +67,8 @@ pub struct Opts {
     /// Whether a work's ISWCs and languages were loaded (not for works only reached through another work's
     /// relationships).
     pub work_details: bool,
+    /// The target of a relationship: musicbrainz-server doesn't load a release's status, packaging or media there.
+    pub relation_target: bool,
 }
 
 impl Opts {
@@ -84,6 +86,7 @@ impl Opts {
             first_release_date: true,
             area_type: true,
             work_details: true,
+            relation_target: false,
         }
     }
 
@@ -348,20 +351,24 @@ impl<'a> Ctx<'a> {
 
     fn tags(&self, out: &mut Obj, kind: Kind, id: u32) {
         let inc = self.inc;
-        let rows: Vec<(String, u32, Option<u32>)> = self
+        // Votes are signed (as i32); XML shows genres without positive votes too, JSON and tags don't.
+        let rows: Vec<(String, i64, Option<u32>)> = self
             .store
             .t(&format!("{}_tag", kind.table()))
             .by("entity", id)
             .filter_map(|r| {
-                let count = r.u32("count").filter(|c| *c > 0 && *c < 0x8000_0000)?;
+                let count = i64::from(r.i32("count")?);
                 let tag = r.u32("tag")?;
                 let name = self.store.t("tag").get(tag)?.text("name");
                 Some((name, count, self.store.derived.tag_genre(tag)))
             })
             .collect();
         if inc.tags {
-            let mut tags: Vec<(&str, u32)> =
-                rows.iter().map(|(n, c, _)| (n.as_str(), *c)).collect();
+            let mut tags: Vec<(&str, i64)> = rows
+                .iter()
+                .filter(|r| r.1 > 0)
+                .map(|(n, c, _)| (n.as_str(), *c))
+                .collect();
             tags.sort_unstable();
             out.insert(
                 "tags".into(),
@@ -373,8 +380,9 @@ impl<'a> Ctx<'a> {
             );
         }
         if inc.genres {
-            let mut genres: Vec<(String, String, String, u32)> = rows
+            let mut genres: Vec<(String, String, String, i64)> = rows
                 .iter()
+                .filter(|r| r.1 > 0 || self.xml)
                 .filter_map(|(_, count, genre)| {
                     let g = self.store.t("genre").get((*genre)?)?;
                     Some((g.text("name"), g.gid(), g.text("comment"), *count))
@@ -889,7 +897,13 @@ impl<'a> Ctx<'a> {
         }
         out.insert("barcode".into(), text(row.str("barcode")));
         out.insert("disambiguation".into(), Value::String(row.text("comment")));
-        self.named(&mut out, "status", "release_status", row.u32("status"));
+        let not_loaded = |v: Option<u32>| v.filter(|_| !o.relation_target);
+        self.named(
+            &mut out,
+            "status",
+            "release_status",
+            not_loaded(row.u32("status")),
+        );
         let quality = match row.u32("quality") {
             Some(0) => "low",
             Some(2) => "high",
@@ -900,7 +914,7 @@ impl<'a> Ctx<'a> {
             &mut out,
             "packaging",
             "release_packaging",
-            row.u32("packaging"),
+            not_loaded(row.u32("packaging")),
         );
         if o.toplevel {
             let (count, front, back) = if presence == Some("present") {
@@ -992,7 +1006,9 @@ impl<'a> Ctx<'a> {
             }
             out.insert("label-info".into(), Value::Array(list));
         }
-        if o.with_inc && (inc.media || inc.discids || inc.recordings) {
+        if o.with_inc && o.relation_target && (inc.media || inc.discids || inc.recordings) {
+            out.insert("media".into(), json!([]));
+        } else if o.with_inc && (inc.media || inc.discids || inc.recordings) {
             let mediums: Vec<u32> = self
                 .store
                 .t("medium")
@@ -1290,10 +1306,11 @@ impl<'a> Ctx<'a> {
         };
         iswcs.sort_unstable();
         out.insert("iswcs".into(), json!(iswcs));
-        // Only the works of the request have their attributes loaded.
+        // Only the works of the request have their attributes loaded; newest first.
         let mut attributes = Vec::new();
         if o.toplevel {
-            for a in self.store.t("work_attribute").by("work", id) {
+            let rows: Vec<_> = self.store.t("work_attribute").by("work", id).collect();
+            for a in rows.into_iter().rev() {
                 let mut attribute = Obj::new();
                 let allowed = a
                     .u32("work_attribute_type_allowed_value")
@@ -1418,6 +1435,7 @@ impl<'a> Ctx<'a> {
                 },
                 area_type: true,
                 work_details: !cardinal,
+                relation_target: true,
                 ..Opts::nested()
             };
             let mut items = Vec::with_capacity(rels.len());
@@ -1434,9 +1452,9 @@ impl<'a> Ctx<'a> {
                 items.push((rel, value, sort_name));
             }
             // As musicbrainz-server's query orders them: link type name (its database collation ignores case),
-            // dates, then the name and id of the entity it joins as the target. For relationships between two
-            // entities of the same type that is entity0 (the query's join ends up on it), so forward ones keep
-            // their row order.
+            // dates, the name and id of the entity it joins as the target, then the relationship's id. For
+            // relationships between two entities of the same type that is entity0 (the query's join ends up on
+            // it), so forward ones keep their row order.
             let source_key = if kind == target {
                 Some(self.sort_key(kind, id))
             } else {
@@ -1469,7 +1487,7 @@ impl<'a> Ctx<'a> {
                     .then(nulls_last(a.link.date("end")).cmp(&nulls_last(b.link.date("end"))))
                     .then(a.link.bool("ended").cmp(&b.link.bool("ended")))
                     .then(joined(a, an).cmp(&joined(b, bn)))
-                    .then(a.row.id.cmp(&b.row.id))
+                    .then(a.row.u32("id").cmp(&b.row.u32("id")))
             });
             for (rel, value, _) in items {
                 out.push(self.relation(target, &rel, value));

@@ -290,6 +290,12 @@ impl TableWriter {
                             .to_le_bytes(),
                     );
                 }
+                Ty::I32 => {
+                    let v = value
+                        .and_then(|v| v.parse::<i32>().ok())
+                        .unwrap_or(i32::MIN);
+                    bytes.copy_from_slice(&v.to_le_bytes());
+                }
                 Ty::U64 => {
                     bytes.copy_from_slice(
                         &value

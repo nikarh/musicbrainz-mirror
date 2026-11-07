@@ -202,6 +202,26 @@ fn dependencies(store: &Store) {
             .by("release", release)
             .count();
     }
+    // The areas of the rows read (an artist's country is its area's).
+    for (name, spec) in schema::all() {
+        let fields: Vec<&str> = spec
+            .fields
+            .iter()
+            .map(|f| f.name.as_str())
+            .filter(|f| matches!(*f, "area" | "begin_area" | "end_area"))
+            .collect();
+        if fields.is_empty() {
+            continue;
+        }
+        for id in ids(&name).into_iter().chain(record::of(&name)) {
+            let row = store.t(&name).get(id).unwrap();
+            for f in &fields {
+                if let Some(area) = row.u32(f) {
+                    let _ = store.t("area").get(area);
+                }
+            }
+        }
+    }
     // Areas: the areas containing them, with their codes, for their country.
     let part_of = store
         .t("link_type")
@@ -209,6 +229,7 @@ fn dependencies(store: &Store) {
         .find(|t| t.gid() == PART_OF)
         .map(|t| t.id);
     let mut areas: BTreeSet<u32> = ids("area");
+    areas.extend(record::of("area"));
     let mut seen = BTreeSet::new();
     while let Some(area) = areas.pop_first() {
         if !seen.insert(area) {
@@ -337,6 +358,11 @@ fn write(store: &Store, rows: &BTreeMap<String, BTreeSet<u32>>) {
                     Ty::Gid => fields[f.column] = row.gid(),
                     Ty::U32 => {
                         if let Some(v) = row.u32(&f.name) {
+                            fields[f.column] = v.to_string();
+                        }
+                    }
+                    Ty::I32 => {
+                        if let Some(v) = row.i32(&f.name) {
                             fields[f.column] = v.to_string();
                         }
                     }

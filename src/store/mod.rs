@@ -18,7 +18,7 @@ use crate::kind::Kind;
 
 /// The version of the store's layout, in `meta.json`. A store of another version is not opened (it is rebuilt from
 /// the next dump).
-pub const FORMAT_VERSION: u32 = 1;
+pub const FORMAT_VERSION: u32 = 3;
 
 #[derive(Debug, thiserror::Error)]
 pub enum StoreError {
@@ -186,6 +186,13 @@ impl<'a> Row<'a> {
     pub fn u32(&self, name: &str) -> Option<u32> {
         let f = self.field(name)?;
         Some(u32_at(self.bytes, f.offset)).filter(|v| *v != NONE)
+    }
+
+    /// A signed integer field; `None` for NULL.
+    #[must_use]
+    pub fn i32(&self, name: &str) -> Option<i32> {
+        let f = self.field(name)?;
+        Some(u32_at(self.bytes, f.offset).cast_signed()).filter(|v| *v != i32::MIN)
     }
 
     pub fn i64(&self, name: &str) -> Option<i64> {

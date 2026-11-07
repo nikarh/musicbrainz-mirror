@@ -19,6 +19,8 @@ pub enum Ty {
     Gid,
     /// An unsigned integer (4 bytes); `NONE` for NULL.
     U32,
+    /// A signed integer (4 bytes); `i32::MIN` for NULL.
+    I32,
     /// A big integer (8 bytes); `u64::MAX` for NULL.
     U64,
     /// 1 byte, 0 or 1 (NULL is 0).
@@ -38,7 +40,7 @@ impl Ty {
             Self::Gid => 16,
             Self::U64 => 8,
             Self::Bool => 1,
-            Self::U32 | Self::Str | Self::InternedStr | Self::Date => 4,
+            Self::U32 | Self::I32 | Self::Str | Self::InternedStr | Self::Date => 4,
         }
     }
 }
@@ -104,6 +106,7 @@ fn table(name: &str, columns: &str, rows: Option<&str>, fields: &str) -> Table {
             let ty = match ty {
                 "gid" => Ty::Gid,
                 "u64" => Ty::U64,
+                "i32" => Ty::I32,
                 "bool" => Ty::Bool,
                 "str" => Ty::Str,
                 "istr" => Ty::InternedStr,
@@ -482,7 +485,7 @@ pub fn all() -> HashMap<String, Table> {
                     &format!("{t}_tag"),
                     &format!("{t} tag count last_updated"),
                     None,
-                    &format!("entity={t} tag count"),
+                    &format!("entity={t} tag count:i32"),
                 )
                 .csr("entity", None),
             );
@@ -524,7 +527,7 @@ pub fn all() -> HashMap<String, Table> {
                     &format!("l_{}_{}", a.table(), b.table()),
                     "id link entity0 entity1 edits_pending last_updated link_order entity0_credit entity1_credit",
                     None,
-                    "link entity0 entity1 link_order entity0_credit:istr entity1_credit:istr",
+                    "id link entity0 entity1 link_order entity0_credit:istr entity1_credit:istr",
                 )
                 .csr("entity0", None)
                 .csr("entity1", None),

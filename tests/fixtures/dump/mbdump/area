@@ -1,9 +1,11 @@
 1	aa95182f-df0a-3ad6-8bfb-4b63482cd276	Afghanistan	1	\N	\N	\N	\N	\N	\N	\N	\N	f	
 4	e228a3c1-53c0-3ec9-842b-ec1b2138e387	American Samoa	1	\N	\N	\N	\N	\N	\N	\N	\N	f	
+38	71bbafaa-e825-3e15-8ca9-017dcad1748b	Canada	1	\N	\N	\N	\N	\N	\N	\N	\N	f	
 43	82d5f4d6-aed4-3ff5-81d1-5363ac6e97a7	Chile	1	\N	\N	\N	\N	\N	\N	\N	\N	f	
 57	4757b525-2a60-324a-b060-578765d2c993	Denmark	1	\N	\N	\N	\N	\N	\N	\N	\N	f	
 73	08310658-51eb-3801-80de-5a0739207115	France	1	\N	\N	\N	\N	\N	\N	\N	\N	f	
 81	85752fda-13c4-31a3-bee5-0e5cb1f51dad	Germany	1	\N	\N	\N	\N	\N	\N	\N	\N	f	
+84	803db0ca-b6ed-3bbc-aeb8-f89efd0a2168	Greece	1	\N	\N	\N	\N	\N	\N	\N	\N	f	
 105	c6500277-9a3d-349b-bf30-41afdbf42add	Italy	1	\N	\N	\N	\N	\N	\N	\N	\N	f	
 107	2db42837-c832-3c27-b4a3-08198f75693c	Japan	1	\N	\N	\N	\N	\N	\N	\N	\N	f	
 117	66eb3e73-d69e-3581-9a23-a73b4c64c8dd	Latvia	1	\N	\N	\N	\N	\N	\N	\N	\N	f	
@@ -14,9 +16,31 @@
 221	8a754a16-0027-3a29-b6d7-2b40ea0481ed	United Kingdom	1	\N	\N	\N	\N	\N	\N	\N	\N	f	
 222	489ce91b-6658-3307-9877-795b68554c98	United States	1	\N	\N	\N	\N	\N	\N	\N	\N	f	
 240	525d4e18-3d00-31b9-a58b-a146a916de8f	[Worldwide]	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	
+241	89a675c2-3e37-3518-b83c-418bad59a85a	Europe	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	
+266	ae0110b6-13d4-4998-9116-5b926287aa23	California	2	\N	\N	\N	\N	\N	\N	\N	\N	f	
+277	cc55c78b-15c9-45dd-8ff4-4a212c54eff3	Indiana	2	\N	\N	\N	\N	\N	\N	\N	\N	f	
+279	85255cb8-edb9-4a66-b23a-a5261d42c116	Kentucky	2	\N	\N	\N	\N	\N	\N	\N	\N	f	
+280	fc68ecf5-507e-4012-b60b-d93747a3cfa7	Louisiana	2	\N	\N	\N	\N	\N	\N	\N	\N	f	
+287	fb8840b9-ff2f-4484-8540-7112ee426ea7	Montana	2	\N	\N	\N	\N	\N	\N	\N	\N	f	
+288	d4ab49e7-1d25-45e2-8659-b147e0ea3684	North Carolina	2	\N	\N	\N	\N	\N	\N	\N	\N	f	
+290	a5ff428a-ad62-4752-8f8d-14107c574117	Nebraska	2	\N	\N	\N	\N	\N	\N	\N	\N	f	
+294	ab47b3b2-838d-463c-9907-30dcd3438d65	Nevada	2	\N	\N	\N	\N	\N	\N	\N	\N	f	
+295	75e398a3-5f3f-4224-9cd8-0fe44715bc95	New York	2	\N	\N	\N	\N	\N	\N	\N	\N	f	
 296	0573177b-9ff9-4643-80bc-ed2513419267	Ohio	2	\N	\N	\N	\N	\N	\N	\N	\N	f	
+297	d2083d84-09e2-4d45-8fc0-45eed33748b5	Oklahoma	2	\N	\N	\N	\N	\N	\N	\N	\N	f	
+299	75d8fdcf-03e9-43d9-9399-131b8e118b0b	Pennsylvania	2	\N	\N	\N	\N	\N	\N	\N	\N	f	
+301	aec173a2-0f12-489e-812b-7d2c252e4b62	South Carolina	2	\N	\N	\N	\N	\N	\N	\N	\N	f	
+303	f9caf2d8-9638-4b96-bc49-8462339d4b2e	Tennessee	2	\N	\N	\N	\N	\N	\N	\N	\N	f	
+304	f934c8da-e40e-4056-8f8c-212e68fdcaec	Texas	2	\N	\N	\N	\N	\N	\N	\N	\N	f	
+309	10cb2ebd-1bc7-4c11-b10d-54f60c421d20	Wisconsin	2	\N	\N	\N	\N	\N	\N	\N	\N	f	
+312	11e1b699-4e38-49b0-bb24-5092e0f8f4ad	Alberta	2	\N	\N	\N	\N	\N	\N	\N	\N	f	
 330	1b761636-6166-4dec-af7f-48c506f4e24d	Hessen	2	\N	\N	\N	\N	\N	\N	\N	\N	f	
+334	1de7fa77-cb52-40a2-b82a-251c7818249d	Nordrhein-Westfalen	2	\N	\N	\N	\N	\N	\N	\N	\N	f	
+338	2b568f1a-0bbc-4416-86ad-ced6ef6d56f4	Sachsen	2	\N	\N	\N	\N	\N	\N	\N	\N	f	
+340	ff2ee1ad-febe-4b48-8999-e77870b62744	Thüringen	2	\N	\N	\N	\N	\N	\N	\N	\N	f	
 432	9d5dd675-3cf4-4296-9e39-67865ebee758	England	2	\N	\N	\N	\N	\N	\N	\N	\N	f	
+434	6fa1c7da-6689-4cec-85f9-680f853e8a08	Scotland	2	\N	\N	\N	\N	\N	\N	\N	\N	f	
+435	8297708c-5743-47d6-a5ac-f40a41c49ad9	Wales	2	\N	\N	\N	\N	\N	\N	\N	\N	f	
 599	e1183381-0b89-4fd6-adfa-f33f2ece51bd	Neuchâtel	2	\N	\N	\N	\N	\N	\N	\N	\N	f	
 616	3dddb678-c1db-45f8-9007-3013502b2bc7	Capital Region of Denmark	2	\N	\N	2007	1	1	\N	\N	\N	f	
 993	448375eb-82d9-43ba-b114-6bfc2db011c8	Valparaíso	2	\N	\N	\N	\N	\N	\N	\N	\N	f	Region
@@ -24,18 +48,78 @@
 1404	9c612199-d66f-4109-aedc-67ab26e0a43b	Rīga	3	\N	\N	\N	\N	\N	\N	\N	\N	f	
 1821	cef2ba5e-d5e0-4576-a737-f16988288965	Illes Balears	2	\N	\N	\N	\N	\N	\N	\N	\N	f	
 1839	d79e4501-8cba-431b-96e7-bb9976f0ae76	Île-de-France	2	\N	\N	\N	\N	\N	\N	\N	\N	f	
+3813	f0b226db-8e22-40e6-9a53-d839cfec6228	Cardiff	3	\N	\N	\N	\N	\N	\N	\N	\N	f	
+3819	009ae6e5-582d-4f06-82ef-f2db5d0c95b2	Cheshire East	2	\N	\N	\N	\N	\N	\N	\N	\N	f	
 3821	40d758a4-b7c2-40f3-b439-5efbd2a3b038	Bristol	3	\N	\N	\N	\N	\N	\N	\N	\N	f	
+3822	6658f787-692d-417f-852c-dcca728d5849	Edinburgh	3	\N	\N	\N	\N	\N	\N	\N	\N	f	
+3874	1bede359-1a1e-40d3-a03e-28d928182caf	Lincolnshire	2	\N	\N	\N	\N	\N	\N	\N	\N	f	
+3881	627f7b90-32b6-4bc6-b11e-ee1d86ca1cd7	Camden	2	\N	\N	\N	\N	\N	\N	\N	\N	f	
 3893	b9576171-3434-4d1b-8883-165ed6e65d2f	Kensington and Chelsea	2	\N	\N	\N	\N	\N	\N	\N	\N	f	
 3906	48d08ee1-db45-4566-bb1d-c47ab6dbaf98	Westminster	2	\N	\N	\N	\N	\N	\N	\N	\N	f	
+3925	852531bf-3410-401f-b432-9c3157a386b9	Manchester	3	\N	\N	\N	\N	\N	\N	\N	\N	f	
+3931	2c153e76-5497-45c8-b6df-be9d1c0f79fc	Salford	2	\N	\N	\N	\N	\N	\N	\N	\N	f	
+3941	c40627b1-7faa-4fb2-baa1-efb66c0aa91d	Trafford	2	\N	\N	\N	\N	\N	\N	\N	\N	f	
 4010	bbfed5f7-9a49-40f0-a787-9ce951e3097d	Warwickshire	2	\N	\N	\N	\N	\N	\N	\N	\N	f	
+4016	77db25b2-7ac3-409a-9184-94903a77b615	Windsor and Maidenhead	2	\N	\N	\N	\N	\N	\N	\N	\N	f	
+4021	a769ad5b-0988-4963-b480-4f91e33f2beb	Greater Manchester	2	\N	\N	\N	\N	\N	\N	\N	\N	f	
+4434	dc10c22b-e510-4006-8b7f-fecb4f36436e	Paris	3	\N	\N	\N	\N	\N	\N	\N	\N	f	
 4453	d34be230-71fc-421d-94e8-f10d2caa412b	Val-de-Marne	2	\N	\N	\N	\N	\N	\N	\N	\N	f	
+4545	c3074363-f0de-4aaf-bcc4-b3e82fde4c8c	Attiki	2	\N	\N	\N	\N	\N	\N	\N	\N	f	
 5241	7b2ca1e7-e7f6-4155-881d-c660a45c11e8	Cleveland	3	\N	\N	\N	\N	\N	\N	\N	\N	f	
+5293	b037dd05-f5d1-4033-afa7-22ba9d228223	Charleston	3	\N	\N	\N	\N	\N	\N	\N	\N	f	
+5902	6fdc9c55-f812-470d-99d9-0bbbb8d45abf	Lafayette	3	\N	\N	\N	\N	\N	\N	\N	\N	f	
+6776	6be2280b-b014-47b9-8fea-34c270dd34d3	Duncan	3	\N	\N	\N	\N	\N	\N	\N	\N	f	
+6926	f61848ab-0ba0-4534-8b71-d9c7c03e854c	Salford	3	\N	\N	\N	\N	\N	\N	\N	\N	f	
+7020	74e50e58-5deb-4b99-93a2-decbb365c07f	New York	3	\N	\N	\N	\N	\N	\N	\N	\N	f	
+7289	20619e36-fca8-4499-bcc8-be01a3ea3e41	Leipzig	3	\N	\N	\N	\N	\N	\N	\N	\N	f	
+7703	1f40c6e1-47ba-4e35-996f-fe6ee5840e62	Los Angeles	3	\N	\N	\N	\N	\N	\N	\N	\N	f	
+7707	0eeb01c2-6e31-46ad-96b8-319749f731d2	Philadelphia	3	\N	\N	\N	\N	\N	\N	\N	\N	f	
+7709	03e75281-c3a3-454a-8d78-c85a5415c49e	Düsseldorf	3	\N	\N	\N	\N	\N	\N	\N	\N	f	
 7712	e0e3c82a-aea8-48d3-beda-9e587db0b969	Copenhagen	3	\N	\N	\N	\N	\N	\N	\N	\N	f	
+7953	b2cf490f-a8a7-4875-a1b7-addede3b327f	Cincinnati	3	\N	\N	\N	\N	\N	\N	\N	\N	f	
+8910	0645d067-5477-4edb-9506-d70e573c435b	Jena	3	\N	\N	\N	\N	\N	\N	\N	\N	f	
+12021	3c5a0506-d852-4e96-8d1e-d8126328f3be	New Orleans	3	\N	\N	\N	\N	\N	\N	\N	\N	f	
+12762	1876749b-4a07-495b-8b57-9dde0ac39c24	Athens	3	\N	\N	\N	\N	\N	\N	\N	\N	f	
+22166	d4f9613c-e346-4f87-9a08-615440940a0e	Corpus Christi	3	\N	\N	\N	\N	\N	\N	\N	\N	f	
+22284	72df1f13-6d90-44eb-8889-71a615a817e1	Newton	3	\N	\N	\N	\N	\N	\N	\N	\N	f	
+22546	1d4fc8d1-f3f5-4846-9619-be86c9b2439a	Covington	3	\N	\N	\N	\N	\N	\N	\N	\N	f	
+23187	cd22d0ba-c79b-45b3-a8e0-617b240df5f0	Las Vegas	3	\N	\N	\N	\N	\N	\N	\N	\N	f	
+23258	644ab517-5bff-401a-b0db-0745ccb38a3d	Mt. Juliet	3	\N	\N	\N	\N	\N	\N	\N	\N	f	
+27185	3905d6d6-8548-49c4-96bd-bf861004dc8d	Lyons	3	\N	\N	\N	\N	\N	\N	\N	\N	f	
+28114	47bd6bee-d7fc-459c-9f49-020cabed58a0	New Castle	3	\N	\N	\N	\N	\N	\N	\N	\N	f	
+29370	85a61e7a-266c-4f9b-96ab-88284054c3a9	Viroqua	3	\N	\N	\N	\N	\N	\N	\N	\N	f	
+29936	0197a505-d351-475f-9e6d-eda15a83a235	Edmonton	3	\N	\N	\N	\N	\N	\N	\N	\N	f	
+30634	72434faa-6321-46d6-b1f4-f052f8fb08d0	Camden Town	5	\N	\N	\N	\N	\N	\N	\N	\N	f	
+30942	29c78d98-68b6-4c7e-a0e8-b49b7868a50d	Boston	3	\N	\N	\N	\N	\N	\N	\N	\N	f	
+30968	6258348f-c42d-4223-8c8b-c11da280f4db	Macclesfield	3	\N	\N	\N	\N	\N	\N	\N	\N	f	
+44676	ca61a254-6d4e-45c1-89d2-a22f5cc158f8	Chapel Hill	3	\N	\N	\N	\N	\N	\N	\N	\N	f	
 45838	70d0bbb3-5da3-4774-a232-6259c140e441	Saint-Mandé	3	\N	\N	\N	\N	\N	\N	\N	\N	f	
+49692	25a93b61-e210-47e3-bd2e-41b486e78885	Erie	3	\N	\N	\N	\N	\N	\N	\N	\N	f	
+55858	32fd275d-7731-4d78-bcde-d9a14d148c78	Clewer	3	\N	\N	\N	\N	\N	\N	\N	\N	f	
 64246	ef522a7c-206a-4582-b602-8bf90514b1d2	Royal Leamington Spa	3	\N	\N	\N	\N	\N	\N	\N	\N	f	
 66431	57296e85-ed07-4d79-88ef-7b70d23acf8d	St John's Wood	5	\N	\N	\N	\N	\N	\N	\N	\N	f	
 72439	aa47e62a-947d-4fb5-9dc1-5791bc468a04	Merenberg	4	\N	\N	\N	\N	\N	\N	\N	\N	f	
 97090	80f6209e-c76d-4a39-8197-a41ad15b448a	Val-de-Travers	4	\N	\N	\N	\N	\N	\N	\N	\N	f	
 99547	60f40dc9-1f5d-4987-8738-6b1b698c4fcd	Ibiza	6	\N	\N	\N	\N	\N	\N	\N	\N	f	
+100439	94d48ed8-4715-45f0-b70e-adced8442711	Victor	3	\N	\N	\N	\N	\N	\N	\N	\N	f	
+101548	fbb7afa2-c899-4270-873c-dcda8cdba03b	Vernon County	7	\N	\N	\N	\N	\N	\N	\N	\N	f	
+101765	2818e858-23fc-4aa1-a63e-434b44da6b5c	Philadelphia County	7	\N	\N	\N	\N	\N	\N	\N	\N	f	
+101778	a5fec7ff-6dbe-4f21-939d-7bb58c7ed90e	Lawrence County	7	\N	\N	\N	\N	\N	\N	\N	\N	f	
+101788	f2ed19cb-8634-4641-8a6e-33d798fe6375	Erie County	7	\N	\N	\N	\N	\N	\N	\N	\N	f	
+102176	84f2248e-3700-4e5a-bbbc-f0f44faebdb2	Nueces County	7	\N	\N	\N	\N	\N	\N	\N	\N	f	
+102452	b35c13ac-ecf7-44a0-b262-13b7e6cb32b9	Clark County	7	\N	\N	\N	\N	\N	\N	\N	\N	f	
+102692	eca9af12-90ca-4466-87df-91a311f366f0	Wilson County	7	\N	\N	\N	\N	\N	\N	\N	\N	f	
+102871	c11b08e6-b7dd-4d78-8736-797a3ab9eeaf	Charleston County	7	\N	\N	\N	\N	\N	\N	\N	\N	f	
+102907	f814f6f1-b792-4825-8923-6e2d8ea79f8b	Stephens County	7	\N	\N	\N	\N	\N	\N	\N	\N	f	
+102958	03cc53dc-bd43-44c8-a617-b3759492146a	Hamilton County	7	\N	\N	\N	\N	\N	\N	\N	\N	f	
 102996	6b3dc6ff-07b3-4e54-bcca-2613971965e2	Cuyahoga County	7	\N	\N	\N	\N	\N	\N	\N	\N	f	
+103048	c62d55f6-05a7-4002-969b-1f85a97d4558	Westchester County	7	\N	\N	\N	\N	\N	\N	\N	\N	f	
+103174	3d5c0917-00e3-4fee-8621-eb175548d1fe	Burt County	7	\N	\N	\N	\N	\N	\N	\N	\N	f	
+103292	af86ea3f-a489-4e34-94f1-3ae8c6112b2a	Orange County	7	\N	\N	\N	\N	\N	\N	\N	\N	f	
+103296	c384a56b-3ddb-4b49-be6a-b1a117e92779	Catawba County	7	\N	\N	\N	\N	\N	\N	\N	\N	f	
+103357	cc14ecad-4e6a-43ad-b80c-b6e426a85da8	Ravalli County	7	\N	\N	\N	\N	\N	\N	\N	\N	f	
+104016	7de6a2a8-b2aa-42fd-8c50-a2687683d49c	Kenton County	7	\N	\N	\N	\N	\N	\N	\N	\N	f	
+104134	3733dd8d-4554-4c9b-8b8f-619ab2dc3e4f	Tippecanoe County	7	\N	\N	\N	\N	\N	\N	\N	\N	f	
+104685	720f8272-6ba3-48f7-b78e-14cd2641c2cf	Los Angeles County	7	\N	\N	\N	\N	\N	\N	\N	\N	f	
 115597	dca899ed-99a1-46a7-9dc2-e3a1410dac66	Fleurier	4	\N	\N	\N	\N	\N	\N	\N	\N	f	
+116005	23ea1a4d-f0f2-4cfb-8665-bf0d69865db5	Mamaroneck	3	\N	\N	\N	\N	\N	\N	\N	\N	f	

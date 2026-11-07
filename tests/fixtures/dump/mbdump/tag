@@ -4,6 +4,7 @@
 11	electronic	\N
 12	downtempo	\N
 14	soundtrack	\N
+18	synthpop	\N
 19	pop	\N
 20	alternative rock	\N
 21	special purpose artist	\N
@@ -14,12 +15,14 @@
 47	industrial rock	\N
 49	instrumental	\N
 58	ambient	\N
+70	creative commons	\N
 71	jazz	\N
 72	french	\N
 76	dance	\N
 77	house	\N
 80	industrial metal	\N
 92	metal	\N
+111	american	\N
 121	fictional	\N
 127	blues	\N
 133	punk rock	\N
@@ -30,11 +33,14 @@
 237	uk	\N
 270	60s	\N
 271	hard rock	\N
+273	usa	\N
 284	indie rock	\N
 343	folk rock	\N
+344	drsaunde	\N
 349	nu metal	\N
 379	fictitious artist	\N
 402	dub	\N
+498	ebm	\N
 545	techno	\N
 559	electronica	\N
 564	alternative	\N
@@ -56,6 +62,8 @@
 1041	album rock	\N
 1053	swing	\N
 1055	jazz metal	\N
+1063	experimental rock	\N
+1066	acoustic rock	\N
 1072	alternative metal	\N
 1086	electro-industrial	\N
 1100	pop punk	\N
@@ -86,7 +94,9 @@
 2109	1969	\N
 2907	america	\N
 4105	edm	\N
+4372	bootleg	\N
 4484	melancholy	\N
+4662	rock and indie	\N
 4721	hard rockhard	\N
 4754	film composer	\N
 4769	christian rap	\N
@@ -98,19 +108,24 @@
 6583	asia	\N
 8291	various artists	\N
 21278	angry	\N
+21876	industrial dance	\N
 23573	stage screen_soft rock_rock and roll	\N
 26005	electronic rock	\N
 27404	depressive	\N
+29342	format-sacd	\N
 29711	cor anglais	\N
 29712	english horn	\N
 29713	oboe	\N
 37407	four	\N
+40851	hardnheavy	\N
 41014	pop/rock	\N
 41017	alternative/indie rock	\N
 41020	alternative pop/rock	\N
 41075	stage & screen	\N
 43821	suicide	\N
 56565	trap	\N
+57579	os:ok	\N
+58883	n3	\N
 59439	melodic techno	\N
 60710	alternative/indie	\N
 63800	woodwind	\N
@@ -119,8 +134,10 @@
 72115	fictitious-artist	\N
 72194	un member state	\N
 77657	future bass	\N
+84665	free culture	\N
 87589	melodic house	\N
 90420	bellows	\N
+91423	libre	\N
 92301	oldest label #2	\N
 92303	oldest work #10	\N
 92305	oldest recording #5	\N
@@ -145,6 +162,7 @@
 171182	south pacific	\N
 172180	misanthropic	\N
 189302	special purpose	\N
+235389	2008 universal fire victim	\N
 244123	south asia	\N
 251144	hs 422.112	\N
 287000	spotify boycott	\N

@@ -1,0 +1,121 @@
+200
+{
+  "asin": null,
+  "barcode": "",
+  "country": "XW",
+  "cover-art-archive": {
+    "artwork": false,
+    "back": false,
+    "count": 0,
+    "darkened": false,
+    "front": false
+  },
+  "date": "2014-04-16",
+  "disambiguation": "",
+  "id": "177489a7-1617-4df3-9805-98c97708fded",
+  "media": [
+    {
+      "format": "Digital Media",
+      "format-id": "907a28d9-b3b2-3ef6-89a8-7b18d91d4794",
+      "id": "fed652e4-fb68-4f36-bd57-9d0a1c2f2932",
+      "position": 1,
+      "title": "",
+      "track-count": 1,
+      "track-offset": 0,
+      "tracks": [
+        {
+          "id": "315e943e-5c5e-422b-aa83-fd16c19417f3",
+          "length": 2041000,
+          "number": "1",
+          "position": 1,
+          "recording": {
+            "disambiguation": "",
+            "first-release-date": "2014-04-16",
+            "id": "29716694-0d06-49d1-bd0c-615bcdc53f14",
+            "length": 2041000,
+            "relations": [
+              {
+                "attribute-ids": {},
+                "attribute-values": {},
+                "attributes": [],
+                "begin": null,
+                "direction": "forward",
+                "end": null,
+                "ended": false,
+                "release": {
+                  "barcode": "",
+                  "country": "US",
+                  "date": "1980-03-26",
+                  "disambiguation": "",
+                  "id": "b8f17926-6da8-406f-80e8-49fe7e4ff768",
+                  "media": [],
+                  "packaging": null,
+                  "packaging-id": null,
+                  "quality": "normal",
+                  "release-events": [
+                    {
+                      "area": {
+                        "disambiguation": "",
+                        "id": "489ce91b-6658-3307-9877-795b68554c98",
+                        "iso-3166-1-codes": [
+                          "US"
+                        ],
+                        "name": "United States",
+                        "sort-name": "United States",
+                        "type": null,
+                        "type-id": null
+                      },
+                      "date": "1980-03-26"
+                    }
+                  ],
+                  "status": null,
+                  "status-id": null,
+                  "text-representation": {
+                    "language": "eng",
+                    "script": "Latn"
+                  },
+                  "title": "Trilogy"
+                },
+                "source-credit": "",
+                "target-credit": "",
+                "target-type": "release",
+                "type": "samples material",
+                "type-id": "967746f9-9d79-456c-9d1e-50116f0b27fc"
+              }
+            ],
+            "title": "You Must Remember This #2, “Frank Sinatra in Outer Space”",
+            "video": false
+          },
+          "title": "You Must Remember This #2, “Frank Sinatra in Outer Space”"
+        }
+      ]
+    }
+  ],
+  "packaging": "None",
+  "packaging-id": "119eba76-b343-3e02-a292-f0f00644bb9b",
+  "quality": "normal",
+  "relations": [],
+  "release-events": [
+    {
+      "area": {
+        "disambiguation": "",
+        "id": "525d4e18-3d00-31b9-a58b-a146a916de8f",
+        "iso-3166-1-codes": [
+          "XW"
+        ],
+        "name": "[Worldwide]",
+        "sort-name": "[Worldwide]",
+        "type": null,
+        "type-id": null
+      },
+      "date": "2014-04-16"
+    }
+  ],
+  "status": "Official",
+  "status-id": "4e304316-386d-3409-af2e-78857eec5cfe",
+  "text-representation": {
+    "language": null,
+    "script": "Latn"
+  },
+  "title": "You Must Remember This #2, “Frank Sinatra in Outer Space”"
+}

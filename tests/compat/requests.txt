@@ -9,6 +9,8 @@ release-group-beets /ws/2/release-group?artist=b7ffd2af-418f-4be2-bdd1-22f8b4861
 # Lookups
 release /ws/2/release/602af258-e647-48e2-9660-bd0c5c8f92bf?fmt=json
 release-discids /ws/2/release/602af258-e647-48e2-9660-bd0c5c8f92bf?inc=discids+release-groups+ratings+annotation&fmt=json
+# A recording's relationship to a release: the release without status, packaging or media (and no endless loop)
+release-recording-release-rels /ws/2/release/177489a7-1617-4df3-9805-98c97708fded?inc=recordings+recording-level-rels+release-rels&fmt=json
 release-xml /ws/2/release/602af258-e647-48e2-9660-bd0c5c8f92bf?inc=artist-credits+labels+recordings+release-groups+isrcs+artist-rels+tags
 recording /ws/2/recording/96f64611-49df-4e54-84e7-0f9a30f01766?fmt=json
 recording-xml /ws/2/recording/96f64611-49df-4e54-84e7-0f9a30f01766?inc=artist-credits+isrcs+work-rels+work-level-rels+artist-rels

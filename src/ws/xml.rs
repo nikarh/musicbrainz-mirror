@@ -323,10 +323,10 @@ fn element(out: &mut String, name: &str, value: &Value) {
     keys.sort_by_key(|k| (order(k), k.as_str()));
     for key in keys {
         let v = &obj[key.as_str()];
-        // A track's title only when it differs from its recording's.
+        // A track's title and artist credit only when they differ from its recording's.
         if name == "track"
-            && key == "title"
-            && obj.get("recording").and_then(|r| r.get("title")) == Some(v)
+            && (key == "title" || key == "artist-credit")
+            && obj.get("recording").and_then(|r| r.get(key.as_str())) == Some(v)
         {
             continue;
         }

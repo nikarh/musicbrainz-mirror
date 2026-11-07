@@ -150,12 +150,12 @@ impl Formatter<'_> {
     }
 
     fn tags(&self, kind: Kind, id: u32) -> Vec<Value> {
-        let mut tags: Vec<(String, u32)> = self
+        let mut tags: Vec<(String, i32)> = self
             .store
             .t(&format!("{}_tag", kind.table()))
             .by("entity", id)
             .filter_map(|r| {
-                let count = r.u32("count").filter(|c| *c > 0 && *c < 0x8000_0000)?;
+                let count = r.i32("count").filter(|c| *c > 0)?;
                 Some((self.store.t("tag").get(r.u32("tag")?)?.text("name"), count))
             })
             .collect();
