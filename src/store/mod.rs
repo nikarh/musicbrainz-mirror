@@ -12,7 +12,7 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 use self::build::{SAME_AS_RECORDING, format_uuid, parse_uuid, string_hash};
-use self::file::{Csr, GidIndex, HashIndex, NONE, Pool, Rows, u32_at, u128_at, with_ext};
+use self::file::{Csr, GidIndex, HashIndex, NONE, Pool, RowBuf, Rows, u32_at, u128_at, with_ext};
 use self::schema::{Rows as RowsKind, Ty};
 use crate::kind::Kind;
 
@@ -79,7 +79,11 @@ impl Table {
             _ => None,
         };
         Ok(Self {
-            rows: Rows::open(&with_ext(&base, "rows"), spec.width)?,
+            rows: Rows::open(
+                &with_ext(&base, "rows"),
+                spec.width,
+                gids.as_ref().map(|g| g.1),
+            )?,
             pool: Pool::open(&with_ext(&base, "strings"))?,
             csr,
             sorted,
@@ -95,12 +99,18 @@ impl Table {
         if id == NONE {
             return None;
         }
+        // An MBID is read without the rest of the row: a hole is found without decompressing anything.
+        if let Some((_, offset)) = &self.gids
+            && self.rows.gid(id, *offset) == 0
+        {
+            return None;
+        }
         let bytes = self.rows.get(id)?;
+        // Without MBIDs, a row of a table by id exists when its id field is its id; every position of a table in
+        // dump order is a row.
         let exists = match (&self.gids, self.id_field) {
-            (Some((_, offset)), _) => u128_at(bytes, *offset) != 0,
-            (None, Some(offset)) => u32_at(bytes, offset) == id,
-            // in dump order: every position is a row
-            (None, None) => true,
+            (None, Some(offset)) => u32_at(&bytes, offset) == id,
+            _ => true,
         };
         #[cfg(feature = "record")]
         if exists {
@@ -171,7 +181,7 @@ impl Table {
 pub struct Row<'a> {
     pub table: &'a Table,
     pub id: u32,
-    bytes: &'a [u8],
+    bytes: RowBuf,
 }
 
 impl<'a> Row<'a> {
@@ -185,14 +195,14 @@ impl<'a> Row<'a> {
     #[must_use]
     pub fn u32(&self, name: &str) -> Option<u32> {
         let f = self.field(name)?;
-        Some(u32_at(self.bytes, f.offset)).filter(|v| *v != NONE)
+        Some(u32_at(&self.bytes, f.offset)).filter(|v| *v != NONE)
     }
 
     /// A signed integer field; `None` for NULL.
     #[must_use]
     pub fn i32(&self, name: &str) -> Option<i32> {
         let f = self.field(name)?;
-        Some(u32_at(self.bytes, f.offset).cast_signed()).filter(|v| *v != i32::MIN)
+        Some(u32_at(&self.bytes, f.offset).cast_signed()).filter(|v| *v != i32::MIN)
     }
 
     pub fn i64(&self, name: &str) -> Option<i64> {
@@ -219,7 +229,7 @@ impl<'a> Row<'a> {
     #[must_use]
     pub fn str(&self, name: &str) -> Option<&'a str> {
         let f = self.field(name)?;
-        let offset = u32_at(self.bytes, f.offset);
+        let offset = u32_at(&self.bytes, f.offset);
         if offset == SAME_AS_RECORDING {
             return None;
         }
@@ -230,7 +240,7 @@ impl<'a> Row<'a> {
     #[must_use]
     pub fn str_offset(&self, name: &str) -> u32 {
         self.field(name)
-            .map_or(NONE, |f| u32_at(self.bytes, f.offset))
+            .map_or(NONE, |f| u32_at(&self.bytes, f.offset))
     }
 
     /// A string field, empty for NULL.
@@ -262,7 +272,7 @@ impl<'a> Row<'a> {
         self.table
             .gids
             .as_ref()
-            .map(|(_, offset)| format_uuid(u128_at(self.bytes, *offset)))
+            .map(|(_, offset)| format_uuid(u128_at(&self.bytes, *offset)))
             .unwrap_or_default()
     }
 }

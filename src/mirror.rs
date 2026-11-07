@@ -209,9 +209,9 @@ impl Mirror {
         remove_dir(&partial).await;
         let built = {
             let (archives, partial, id) = (archives.clone(), partial.clone(), id.clone());
-            let (threads, memory) = (self.config.build_threads, self.config.build_memory_mb);
+            let options = self.config.build.clone();
             tokio::task::spawn_blocking(move || {
-                crate::store::build::build(&archives, &id, &partial, threads, memory)
+                crate::store::build::build(&archives, &id, &partial, &options)
             })
             .await
         };

@@ -204,7 +204,7 @@ impl TableWriter {
             let name = recording
                 .and_then(|t| t.field("name"))
                 .map_or(0, |f| f.offset);
-            let rows = RowsFile::open(&out.join("recording.rows"), width).map_err(io)?;
+            let rows = RowsFile::open(&out.join("recording.rows"), width, None).map_err(io)?;
             let pool = Pool::open(&out.join("recording.strings")).map_err(io)?;
             Some((rows, pool, name, spec.field("recording").map(|f| f.column)))
         } else {
@@ -316,7 +316,7 @@ impl TableWriter {
                                 let recording =
                                     column.and_then(col).and_then(|r| r.parse::<u32>().ok());
                                 let recording = recording.and_then(|r| rows.get(r));
-                                recording.and_then(|r| pool.get(u32_at(r, *name_offset))) == value
+                                recording.and_then(|r| pool.get(u32_at(&r, *name_offset))) == value
                             },
                         );
                     let offset = if same_as_recording {
@@ -389,7 +389,8 @@ impl TableWriter {
                 .iter()
                 .find(|f| f.ty == Ty::Gid)
                 .map_or(0, |f| f.offset);
-            let rows = RowsFile::open(&with_ext(&base, "rows"), self.spec.width).map_err(io)?;
+            let rows =
+                RowsFile::open(&with_ext(&base, "rows"), self.spec.width, None).map_err(io)?;
             write_gid_index(&rows, gid, &with_ext(&base, "gids")).map_err(io)?;
         }
         Ok(())
@@ -511,15 +512,29 @@ fn send(tx: &mpsc::SyncSender<Msg>, msg: Msg) -> Result<(), BuildError> {
     tx.send(msg).map_err(|_| BuildError::Interrupted)
 }
 
+/// How a store is built.
+#[derive(Debug, Clone)]
+pub struct BuildOptions {
+    /// Search indexing threads (and the threads that compress rows).
+    pub threads: usize,
+    /// The search indexers' memory.
+    pub memory_mb: usize,
+    /// Rows compressed in blocks (see `file::Rows`).
+    pub compress_rows: bool,
+}
+
+/// Tables with fewer bytes of rows than this stay plain when rows are compressed.
+const COMPRESS_MIN: u64 = 64 << 10;
+/// zstd's level for rows.
+const COMPRESS_LEVEL: i32 = 3;
+
 /// Builds a complete store into `out` (created; it must not exist): the tables, the derived files, the search
-/// indexes, and `meta.json` last (a store without it is unfinished). `threads`: search indexing threads; `heap_mb`:
-/// their memory.
+/// indexes, the rows compressed (when asked), and `meta.json` last (a store without it is unfinished).
 pub fn build(
     sources: &[PathBuf],
     dump: &str,
     out: &Path,
-    threads: usize,
-    heap_mb: usize,
+    options: &BuildOptions,
 ) -> Result<Summary, BuildError> {
     let started = Instant::now();
     std::fs::create_dir_all(out).map_err(|e| BuildError::Io(out.to_owned(), e))?;
@@ -532,12 +547,22 @@ pub fn build(
     );
     // Reopened: the search documents use the derived values.
     let store = super::Store::partial(out).map_err(|e| BuildError::Io(out.to_owned(), e))?;
-    super::search::build(&store, &out.join("search"), threads, heap_mb)
-        .map_err(|e| BuildError::Other(format!("search index: {e}")))?;
+    super::search::build(
+        &store,
+        &out.join("search"),
+        options.threads,
+        options.memory_mb,
+    )
+    .map_err(|e| BuildError::Other(format!("search index: {e}")))?;
+    drop(store);
     tracing::info!(
         elapsed_s = started.elapsed().as_secs(),
         "search indexes built"
     );
+    if options.compress_rows {
+        compress(out, options.threads)?;
+        tracing::info!(elapsed_s = started.elapsed().as_secs(), "rows compressed");
+    }
     let mut meta: HashMap<String, String> = summary
         .info
         .iter()
@@ -550,6 +575,46 @@ pub fn build(
         .map_err(|e| BuildError::Io(out.join("meta.json"), e))?;
     tracing::info!(elapsed_s = started.elapsed().as_secs(), "store built");
     Ok(summary)
+}
+
+/// Compresses the rows of every table but the smallest, the largest first, on `threads` threads.
+fn compress(out: &Path, threads: usize) -> Result<(), BuildError> {
+    let mut work: Vec<(u64, PathBuf, usize, Option<usize>)> = schema::all()
+        .into_values()
+        .filter_map(|spec| {
+            let path = with_ext(&out.join(&spec.name), "rows");
+            let size = std::fs::metadata(&path).map_or(0, |m| m.len());
+            let gid = spec
+                .fields
+                .iter()
+                .find(|f| f.ty == Ty::Gid)
+                .map(|f| f.offset);
+            (size >= COMPRESS_MIN).then_some((size, path, spec.width, gid))
+        })
+        .collect();
+    work.sort_by_key(|w| std::cmp::Reverse(w.0));
+    let next = std::sync::atomic::AtomicUsize::new(0);
+    let failure = std::sync::Mutex::new(None);
+    std::thread::scope(|scope| {
+        for _ in 0..threads.max(1) {
+            scope.spawn(|| {
+                while let Some((_, path, width, gid)) =
+                    work.get(next.fetch_add(1, std::sync::atomic::Ordering::Relaxed))
+                {
+                    if let Err(e) = super::file::compress_rows(path, *width, *gid, COMPRESS_LEVEL) {
+                        if let Ok(mut f) = failure.lock() {
+                            f.get_or_insert(BuildError::Io(path.clone(), e));
+                        }
+                        return;
+                    }
+                }
+            });
+        }
+    });
+    match failure.into_inner() {
+        Ok(Some(e)) => Err(e),
+        _ => Ok(()),
+    }
 }
 
 #[cfg(test)]

@@ -66,6 +66,13 @@ pub fn u16_at(bytes: &[u8], offset: usize) -> u16 {
         .map_or(0, u16::from_le_bytes)
 }
 
+pub fn u64_at(bytes: &[u8], offset: usize) -> u64 {
+    bytes
+        .get(offset..offset + 8)
+        .and_then(|b| b.try_into().ok())
+        .map_or(0, u64::from_le_bytes)
+}
+
 pub fn u128_at(bytes: &[u8], offset: usize) -> u128 {
     bytes
         .get(offset..offset + 16)
@@ -73,26 +80,98 @@ pub fn u128_at(bytes: &[u8], offset: usize) -> u128 {
         .map_or(0, u128::from_le_bytes)
 }
 
+/// The widest row of any table.
+pub const MAX_ROW: usize = 96;
+/// Rows per compressed block.
+const BLOCK_ROWS: usize = 64;
+
+/// A row's bytes (copied: compressed rows have no bytes to borrow).
+#[derive(Clone, Copy)]
+pub struct RowBuf {
+    bytes: [u8; MAX_ROW],
+    len: usize,
+}
+
+impl std::ops::Deref for RowBuf {
+    type Target = [u8];
+
+    fn deref(&self) -> &[u8] {
+        self.bytes.get(..self.len).unwrap_or_default()
+    }
+}
+
 /// Fixed-width rows. With an id list (`<rows>.ids`), they are the rows of those ids, in order (a sparse table).
+///
+/// Compressed (`<rows>.z`, `<rows>.zi`, `<rows>.gid` instead of `<rows>`): blocks of 64 rows, each a zstd frame of
+/// the rows' bytes column by column (the first byte of every row, then the second...: values of a column are alike),
+/// without their MBIDs, which are in a column of their own (they don't compress, and MBID lookups read them).
+/// `.zi` holds the number of rows, then the offset of every block in `.z` and the end (`u64`s).
 pub struct Rows {
     data: Mapped,
     ids: Mapped,
     width: usize,
+    compressed: Option<Compressed>,
 }
 
+struct Compressed {
+    /// Identifies these rows' blocks in the cache (unique for the process: a mapping's address can be reused).
+    key: u64,
+    index: Mapped,
+    gids: Mapped,
+    /// Where a row's MBID goes.
+    gid_offset: Option<usize>,
+    positions: usize,
+}
+
+thread_local! {
+    /// Blocks decompressed lately: (the rows' key, block, the block's bytes), most recent first.
+    static BLOCKS: std::cell::RefCell<Vec<(u64, usize, Vec<u8>)>> = const { std::cell::RefCell::new(Vec::new()) };
+}
+thread_local! {
+    static DECOMPRESSOR: std::cell::RefCell<Option<zstd::bulk::Decompressor<'static>>> =
+        const { std::cell::RefCell::new(None) };
+}
+/// The next key of compressed rows.
+static NEXT_KEY: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+/// Blocks kept per thread.
+const CACHED_BLOCKS: usize = 32;
+
 impl Rows {
-    pub fn open(path: &Path, width: usize) -> io::Result<Self> {
+    /// `gid_offset`: where the rows have an MBID (kept apart when compressed).
+    pub fn open(path: &Path, width: usize, gid_offset: Option<usize>) -> io::Result<Self> {
+        let ids = Mapped::open(&with_ext(path, "ids"))?;
+        let index_path = with_ext(path, "zi");
+        if index_path.exists() {
+            let index = Mapped::open(&index_path)?;
+            let positions = usize::try_from(u64_at(index.bytes(), 0)).map_err(io::Error::other)?;
+            return Ok(Self {
+                data: Mapped::open(&with_ext(path, "z"))?,
+                ids,
+                width,
+                compressed: Some(Compressed {
+                    key: NEXT_KEY.fetch_add(1, std::sync::atomic::Ordering::Relaxed),
+                    index,
+                    gids: Mapped::open(&with_ext(path, "gid"))?,
+                    gid_offset,
+                    positions,
+                }),
+            });
+        }
         Ok(Self {
             data: Mapped::open(path)?,
-            ids: Mapped::open(&with_ext(path, "ids"))?,
+            ids,
             width,
+            compressed: None,
         })
     }
 
     /// The number of positions (the highest id plus one, or the number of rows of a sparse table).
     #[must_use]
     pub fn len(&self) -> usize {
-        self.data.bytes().len().checked_div(self.width).unwrap_or(0)
+        match &self.compressed {
+            Some(c) => c.positions,
+            None => self.data.bytes().len().checked_div(self.width).unwrap_or(0),
+        }
     }
 
     #[must_use]
@@ -110,30 +189,167 @@ impl Rows {
         }
     }
 
+    fn position(&self, id: u32) -> Option<usize> {
+        if self.ids.bytes().is_empty() {
+            return Some(id as usize);
+        }
+        let ids = self.ids.bytes();
+        let (mut lo, mut hi) = (0usize, ids.len() / 4);
+        while lo < hi {
+            let mid = usize::midpoint(lo, hi);
+            if u32_at(ids, mid * 4) < id {
+                lo = mid + 1;
+            } else {
+                hi = mid;
+            }
+        }
+        (u32_at(ids, lo * 4) == id).then_some(lo)
+    }
+
+    /// The MBID of the row of an id (without reading the rest of a compressed row).
+    #[must_use]
+    pub fn gid(&self, id: u32, gid_offset: usize) -> u128 {
+        let Some(position) = self.position(id) else {
+            return 0;
+        };
+        match &self.compressed {
+            Some(c) => u128_at(c.gids.bytes(), position * 16),
+            None => self
+                .data
+                .bytes()
+                .get(position * self.width..)
+                .map_or(0, |row| u128_at(row, gid_offset)),
+        }
+    }
+
     /// The row of an id (by position for tables that aren't sparse).
     #[must_use]
-    pub fn get(&self, id: u32) -> Option<&[u8]> {
-        let position = if self.ids.bytes().is_empty() {
-            id as usize
-        } else {
-            let ids = self.ids.bytes();
-            let (mut lo, mut hi) = (0usize, ids.len() / 4);
-            while lo < hi {
-                let mid = usize::midpoint(lo, hi);
-                if u32_at(ids, mid * 4) < id {
-                    lo = mid + 1;
-                } else {
-                    hi = mid;
-                }
-            }
-            if u32_at(ids, lo * 4) != id {
-                return None;
-            }
-            lo
+    pub fn get(&self, id: u32) -> Option<RowBuf> {
+        let position = self.position(id)?;
+        let mut row = RowBuf {
+            bytes: [0; MAX_ROW],
+            len: self.width,
         };
-        let start = position.checked_mul(self.width)?;
-        self.data.bytes().get(start..start + self.width)
+        let Some(c) = &self.compressed else {
+            let start = position.checked_mul(self.width)?;
+            row.bytes
+                .get_mut(..self.width)?
+                .copy_from_slice(self.data.bytes().get(start..start + self.width)?);
+            return Some(row);
+        };
+        if position >= c.positions {
+            return None;
+        }
+        let packed = self.width - if c.gid_offset.is_some() { 16 } else { 0 };
+        let (block, within) = (position / BLOCK_ROWS, position % BLOCK_ROWS);
+        let rows_in_block = BLOCK_ROWS.min(c.positions - block * BLOCK_ROWS);
+        let key = c.key;
+        let mut packed_row = [0u8; MAX_ROW];
+        let found = BLOCKS.with(|cell| {
+            let mut cache = cell.borrow_mut();
+            let hit = cache.iter().position(|(k, b, _)| *k == key && *b == block);
+            let index = if let Some(i) = hit {
+                i
+            } else {
+                let start = usize::try_from(u64_at(c.index.bytes(), 8 + block * 8)).ok()?;
+                let end = usize::try_from(u64_at(c.index.bytes(), 16 + block * 8)).ok()?;
+                let frame = self.data.bytes().get(start..end)?;
+                let mut out = if cache.len() >= CACHED_BLOCKS {
+                    cache.pop().map(|e| e.2).unwrap_or_default()
+                } else {
+                    Vec::new()
+                };
+                out.clear();
+                out.reserve(packed * rows_in_block);
+                DECOMPRESSOR.with(|d| {
+                    let mut d = d.borrow_mut();
+                    if d.is_none() {
+                        *d = zstd::bulk::Decompressor::new().ok();
+                    }
+                    d.as_mut()?.decompress_to_buffer(frame, &mut out).ok()
+                })?;
+                cache.push((key, block, out));
+                cache.len() - 1
+            };
+            // most recent first
+            let entry = cache.remove(index);
+            cache.insert(0, entry);
+            let bytes = &cache.first()?.2;
+            for (c, slot) in packed_row.iter_mut().take(packed).enumerate() {
+                *slot = *bytes.get(c * rows_in_block + within)?;
+            }
+            Some(())
+        });
+        found?;
+        // the row: its bytes around its MBID
+        let unpacked = row.bytes.get_mut(..self.width)?;
+        match c.gid_offset {
+            Some(g) => {
+                unpacked.get_mut(..g)?.copy_from_slice(packed_row.get(..g)?);
+                unpacked
+                    .get_mut(g..g + 16)?
+                    .copy_from_slice(c.gids.bytes().get(position * 16..position * 16 + 16)?);
+                unpacked
+                    .get_mut(g + 16..)?
+                    .copy_from_slice(packed_row.get(g..packed)?);
+            }
+            None => unpacked.copy_from_slice(packed_row.get(..packed)?),
+        }
+        Some(row)
     }
+}
+
+/// Compresses a rows file (see [`Rows`]), removing the plain one.
+pub fn compress_rows(
+    path: &Path,
+    width: usize,
+    gid_offset: Option<usize>,
+    level: i32,
+) -> io::Result<()> {
+    let plain = Mapped::open(path)?;
+    let bytes = plain.bytes();
+    let positions = bytes.len().checked_div(width).unwrap_or(0);
+    let packed = width - if gid_offset.is_some() { 16 } else { 0 };
+    let mut data = BufWriter::with_capacity(1 << 20, File::create(with_ext(path, "z"))?);
+    let mut index = BufWriter::with_capacity(1 << 20, File::create(with_ext(path, "zi"))?);
+    let mut gids = match gid_offset {
+        Some(_) => Some(BufWriter::with_capacity(
+            1 << 20,
+            File::create(with_ext(path, "gid"))?,
+        )),
+        None => None,
+    };
+    index.write_all(&(positions as u64).to_le_bytes())?;
+    let mut compressor = zstd::bulk::Compressor::new(level)?;
+    let mut columns = Vec::with_capacity(packed * BLOCK_ROWS);
+    let mut written = 0u64;
+    for block in bytes.chunks(width * BLOCK_ROWS) {
+        let rows: Vec<&[u8]> = block.chunks_exact(width).collect();
+        columns.clear();
+        for c in 0..packed {
+            // the column's byte of each row, skipping the MBID
+            let source = match gid_offset {
+                Some(g) if c >= g => c + 16,
+                _ => c,
+            };
+            columns.extend(rows.iter().map(|r| r.get(source).copied().unwrap_or(0)));
+        }
+        if let (Some(g), Some(out)) = (gid_offset, &mut gids) {
+            for r in &rows {
+                out.write_all(r.get(g..g + 16).unwrap_or(&[0; 16]))?;
+            }
+        }
+        let frame = compressor.compress(&columns)?;
+        index.write_all(&written.to_le_bytes())?;
+        data.write_all(&frame)?;
+        written += frame.len() as u64;
+    }
+    index.write_all(&written.to_le_bytes())?;
+    for w in [Some(data), Some(index), gids].into_iter().flatten() {
+        w.into_inner().map_err(io::IntoInnerError::into_error)?;
+    }
+    drop(plain);
+    std::fs::remove_file(path)
 }
 
 /// A string pool.
@@ -273,7 +489,7 @@ impl GidIndex {
         while lo < hi {
             let mid = usize::midpoint(lo, hi);
             let id = u32_at(ids, mid * 4);
-            let found = rows.get(id).map_or(0, |r| u128_at(r, gid_offset));
+            let found = rows.gid(id, gid_offset);
             match found.cmp(&gid) {
                 std::cmp::Ordering::Less => lo = mid + 1,
                 std::cmp::Ordering::Greater => hi = mid,
@@ -703,7 +919,7 @@ pub fn write_gid_index(rows: &Rows, gid_offset: usize, path: &Path) -> io::Resul
     let mut sorter = RadixSorter::<20>::new(path);
     for position in 0..u32::try_from(rows.len()).unwrap_or(u32::MAX) {
         let id = rows.id_at(position);
-        let gid = rows.get(id).map_or(0, |r| u128_at(r, gid_offset));
+        let gid = rows.gid(id, gid_offset);
         if gid != 0 {
             let mut record = [0u8; 20];
             record[..16].copy_from_slice(&gid.to_be_bytes());
@@ -816,10 +1032,10 @@ mod tests {
                 .unwrap();
         }
         dense.finish().unwrap();
-        let rows = Rows::open(&d.join("d.rows"), 20).unwrap();
+        let rows = Rows::open(&d.join("d.rows"), 20, None).unwrap();
         assert!(!d.join("d.rows.ids").exists());
         assert_eq!(rows.len(), 6);
-        assert_eq!(u32_at(rows.get(3).unwrap(), 16), 6);
+        assert_eq!(u32_at(&rows.get(3).unwrap(), 16), 6);
         assert!(rows.get(6).is_none());
 
         let mut sparse = RowsWriter::create(&d.join("s.rows"), 20, false).unwrap();
@@ -827,15 +1043,69 @@ mod tests {
             sparse.put(id, &row(u128::from(id), 1)).unwrap();
         }
         sparse.finish().unwrap();
-        let rows = Rows::open(&d.join("s.rows"), 20).unwrap();
+        let rows = Rows::open(&d.join("s.rows"), 20, None).unwrap();
         assert_eq!(rows.len(), 3);
-        assert_eq!(u128_at(rows.get(3_000_000).unwrap(), 0), 3_000_000);
+        assert_eq!(u128_at(&rows.get(3_000_000).unwrap(), 0), 3_000_000);
         assert_eq!(rows.id_at(0), 7);
         assert!(rows.get(8).is_none());
         write_gid_index(&rows, 0, &d.join("s.gids")).unwrap();
         let gids = GidIndex::open(&d.join("s.gids")).unwrap();
         assert_eq!(gids.find(&rows, 0, 9_000_000), Some(9_000_000));
         assert_eq!(gids.find(&rows, 0, 8), None);
+        std::fs::remove_dir_all(&d).unwrap();
+    }
+
+    #[test]
+    fn compressed_rows_read_as_plain() {
+        let d = dir("zrows");
+        // width 24: a u32, the MBID, a u32 (the MBID in the middle); 300 rows over 5 blocks, one hole
+        let make = |id: u64| {
+            let mut r = [0u8; 24];
+            r[..4].copy_from_slice(&u32::try_from(id * 3).unwrap().to_le_bytes());
+            if id != 77 {
+                r[4..20].copy_from_slice(&(u128::from(id) << 64 | 0xabcd).to_le_bytes());
+            }
+            r[20..].copy_from_slice(&u32::try_from(id + 7).unwrap().to_le_bytes());
+            r
+        };
+        for (name, ids) in [
+            ("dense", (0..300).collect::<Vec<u64>>()),
+            ("sparse", (0..300).map(|i| i * 1000).collect()),
+        ] {
+            let path = d.join(format!("{name}.rows"));
+            let mut w = RowsWriter::create(&path, 24, false).unwrap();
+            for &id in ids.iter().rev() {
+                w.put(id, &make(id)).unwrap();
+            }
+            w.finish().unwrap();
+            let plain = Rows::open(&path, 24, Some(4)).unwrap();
+            let expected: Vec<Vec<u8>> = ids
+                .iter()
+                .map(|&id| plain.get(u32::try_from(id).unwrap()).unwrap().to_vec())
+                .collect();
+            write_gid_index(&plain, 4, &d.join(format!("{name}.gids"))).unwrap();
+            drop(plain);
+            compress_rows(&path, 24, Some(4), 3).unwrap();
+            assert!(!path.exists());
+            let rows = Rows::open(&path, 24, Some(4)).unwrap();
+            assert_eq!(rows.len(), ids.len());
+            // out of order too (blocks come and go from the cache)
+            for (i, &id) in ids.iter().enumerate().rev().chain(ids.iter().enumerate()) {
+                let id = u32::try_from(id).unwrap();
+                assert_eq!(
+                    &*rows.get(id).unwrap(),
+                    expected[i].as_slice(),
+                    "{name} {id}"
+                );
+                assert_eq!(rows.gid(id, 4), u128_at(&expected[i], 4));
+            }
+            let gids = GidIndex::open(&d.join(format!("{name}.gids"))).unwrap();
+            let last = *ids.last().unwrap();
+            assert_eq!(
+                gids.find(&rows, 4, u128::from(last) << 64 | 0xabcd),
+                Some(u32::try_from(last).unwrap())
+            );
+        }
         std::fs::remove_dir_all(&d).unwrap();
     }
 

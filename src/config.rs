@@ -5,6 +5,8 @@ use std::path::PathBuf;
 use std::str::FromStr;
 use std::time::Duration;
 
+pub use crate::store::build::BuildOptions;
+
 pub const DEFAULT_DUMP_URL: &str = "https://data.metabrainz.org/pub/musicbrainz/data/fullexport";
 pub const DEFAULT_COVER_ART_URL: &str = "https://coverartarchive.org";
 
@@ -12,7 +14,7 @@ pub const HELP: &str = "\
 musicbrainz-mirror: MusicBrainz's web service (ws/2, read-only) on a local copy of MusicBrainz's database dumps
 
 Usage: musicbrainz-mirror [serve] [OPTIONS]
-       musicbrainz-mirror import --out DIR [--dump ID] [--build-threads N] ARCHIVE_OR_DIR...
+       musicbrainz-mirror import --out DIR [--dump ID] [--build-threads N] [--compress-rows] ARCHIVE_OR_DIR...
        musicbrainz-mirror healthcheck [--listen ADDR]
 
 Options (each has an environment variable fallback):
@@ -25,6 +27,9 @@ Options (each has an environment variable fallback):
   --cover-art-url URL      MUSICBRAINZ_MIRROR_COVER_ART_URL   where cover art images are [https://coverartarchive.org]
   --build-threads N        MUSICBRAINZ_MIRROR_BUILD_THREADS   threads that build the search indexes [2]
   --build-memory-mb MB     MUSICBRAINZ_MIRROR_BUILD_MEMORY_MB memory of the search index builders [1024]
+  --compress-rows          MUSICBRAINZ_MIRROR_COMPRESS_ROWS   build stores with their rows compressed (smaller,
+                                                              a little slower to read; stores of either kind are
+                                                              served) [off]
   -h, --help               this help
   -V, --version            the version
 
@@ -42,8 +47,7 @@ pub struct Config {
     pub min_free_bytes: u64,
     pub dump_url: String,
     pub cover_art_url: String,
-    pub build_threads: usize,
-    pub build_memory_mb: usize,
+    pub build: BuildOptions,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -89,18 +93,7 @@ impl Config {
             "MUSICBRAINZ_MIRROR_COVER_ART_URL",
             DEFAULT_COVER_ART_URL.to_owned(),
         )?;
-        let build_threads = value(
-            args,
-            "--build-threads",
-            "MUSICBRAINZ_MIRROR_BUILD_THREADS",
-            2,
-        )?;
-        let build_memory_mb = value(
-            args,
-            "--build-memory-mb",
-            "MUSICBRAINZ_MIRROR_BUILD_MEMORY_MB",
-            1024,
-        )?;
+        let build = build_options(args)?;
         finish(args)?;
         Ok(Self {
             data_dir: PathBuf::from(data_dir),
@@ -109,8 +102,7 @@ impl Config {
             min_free_bytes: min_free_gb.saturating_mul(1 << 30),
             dump_url: dump_url.trim_end_matches('/').to_owned(),
             cover_art_url: cover_art_url.trim_end_matches('/').to_owned(),
-            build_threads,
-            build_memory_mb,
+            build,
         })
     }
 }
@@ -120,8 +112,7 @@ impl Config {
 pub struct ImportArgs {
     pub out: PathBuf,
     pub dump: String,
-    pub build_threads: usize,
-    pub build_memory_mb: usize,
+    pub build: BuildOptions,
     pub sources: Vec<PathBuf>,
 }
 
@@ -131,18 +122,7 @@ impl ImportArgs {
         let dump = args
             .opt_value_from_str("--dump")?
             .unwrap_or_else(|| "local".to_owned());
-        let build_threads = value(
-            &mut args,
-            "--build-threads",
-            "MUSICBRAINZ_MIRROR_BUILD_THREADS",
-            2,
-        )?;
-        let build_memory_mb = value(
-            &mut args,
-            "--build-memory-mb",
-            "MUSICBRAINZ_MIRROR_BUILD_MEMORY_MB",
-            1024,
-        )?;
+        let build = build_options(&mut args)?;
         let sources: Vec<PathBuf> = args.finish().into_iter().map(PathBuf::from).collect();
         if sources.is_empty() {
             return Err(ConfigError::Unknown(
@@ -152,10 +132,46 @@ impl ImportArgs {
         Ok(Self {
             out,
             dump,
-            build_threads,
-            build_memory_mb,
+            build,
             sources,
         })
+    }
+}
+
+fn build_options(args: &mut pico_args::Arguments) -> Result<BuildOptions, ConfigError> {
+    Ok(BuildOptions {
+        threads: value(
+            args,
+            "--build-threads",
+            "MUSICBRAINZ_MIRROR_BUILD_THREADS",
+            2,
+        )?,
+        memory_mb: value(
+            args,
+            "--build-memory-mb",
+            "MUSICBRAINZ_MIRROR_BUILD_MEMORY_MB",
+            1024,
+        )?,
+        compress_rows: switch(args, "--compress-rows", "MUSICBRAINZ_MIRROR_COMPRESS_ROWS")?,
+    })
+}
+
+/// An on/off option: the flag, else the environment variable (`true`/`false`, `1`/`0`).
+fn switch(
+    args: &mut pico_args::Arguments,
+    flag: &'static str,
+    env: &str,
+) -> Result<bool, ConfigError> {
+    if args.contains(flag) {
+        return Ok(true);
+    }
+    match std::env::var(env).as_deref() {
+        Err(_) | Ok("" | "false" | "0") => Ok(false),
+        Ok("true" | "1") => Ok(true),
+        Ok(other) => Err(ConfigError::Invalid {
+            name: env.to_owned(),
+            value: other.to_owned(),
+        }),
     }
 }
 

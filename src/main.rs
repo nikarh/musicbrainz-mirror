@@ -42,13 +42,7 @@ fn main() -> ExitCode {
                 Err(e) => return fail(&e),
             };
             init_logging();
-            match store::build::build(
-                &args.sources,
-                &args.dump,
-                &args.out,
-                args.build_threads,
-                args.build_memory_mb,
-            ) {
+            match store::build::build(&args.sources, &args.dump, &args.out, &args.build) {
                 Ok(_) => ExitCode::SUCCESS,
                 Err(e) => fail(&e),
             }

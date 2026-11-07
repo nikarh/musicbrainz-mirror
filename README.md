@@ -42,7 +42,9 @@ The three archives it needs (core data, derived data such as tags and ratings, t
 8 GB to download (2026). The store built from a full dump (November 2026) is about 19 GB: 15 GB of tables and
 indexes, 4 GB of search indexes. Building it takes about 10 minutes of one core to decompress the 7 GB core archive
 (the other archives decompress at the same time), 3 minutes of writing tables, and 6 minutes of search indexing with
-4 threads (`--build-threads`). During an update the old and the new store both exist, and the archives stay until
+4 threads (`--build-threads`). With `--compress-rows` the store is about 15 GB (11 GB of tables), for 12 more
+seconds of building; lookups take about a third longer (a release with everything beets asks for: 2 ms instead of
+1.6 ms, at the median), searches the same. During an update the old and the new store both exist, and the archives stay until
 the build is done: have room for twice the store plus the archives.
 
 Until the first build is done, the web service answers 503. Later builds happen in the background; the old store is
@@ -116,6 +118,7 @@ Flags, each with an environment variable fallback:
 | `--cover-art-url` | `MUSICBRAINZ_MIRROR_COVER_ART_URL` | `https://coverartarchive.org` | Where cover art image URLs point |
 | `--build-threads` | `MUSICBRAINZ_MIRROR_BUILD_THREADS` | `2` | Threads that build the search indexes |
 | `--build-memory-mb` | `MUSICBRAINZ_MIRROR_BUILD_MEMORY_MB` | `1024` | Memory of the search index builders (the rest of a build needs little) |
+| `--compress-rows` | `MUSICBRAINZ_MIRROR_COMPRESS_ROWS` | off | Build stores with their rows compressed: smaller, a little slower to read (see below) |
 
 `RUST_LOG` sets the log filter (default `info`).
 
