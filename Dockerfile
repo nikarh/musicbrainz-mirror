@@ -5,7 +5,7 @@
 FROM rust:1.99.1-alpine AS build
 RUN apk add --no-cache musl-dev ca-certificates
 WORKDIR /src
-COPY Cargo.toml Cargo.lock ./
+COPY Cargo.toml Cargo.lock build.rs ./
 COPY .cargo .cargo
 COPY src src
 RUN --mount=type=cache,target=/usr/local/cargo/registry \

@@ -12,7 +12,7 @@ use musicbrainz_mirror::mirror::Mirror;
 use musicbrainz_mirror::{import, ws};
 use tracing_subscriber::EnvFilter;
 
-const VERSION: &str = env!("CARGO_PKG_VERSION");
+const VERSION: &str = env!("MUSICBRAINZ_MIRROR_VERSION");
 
 fn main() -> ExitCode {
     let mut args = pico_args::Arguments::from_env();
