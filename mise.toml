@@ -4,12 +4,12 @@ git-cliff = "2.14.2"
 cargo-deny = "0.20.2"
 
 [tasks.dev]
-description = "Serve dev-data/musicbrainz-*.sqlite on 127.0.0.1:5000 without updates (mise run import builds one)"
+description = "Serve the newest dev-data/musicbrainz-*/ on 127.0.0.1:5000 without updates (mise run import builds one)"
 run = "cargo run --release -- serve --data-dir dev-data --listen 127.0.0.1:5000 --update-interval 0"
 
 [tasks.import]
-description = "Build dev-data/musicbrainz-local.sqlite from the archives or unpacked dumps given as arguments"
-run = "cargo run --release -- import --out dev-data/musicbrainz-local.sqlite"
+description = "Build dev-data/musicbrainz-local from the archives or unpacked dumps given as arguments"
+run = "cargo run --release -- import --out dev-data/musicbrainz-local"
 
 [tasks.fmt]
 description = "Format the code"
@@ -17,7 +17,7 @@ run = "cargo fmt"
 
 [tasks.lint]
 description = "rustfmt check and clippy"
-run = ["cargo fmt --check", "cargo clippy --locked --all-targets"]
+run = ["cargo fmt --check", "cargo clippy --locked --all-targets --all-features"]
 
 [tasks.test]
 description = "Run the tests"

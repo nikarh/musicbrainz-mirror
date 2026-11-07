@@ -16,11 +16,11 @@ Usage: musicbrainz-mirror [serve] [OPTIONS]
        musicbrainz-mirror healthcheck [--listen ADDR]
 
 Options (each has an environment variable fallback):
-  --data-dir DIR           MUSICBRAINZ_MIRROR_DATA_DIR        databases and downloads [/data]
+  --data-dir DIR           MUSICBRAINZ_MIRROR_DATA_DIR        stores, downloads and builds [/data]
   --listen ADDR            MUSICBRAINZ_MIRROR_LISTEN          HTTP address [0.0.0.0:5000]
   --update-interval TIME   MUSICBRAINZ_MIRROR_UPDATE_INTERVAL how often to check for a new dump (30m, 6h, 7d);
                                                               0: never [6h]
-  --min-free-gb GB         MUSICBRAINZ_MIRROR_MIN_FREE_GB     free space an update needs before it starts [150]
+  --min-free-gb GB         MUSICBRAINZ_MIRROR_MIN_FREE_GB     free space an update needs before it starts [40]
   --dump-url URL           MUSICBRAINZ_MIRROR_DUMP_URL        where the full exports are [MetaBrainz's]
   --cover-art-url URL      MUSICBRAINZ_MIRROR_COVER_ART_URL   where cover art images are [https://coverartarchive.org]
   --build-threads N        MUSICBRAINZ_MIRROR_BUILD_THREADS   threads that build the search indexes [2]
@@ -76,7 +76,7 @@ impl Config {
             "MUSICBRAINZ_MIRROR_UPDATE_INTERVAL",
             Interval(Some(Duration::from_hours(6))),
         )?;
-        let min_free_gb: u64 = value(args, "--min-free-gb", "MUSICBRAINZ_MIRROR_MIN_FREE_GB", 150)?;
+        let min_free_gb: u64 = value(args, "--min-free-gb", "MUSICBRAINZ_MIRROR_MIN_FREE_GB", 40)?;
         let dump_url = value(
             args,
             "--dump-url",

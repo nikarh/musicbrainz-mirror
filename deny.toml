@@ -36,7 +36,11 @@ wildcards = "deny"
 highlight = "simplest-path"
 workspace-default-features = "allow"
 external-default-features = "allow"
-skip = [{ crate = "syn@2.0.119", reason = "tracing-attributes still uses syn 2 (build time only)" }]
+skip = [
+    { crate = "syn@2.0.119", reason = "tracing-attributes still uses syn 2 (build time only)" },
+    { crate = "getrandom@0.2.17", reason = "rustls's ring still uses getrandom 0.2" },
+    { crate = "getrandom@0.3.4", reason = "tantivy-columnar uses rand 0.9 (getrandom 0.3)" },
+]
 
 [sources]
 unknown-registry = "deny"

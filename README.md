@@ -3,7 +3,7 @@
 A self-hosted, read-only [MusicBrainz](https://musicbrainz.org) web service: the `/ws/2` API (lookups, browsing,
 search; JSON and XML) and the [Cover Art Archive](https://coverartarchive.org)'s listing API, answered from a
 local copy of MusicBrainz's [database dumps](https://musicbrainz.org/doc/MusicBrainz_Database/Download), which it
-keeps up to date by itself. One binary and an SQLite file instead of
+keeps up to date by itself. One binary and a directory of memory-mapped files instead of
 [musicbrainz-docker](https://github.com/metabrainz/musicbrainz-docker)'s PostgreSQL, Solr, Redis and website. Useful
 when a music library needs MusicBrainz for many albums: no rate limit, no network round trips.
 
@@ -25,10 +25,11 @@ anything built on musicbrainzngs (`musicbrainzngs.set_hostname`).
 Lookups and browsing answer what musicbrainz.org answers, field for field; a test checks this against answers
 recorded from musicbrainz.org ([tests/compat.rs](tests/compat.rs)). Where it differs:
 
-- **Search** is SQLite's full-text search, not MusicBrainz's Solr. The results are shaped the same and the obvious
-  matches come first, but the ranking, the scores and the counts are not the same. A query is matched as a whole
-  first; when that finds too few, any part of it may match. Field values (`tracks:12`, `date:2001`, `country:GB`)
-  only rank results unless required with `+`, so a wrong hint doesn't hide the right result.
+- **Search** is [tantivy](https://github.com/quickwit-oss/tantivy) (BM25), not MusicBrainz's Solr. Every search
+  field of MusicBrainz's search server exists and the query syntax is Lucene's (`+`/`AND` required, `-`/`NOT`
+  excluded, the other clauses rank, and one of them must match when none is required), so results are shaped the
+  same and the obvious matches come first; the ranking, the scores (100 for the best match) and the counts are not
+  the same.
 - Nothing that needs an account: no collections (browsing by collection answers 404), and `user-tags`,
   `user-genres`, `user-ratings` are empty. Anything that writes answers 503, as a read-only MusicBrainz does.
 - `/ws/2/discid` finds releases by disc ID only, not by a TOC's track lengths (`toc=` without a matching disc ID
@@ -38,13 +39,14 @@ recorded from musicbrainz.org ([tests/compat.rs](tests/compat.rs)). Where it dif
 ## Disk space and time
 
 The three archives it needs (core data, derived data such as tags and ratings, the Cover Art Archive's) are about
-8 GB to download (2026). The database built from them is large: over 40 GB, and an import of a full dump takes more
-than an hour on a fast desktop (decompressing the 7 GB core archive alone is 10 minutes of one core). A more compact
-store that builds much faster is being worked on. During an update the old and the new database both exist, and the
-archives stay until the import is done: have room for twice the database plus the archives.
+8 GB to download (2026). The store built from a full dump (November 2026) is about 19 GB: 15 GB of tables and
+indexes, 4 GB of search indexes. Building it takes about 10 minutes of one core to decompress the 7 GB core archive
+(the other archives decompress at the same time), 3 minutes of writing tables, and 6 minutes of search indexing with
+4 threads (`--build-threads`). During an update the old and the new store both exist, and the archives stay until
+the build is done: have room for twice the store plus the archives.
 
-Until the first import is done, the web service answers 503. Later imports happen in the background; the old
-database is served until the new one is ready.
+Until the first build is done, the web service answers 503. Later builds happen in the background; the old store is
+served until the new one is ready.
 
 ## Usage
 
@@ -63,8 +65,7 @@ services:
       - "5000:5000"
 ```
 
-- `read_only: true`: nothing is written outside `/data` (SQLite's temporary files of an import included), no
-  tmpfs needed.
+- `read_only: true`: nothing is written outside `/data` (temporary files of a build included), no tmpfs needed.
 - `cap_drop: [ALL]`, `no-new-privileges`: it needs no privileges; it listens on 5000.
 - `user`: any uid:gid that can write `/data` (the image defaults to nobody, 65534). A new named volume is writable by
   any user; a bind mount must belong to the chosen one.
@@ -107,51 +108,60 @@ Flags, each with an environment variable fallback:
 
 | Flag | Environment | Default | |
 | --- | --- | --- | --- |
-| `--data-dir` | `MUSICBRAINZ_MIRROR_DATA_DIR` | `/data` | Databases (`musicbrainz-<dump>.sqlite`) and downloads (`import/`) |
+| `--data-dir` | `MUSICBRAINZ_MIRROR_DATA_DIR` | `/data` | Stores (`musicbrainz-<dump>/`), downloads and builds (`import/`) |
 | `--listen` | `MUSICBRAINZ_MIRROR_LISTEN` | `0.0.0.0:5000` | HTTP address |
 | `--update-interval` | `MUSICBRAINZ_MIRROR_UPDATE_INTERVAL` | `6h` | How often to look for a newer dump (`30m`, `1d`); `0`: never |
-| `--min-free-gb` | `MUSICBRAINZ_MIRROR_MIN_FREE_GB` | `150` | Free space an update needs before it starts |
+| `--min-free-gb` | `MUSICBRAINZ_MIRROR_MIN_FREE_GB` | `40` | Free space an update needs before it starts |
 | `--dump-url` | `MUSICBRAINZ_MIRROR_DUMP_URL` | MetaBrainz's | The full exports (a directory with `LATEST` and a directory per dump) |
 | `--cover-art-url` | `MUSICBRAINZ_MIRROR_COVER_ART_URL` | `https://coverartarchive.org` | Where cover art image URLs point |
-| `--cache-mb` | `MUSICBRAINZ_MIRROR_CACHE_MB` | `1024` | SQLite's page cache while importing |
+| `--build-threads` | `MUSICBRAINZ_MIRROR_BUILD_THREADS` | `2` | Threads that build the search indexes |
+| `--build-memory-mb` | `MUSICBRAINZ_MIRROR_BUILD_MEMORY_MB` | `1024` | Memory of the search index builders (the rest of a build needs little) |
 
 `RUST_LOG` sets the log filter (default `info`).
 
-A check for a new dump is one small request (`LATEST`); the served database is named after its dump, so the same
+A check for a new dump is one small request (`LATEST`); the served store is named after its dump, so the same
 dump is never downloaded twice. An interrupted download resumes; every archive is checked against the dump's
-`SHA256SUMS`. A dump whose import fails is skipped until the next start (or the next dump).
+`SHA256SUMS`. A dump whose build fails is skipped until the next start (or the next dump).
 
-With updates off it serves the newest database in the data directory. `musicbrainz-mirror import` builds one from
+With updates off it serves the newest store in the data directory. `musicbrainz-mirror import` builds one from
 archives (or directories they were unpacked into) without serving it:
 
 ```sh
-musicbrainz-mirror import --out /srv/musicbrainz/musicbrainz-local.sqlite \
+musicbrainz-mirror import --out /srv/musicbrainz/musicbrainz-local \
   mbdump.tar.bz2 mbdump-derived.tar.bz2 mbdump-cover-art-archive.tar.bz2
 ```
 
 ## How it works
 
-The importer streams the archives (one decompressing thread per archive, one writer) into a new SQLite file: the
-tables and columns the web service needs, in MusicBrainz's layout, with the per entity type tables (aliases, tags,
-ratings, relationships, ...) merged. Then indexes, what MusicBrainz keeps in materialized tables (first release
-dates, area containment), and FTS5 tables for search. A finished database is never written to again: it is
-opened immutable, read through mmap by a pool of connections.
+A build streams the archives (one decompressing thread per archive) into a directory of immutable files, each
+memory-mapped when served ([src/store](src/store)):
+
+- per table, the columns the web service needs as fixed-width rows found by id, with their strings in a pool
+  (identical short strings stored once);
+- the indexes browsing and lookups go through: lists of rows by a key (compressed), MBIDs (row ids sorted by MBID),
+  strings (hashes);
+- what musicbrainz-server keeps in materialized tables: first release dates, the country of an area, the areas in
+  an area, the genre of a tag, the latest annotation of an entity;
+- a tantivy index per searchable entity type.
+
+Memory stays bounded while building: rows that arrive out of order go through temporary files, sorted in buckets.
+Nothing is loaded when serving: answers read the mapped files, so the operating system's page cache holds what is
+used.
 
 The JSON follows musicbrainz-server's serializer, including which fields appear where (an artist at the top level
 has a life span and its areas, the same artist in an artist credit doesn't), the order of relationships, and the
-order browse pages are cut in. Every query is checked to be answered from an index
-([src/db/plan.rs](src/db/plan.rs)).
+order browse pages are cut in. A test checks that every search field of every entity type finds what it should.
 
 ## Development
 
 [mise](https://mise.jdx.dev) installs the tools; `mise run check` runs everything CI does, `mise run build` builds
-the binary, `mise run docker` the image. `mise run import <archives>` builds `dev-data/musicbrainz-local.sqlite`,
+the binary, `mise run docker` the image. `mise run import <archives>` builds `dev-data/musicbrainz-local`,
 `mise run dev` serves it on port 5000. MusicBrainz's
-[sample dump](https://data.metabrainz.org/pub/musicbrainz/data/sample/) (350 MB, unpack it first) imports in two
-minutes.
+[sample dump](https://data.metabrainz.org/pub/musicbrainz/data/sample/) (350 MB, unpack it first) builds in under a
+minute.
 
 The compatibility test's fixture and expected answers are made by [examples/fixture.rs](examples/fixture.rs) (see
-its header) from a database built from a full dump.
+its header) from a store built from a full dump.
 
 ## License
 
