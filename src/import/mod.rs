@@ -226,7 +226,11 @@ fn run_script(db: &rusqlite::Connection, name: &str, script: &str) -> Result<(),
         let elapsed = started.elapsed();
         if elapsed.as_secs() >= 10 {
             let sql = stmt.expanded_sql().unwrap_or_default();
-            let what = sql.lines().next().unwrap_or("");
+            let what = sql
+                .lines()
+                .map(str::trim)
+                .find(|l| !l.is_empty() && !l.starts_with("--"))
+                .unwrap_or("");
             tracing::info!(
                 script = name,
                 elapsed_s = elapsed.as_secs(),
