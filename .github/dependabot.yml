@@ -1,13 +1,5 @@
 version: 2
 updates:
-  - package-ecosystem: "cargo"
-    directory: "/"
-    rebase-strategy: "auto"
-    schedule:
-      interval: "weekly"
-    groups:
-      cargo:
-        patterns: ["*"]
   - package-ecosystem: "github-actions"
     directory: "/"
     rebase-strategy: "auto"
@@ -16,6 +8,17 @@ updates:
     groups:
       github-actions:
         patterns: ["*"]
+  - package-ecosystem: "cargo"
+    directory: "/"
+    rebase-strategy: "auto"
+    schedule:
+      interval: "weekly"
+    allow:
+      # Also bump transitive dependencies in Cargo.lock.
+      - dependency-type: "all"
+    groups:
+      cargo-minor-patch:
+        update-types: ["minor", "patch"]
   - package-ecosystem: "docker"
     directory: "/"
     rebase-strategy: "auto"

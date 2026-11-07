@@ -27,9 +27,14 @@ run = "cargo test --locked"
 description = "Audit dependencies: advisories, licenses, duplicates, sources"
 run = "cargo deny check"
 
+[tasks.ci]
+description = "What CI's check job runs: lint, tests, action pins"
+depends = ["lint", "test"]
+run = "scripts/check-actions.sh"
+
 [tasks.check]
 description = "Everything CI checks"
-depends = ["lint", "test", "deny"]
+depends = ["ci", "deny"]
 
 [tasks.build]
 description = "Release build of the binary"

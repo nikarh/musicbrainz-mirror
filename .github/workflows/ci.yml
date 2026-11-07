@@ -3,9 +3,7 @@ name: CI
 on:
   push:
     branches: [main]
-    paths-ignore: ["**.md", "docs/**", "LICENSE-*"]
   pull_request:
-    paths-ignore: ["**.md", "docs/**", "LICENSE-*"]
   workflow_dispatch:
 
 concurrency:
@@ -34,9 +32,7 @@ jobs:
           install: false
       # rustfmt, clippy, the tests (query plans, the compatibility test against the recorded answers of
       # musicbrainz.org, the updater end to end); every action pinned to a commit and allowed.
-      - run: mise run lint
-      - run: mise run test
-      - run: scripts/check-actions.sh
+      - run: mise run ci
 
   deny:
     name: dependency audit

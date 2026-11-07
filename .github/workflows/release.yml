@@ -1,0 +1,67 @@
+name: Release
+
+# Tags a merged release PR and creates its GitHub release; Publish then builds, signs and uploads the files.
+# Runs from main rather than on the release PR being closed, since the `release` environment only allows deployments
+# from the main and release branches.
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      commit:
+        description: Release PR merge commit to release (defaults to the tip of the branch)
+        required: false
+
+permissions:
+  contents: read
+  pull-requests: read
+
+env:
+  COMMIT: ${{ inputs.commit || github.sha }}
+
+jobs:
+  create-release:
+    runs-on: ubuntu-24.04
+    environment: release
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.event.head_commit.message, 'Release v')
+    steps:
+      - name: Find the release PR
+        id: pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          pr=$(gh api "repos/${{ github.repository }}/commits/$COMMIT/pulls" \
+            --jq '[.[] | select(.merged_at != null and any(.labels[]; .name == "release"))][0]')
+          if [[ -z "$pr" || "$pr" == "null" ]]; then
+            echo "::error::$COMMIT is not a merged release PR"
+            exit 1
+          fi
+          title=$(jq -r .title <<<"$pr")
+          echo "title=$title" >> "$GITHUB_OUTPUT"
+          echo "tag=$(awk '{print $2}' <<<"$title")" >> "$GITHUB_OUTPUT"
+          jq -r '.body // ""' <<<"$pr" > "$RUNNER_TEMP/body.md"
+      - name: Generate GitHub token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        id: generate-token
+        with:
+          client-id: ${{ secrets.APP_CLIENT_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+      - name: Checkout Code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Push a new tag
+        uses: mathieudutour/github-tag-action@af99e60ce8132224b8e6ebab5023449fe256ed46 # v7.0.0
+        with:
+          github_token: ${{ steps.generate-token.outputs.token }}
+          commit_sha: ${{ env.COMMIT }}
+          custom_tag: ${{ steps.pr.outputs.tag }}
+          tag_prefix: ""
+      # Published with the app token so the Publish workflow runs.
+      - name: Create a GitHub release
+        uses: ncipollo/release-action@339a81892b84b4eeb0f6e744e4574d79d0d9b8dd # v1.21.0
+        with:
+          tag: ${{ steps.pr.outputs.tag }}
+          commit: ${{ env.COMMIT }}
+          name: ${{ steps.pr.outputs.title }}
+          bodyFile: ${{ runner.temp }}/body.md
+          token: ${{ steps.generate-token.outputs.token }}

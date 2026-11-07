@@ -33,7 +33,13 @@ tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", default-features = false, features = ["env-filter", "fmt", "ansi"] }
 
 [dev-dependencies]
+axum = "0.8.9"
+bzip2 = "0.6.1"
 http-body-util = "0.1.5"
+roxmltree = "0.21.2"
+sha2 = "0.11.1"
+tar = { version = "0.4.46", default-features = false }
+tokio = { version = "1.54.1", features = ["rt-multi-thread", "macros"] }
 tower = { version = "0.5.3", features = ["util"] }
 
 [lints.rust]
