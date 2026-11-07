@@ -88,6 +88,13 @@ musicbrainz:
 | Releases | `ghcr.io/nikarh/musicbrainz-mirror:X.Y.Z` (and `:X.Y`, `:latest`) | [latest release](https://github.com/nikarh/musicbrainz-mirror/releases/latest) |
 | `main` | `ghcr.io/nikarh/musicbrainz-mirror:main` (and `:sha-<commit>`) | [`latest` pre-release](https://github.com/nikarh/musicbrainz-mirror/releases/tag/latest) |
 
+Two different "latest"s: the image tag `:latest` (and GitHub's
+[latest release](https://github.com/nikarh/musicbrainz-mirror/releases/latest)) is the newest release, while the
+GitHub pre-release named `latest` is rebuilt from every push to `main`, together with the image tags `:main` and
+`:sha-<commit>`. Builds of `main` say so in `--version`: `0.1.0-dev+12569c7` is commit `12569c7`, after release 0.1.0
+or on the way to it. Until the first release, only the `main` builds exist: use `:main` in the compose file below, and
+`releases/download/latest/` instead of `releases/latest/download/` to verify downloads.
+
 The image is `FROM scratch`: a static x86_64 musl binary and CA certificates. How releases are made:
 [docs/releasing.md](docs/releasing.md).
 
