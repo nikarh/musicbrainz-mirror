@@ -193,6 +193,10 @@ minute.
 The compatibility test's fixture and expected answers are made by [examples/fixture.rs](examples/fixture.rs) (see
 its header) from a store built from a full dump.
 
+Every week, CI compares the tables the store reads with musicbrainz-server's schema (`production`, which the dumps
+follow, and `master`) and keeps an issue open while they differ, with a diff of the changed column lists and the
+pending schema change scripts ([examples/upstream_schema.rs](examples/upstream_schema.rs)).
+
 ## License
 
 This project's code is MIT or Apache-2.0, at your option. MusicBrainz's data is MetaBrainz's: the core data is in the

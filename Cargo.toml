@@ -42,6 +42,11 @@ record = []
 name = "fixture"
 required-features = ["record"]
 
+# Its tests run with the others.
+[[example]]
+name = "upstream_schema"
+test = true
+
 [dev-dependencies]
 axum = "0.8.9"
 bzip2 = "0.6.1"

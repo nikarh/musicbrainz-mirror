@@ -1,0 +1,103 @@
+name: Upstream schema
+
+# Compares the tables the store reads (src/store/schema.rs) with musicbrainz-server's schema, whose `production` branch
+# the dumps follow and whose `master` shows what comes next (examples/upstream_schema.rs). When something differs (the
+# schema sequence, schema change scripts newer than the store's, the columns of a table the store reads), it opens an
+# issue with the differences, or updates the open one; once nothing differs, it closes it.
+on:
+  schedule:
+    - cron: '23 4 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: upstream-schema
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+  UPSTREAM: https://github.com/metabrainz/musicbrainz-server
+  LABEL: upstream-schema
+
+jobs:
+  compare:
+    name: Compare with musicbrainz-server
+    if: github.repository_owner == 'nikarh'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: rustup toolchain install
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+      - run: cargo build --locked --example upstream_schema
+      - name: Compare
+        run: |
+          set -euo pipefail
+          report="$RUNNER_TEMP/report.md"
+          : > "$report"
+          previous=
+          for branch in production master; do
+            dir="$RUNNER_TEMP/musicbrainz-server-$branch"
+            git clone --quiet --depth 1 --filter=blob:none --sparse --branch "$branch" "$UPSTREAM" "$dir"
+            git -C "$dir" sparse-checkout set --no-cone /admin/sql/ /lib/DBDefs.pm.sample
+            sha=$(git -C "$dir" rev-parse HEAD)
+            status=0
+            target/debug/examples/upstream_schema "$dir" "$UPSTREAM/blob/$sha" > "$RUNNER_TEMP/$branch.md" || status=$?
+            case $status in
+              0) text="Nothing differs." ;;
+              # Links name the commit: the same differences on another branch read the same without them.
+              3) text=$(cat "$RUNNER_TEMP/$branch.md") ;;
+              *) exit "$status" ;;
+            esac
+            unlinked=$(target/debug/examples/upstream_schema "$dir" || true)
+            {
+              echo "## \`$branch\` ([${sha:0:7}]($UPSTREAM/tree/$sha))"
+              echo
+              if [[ -n "$previous" && "$unlinked" == "$previous" ]]; then
+                echo "The same as above."
+              else
+                echo "$text"
+              fi
+              echo
+            } >> "$report"
+            previous=$unlinked
+            if [[ $status == 3 ]]; then echo "differs=1" >> "$GITHUB_ENV"; fi
+          done
+          cat "$report" >> "$GITHUB_STEP_SUMMARY"
+      - name: Open, update or close the issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          issue=$(gh issue list --label "$LABEL" --state open --json number --jq '.[0].number // empty')
+          if [[ -z "${differs:-}" ]]; then
+            if [[ -n "$issue" ]]; then
+              gh issue close "$issue" --comment "musicbrainz-server's schema and the store's match again."
+            fi
+            exit 0
+          fi
+          body="$RUNNER_TEMP/body.md"
+          {
+            echo "musicbrainz-server's schema differs from the one the store reads (\`src/store/schema.rs\`). The dumps"
+            echo "follow its \`production\` branch, and get the new schema once MusicBrainz runs the schema change."
+            echo
+            echo "What changes for the store: the column lists in \`src/store/schema.rs\` (a dump whose column count"
+            echo "differs fails the import), \`SCHEMA_SEQUENCE\`, \`FORMAT_VERSION\` if the store's layout changes, and"
+            echo "the fixture. This issue is updated every week, and closed once nothing differs."
+            echo
+            cat "$RUNNER_TEMP/report.md"
+          } > "$body"
+          if [[ -n "$issue" ]]; then
+            if [[ "$(gh issue view "$issue" --json body --jq .body)" != "$(cat "$body")" ]]; then
+              gh issue edit "$issue" --body-file "$body"
+            fi
+          else
+            gh label create "$LABEL" --color d93f0b --force \
+              --description "musicbrainz-server's schema differs from the store's"
+            gh issue create --title "MusicBrainz schema change" --label "$LABEL" --body-file "$body"
+          fi
