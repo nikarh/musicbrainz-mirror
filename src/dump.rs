@@ -121,7 +121,17 @@ pub async fn fetch(
         request = request.header(reqwest::header::RANGE, format!("bytes={have}-"));
     }
     let began = std::time::Instant::now();
-    let mut response = request.send().await?.error_for_status()?;
+    let response = request.send().await?;
+    if have > 0 && response.status() == reqwest::StatusCode::RANGE_NOT_SATISFIABLE {
+        // Nothing after what is there: the download was interrupted after its last byte, before it was checked.
+        tracing::info!(
+            file = name,
+            size_mb = have >> 20,
+            "downloaded before; checking it"
+        );
+        return keep(&partial, dest, sha256, &name).await;
+    }
+    let mut response = response.error_for_status()?;
     let resumed = have > 0 && response.status() == reqwest::StatusCode::PARTIAL_CONTENT;
     let total = response
         .content_length()
@@ -170,13 +180,24 @@ pub async fn fetch(
         .map_err(io)?;
     file.sync_all().await.map_err(io)?;
     drop(file);
+    keep(&partial, dest, sha256, &name).await?;
+    tracing::info!(
+        file = name,
+        size_mb = received >> 20,
+        elapsed_s = began.elapsed().as_secs(),
+        "downloaded (checksum verified)"
+    );
+    Ok(())
+}
 
-    if hash_file(&partial).await? != sha256 {
+/// Checks a whole download and moves it to `dest`; a corrupt one is removed (and downloaded again next time).
+async fn keep(partial: &Path, dest: &Path, sha256: &str, name: &str) -> Result<(), DumpError> {
+    if hash_file(partial).await? != sha256 {
         // Corrupt (or from a changed file): start over next time.
-        let _ = tokio::fs::remove_file(&partial).await;
-        return Err(DumpError::Checksum(name));
+        let _ = tokio::fs::remove_file(partial).await;
+        return Err(DumpError::Checksum(name.to_owned()));
     }
-    tokio::fs::rename(&partial, dest)
+    tokio::fs::rename(partial, dest)
         .await
         .map_err(|e| DumpError::Io(dest.to_owned(), e))?;
     if let Some(dir) = dest.parent() {
@@ -188,12 +209,6 @@ pub async fn fetch(
             .await
             .map_err(io)?;
     }
-    tracing::info!(
-        file = name,
-        size_mb = received >> 20,
-        elapsed_s = began.elapsed().as_secs(),
-        "downloaded (checksum verified)"
-    );
     Ok(())
 }
 
