@@ -349,7 +349,7 @@ fn write(store: &Store, rows: &BTreeMap<String, BTreeSet<u32>>) {
         let mut text = String::new();
         for id in &ids {
             let row = table.get(*id).unwrap();
-            let mut fields = vec!["\\N".to_owned(); spec.column_count];
+            let mut fields = vec!["\\N".to_owned(); spec.columns.len()];
             if let Rows::ById(column) = spec.rows {
                 fields[column] = id.to_string();
             }

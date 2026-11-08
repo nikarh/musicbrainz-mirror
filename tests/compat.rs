@@ -51,6 +51,7 @@ fn database(compressed: bool) -> &'static Path {
                 threads: 1,
                 memory_mb: 50,
                 compress_rows: compressed,
+                schema_mismatch: musicbrainz_mirror::config::SchemaMismatch::Refuse,
             },
         )
         .unwrap();

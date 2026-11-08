@@ -17,6 +17,8 @@ conditions, and what changed. Never frame them around a particular deployment, a
 - `src/mirror.rs`, `src/dump.rs` - which store is served, downloads, the switch to a new dump.
 - `tests/compat.rs` with `tests/compat/` and `tests/fixtures/dump` - answers compared with musicbrainz.org's;
   `examples/fixture.rs` makes the fixture and records the answers.
+- `examples/upstream_schema.rs` - compares `schema.rs` with musicbrainz-server's schema (a weekly workflow opens an
+  issue when they differ).
 
 ## Rules
 

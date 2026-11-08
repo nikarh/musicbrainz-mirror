@@ -34,6 +34,11 @@ pub enum BuildError {
         got: usize,
         expected: usize,
     },
+    #[error(
+        "the dump's schema is {dump}, this version reads {expected} (MUSICBRAINZ_MIRROR_SCHEMA_MISMATCH=warn imports it \
+         anyway)"
+    )]
+    Schema { dump: String, expected: u32 },
     #[error("no {0} table in the dump")]
     Missing(&'static str),
     #[error("{0} exists: a store is built into a new directory")]
@@ -89,7 +94,11 @@ pub fn string_hash(s: &str) -> u32 {
 pub const SAME_AS_RECORDING: u32 = u32::MAX;
 
 /// Writes the tables of `sources` into `out` (a new, empty directory).
-pub fn tables(sources: &[PathBuf], out: &Path) -> Result<Summary, BuildError> {
+pub fn tables(
+    sources: &[PathBuf],
+    out: &Path,
+    schema_mismatch: SchemaMismatch,
+) -> Result<Summary, BuildError> {
     let started = Instant::now();
     let specs = schema::all();
     let mut handles = Vec::new();
@@ -115,7 +124,7 @@ pub fn tables(sources: &[PathBuf], out: &Path) -> Result<Summary, BuildError> {
         }));
         let (out, specs_w, results_tx) = (out.to_owned(), specs.clone(), results_tx.clone());
         handles.push(std::thread::spawn(move || {
-            let _ = results_tx.send(write_tables(&rx, &specs_w, &out));
+            let _ = results_tx.send(write_tables(&rx, &specs_w, &out, schema_mismatch));
         }));
     }
     drop(results_tx);
@@ -141,6 +150,12 @@ pub fn tables(sources: &[PathBuf], out: &Path) -> Result<Summary, BuildError> {
             return Err(BuildError::Missing(t));
         }
     }
+    if !summary.info.contains_key("SCHEMA_SEQUENCE") {
+        tracing::warn!(
+            expected = schema::SCHEMA_SEQUENCE,
+            "the dump has no SCHEMA_SEQUENCE: its schema is not checked"
+        );
+    }
     tracing::info!(elapsed_s = started.elapsed().as_secs(), "tables written");
     Ok(summary)
 }
@@ -149,6 +164,7 @@ fn write_tables(
     rx: &mpsc::Receiver<Msg>,
     specs: &HashMap<String, Table>,
     out: &Path,
+    schema_mismatch: SchemaMismatch,
 ) -> Result<Summary, BuildError> {
     let mut summary = Summary::default();
     let mut current: Option<TableWriter> = None;
@@ -183,12 +199,59 @@ fn write_tables(
                 }
             }
             Msg::Info(name, value) => {
+                if name == "SCHEMA_SEQUENCE" {
+                    check_schema(&value, schema_mismatch)?;
+                }
                 summary.info.insert(name, value);
             }
             Msg::Failed(e) => return Err(e),
         }
     }
     Ok(summary)
+}
+
+/// What a dump's `SCHEMA_SEQUENCE` other than the one the table definitions are for does.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum SchemaMismatch {
+    /// The import fails (the store being served stays).
+    #[default]
+    Refuse,
+    /// The import goes on with a warning (and fails only if a table's columns differ in number).
+    Warn,
+}
+
+impl std::str::FromStr for SchemaMismatch {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, ()> {
+        match s {
+            "refuse" => Ok(Self::Refuse),
+            "warn" => Ok(Self::Warn),
+            _ => Err(()),
+        }
+    }
+}
+
+/// Checks a dump's `SCHEMA_SEQUENCE` against the one the table definitions are for.
+fn check_schema(value: &str, mismatch: SchemaMismatch) -> Result<(), BuildError> {
+    let expected = schema::SCHEMA_SEQUENCE;
+    if value.trim().parse::<u32>().ok() == Some(expected) {
+        return Ok(());
+    }
+    match mismatch {
+        SchemaMismatch::Refuse => Err(BuildError::Schema {
+            dump: value.to_owned(),
+            expected,
+        }),
+        SchemaMismatch::Warn => {
+            tracing::warn!(
+                dump = value,
+                expected,
+                "the dump's schema differs from the one this version reads; importing it anyway"
+            );
+            Ok(())
+        }
+    }
 }
 
 struct TableWriter {
@@ -256,14 +319,14 @@ impl TableWriter {
     }
 
     fn rows(&mut self, data: &[u8]) -> Result<(), BuildError> {
-        let mut fields = Vec::with_capacity(self.spec.column_count);
+        let mut fields = Vec::with_capacity(self.spec.columns.len());
         for line in data.split(|&b| b == b'\n').filter(|l| !l.is_empty()) {
             copy::split_row(line, &mut fields);
-            if fields.len() != self.spec.column_count {
+            if fields.len() != self.spec.columns.len() {
                 return Err(BuildError::Columns {
                     table: self.spec.name.clone(),
                     got: fields.len(),
-                    expected: self.spec.column_count,
+                    expected: self.spec.columns.len(),
                 });
             }
             self.row(&fields)?;
@@ -536,6 +599,8 @@ pub struct BuildOptions {
     pub memory_mb: usize,
     /// Rows compressed in blocks (see `file::Rows`).
     pub compress_rows: bool,
+    /// What a dump of another schema than the one the table definitions are for does.
+    pub schema_mismatch: SchemaMismatch,
 }
 
 /// Tables with fewer bytes of rows than this stay plain when rows are compressed.
@@ -658,7 +723,7 @@ fn run(
     if progress.done < Step::Tables {
         // What an interrupted run of this step left.
         clear(out).map_err(io)?;
-        let summary = tables(sources, out)?;
+        let summary = tables(sources, out, options.schema_mismatch)?;
         progress.info = summary.info;
         progress.rows = summary.rows;
         progress.done(out, Step::Tables)?;
@@ -876,10 +941,43 @@ mod tests {
             threads: 1,
             memory_mb: 50,
             compress_rows: false,
+            schema_mismatch: SchemaMismatch::Refuse,
         };
         let result = build(&[dir.join("nothing")], "x", &dir, &options);
         assert!(matches!(result, Err(BuildError::Exists(_))));
         std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn a_dump_of_another_schema_is_refused_or_warned_about() {
+        let dump = temp("build-schema/dump");
+        std::fs::create_dir_all(dump.join("mbdump")).unwrap();
+        std::fs::write(dump.join("SCHEMA_SEQUENCE"), "30\n").unwrap();
+        let out = temp("build-schema/out");
+        let refused = tables(std::slice::from_ref(&dump), &out, SchemaMismatch::Refuse);
+        assert!(
+            matches!(&refused, Err(BuildError::Schema { dump, expected }) if dump == "30" && *expected == schema::SCHEMA_SEQUENCE),
+            "{refused:?}"
+        );
+        // Imported anyway: what fails it is the dump having no tables.
+        let warned = tables(std::slice::from_ref(&dump), &out, SchemaMismatch::Warn);
+        assert!(matches!(warned, Err(BuildError::Missing(_))), "{warned:?}");
+
+        std::fs::write(
+            dump.join("SCHEMA_SEQUENCE"),
+            format!("{}\n", schema::SCHEMA_SEQUENCE),
+        )
+        .unwrap();
+        let same = tables(&[dump], &out, SchemaMismatch::Refuse);
+        assert!(matches!(same, Err(BuildError::Missing(_))), "{same:?}");
+    }
+
+    #[test]
+    fn schema_mismatch_modes() {
+        assert_eq!("refuse".parse(), Ok(SchemaMismatch::Refuse));
+        assert_eq!("warn".parse(), Ok(SchemaMismatch::Warn));
+        assert!("ignore".parse::<SchemaMismatch>().is_err());
+        assert_eq!(SchemaMismatch::default(), SchemaMismatch::Refuse);
     }
 
     fn fixture() -> Vec<PathBuf> {
@@ -899,6 +997,7 @@ mod tests {
         threads: 1,
         memory_mb: 50,
         compress_rows: true,
+        schema_mismatch: SchemaMismatch::Refuse,
     };
 
     /// The files of a store and their contents, but the search indexes' (tantivy's files aren't the same from one
