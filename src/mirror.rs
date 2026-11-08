@@ -132,7 +132,13 @@ impl Mirror {
                 .map_err(|e| MirrorError::Task(e.to_string()))?;
             match opened {
                 Ok(store) => {
-                    tracing::info!(dump = store.dump(), "serving");
+                    let (size, free) = disk(&dir.join(&newest), &dir).await;
+                    tracing::info!(
+                        dump = store.dump(),
+                        size_gb = %gb(size),
+                        free_gb = %gb(free),
+                        "serving"
+                    );
                     self.current.store(Some(Arc::new(store)));
                     for old in stores {
                         tracing::info!(dir = old, "removing an older store");
@@ -165,6 +171,7 @@ impl Mirror {
             if let Err(e) = self.update().await {
                 tracing::error!(error = %e, "update failed");
             }
+            tracing::info!("next check for a new dump in {}", human(interval));
             tokio::time::sleep(interval).await;
         }
     }
@@ -177,7 +184,10 @@ impl Mirror {
             .as_deref()
             .is_some_and(|s| dump::is_dump_id(s) && s >= id.as_str())
         {
-            tracing::debug!(dump = id, "the newest dump is being served");
+            tracing::info!(
+                dump = id,
+                "checked for a new dump: the newest is being served"
+            );
             return Ok(());
         }
         let work = self.import_dir().join(&id);
@@ -202,8 +212,16 @@ impl Mirror {
                 self.config.min_free_bytes >> 30,
             ));
         }
-        tracing::info!(dump = id, "a new dump is out; downloading");
+        tracing::info!(dump = id, free_gb = %gb(free), "a new dump is out; downloading");
+        let began = std::time::Instant::now();
         let archives = dump::download(&self.client, &self.config.dump_url, &id, &work).await?;
+        tracing::info!(
+            dump = id,
+            elapsed_s = began.elapsed().as_secs(),
+            threads = self.config.build.threads,
+            compress_rows = self.config.build.compress_rows,
+            "downloaded; building the store"
+        );
 
         let partial = self.import_dir().join(format!("{id}.partial"));
         remove_dir(&partial).await;
@@ -222,6 +240,7 @@ impl Mirror {
         };
         match result {
             Ok(()) => {
+                tracing::info!(dump = id, "removing the downloaded archives");
                 remove_dir(&work).await;
                 Ok(())
             }
@@ -254,9 +273,15 @@ impl Mirror {
                 return Err(e.into());
             }
         };
+        let (size, free) = disk(&path, &self.config.data_dir).await;
         let _guard = self.lock.lock().await;
         let previous = self.current.swap(Some(Arc::new(store)));
-        tracing::info!(dump = id, "serving the new dump");
+        tracing::info!(
+            dump = id,
+            size_gb = %gb(size),
+            free_gb = %gb(free),
+            "serving the new dump"
+        );
         if let Some(previous) = previous {
             tokio::spawn(retire(previous));
         }
@@ -292,6 +317,7 @@ async fn retire(store: Arc<Store>) {
     drop(store);
     tracing::info!(dir = %path.display(), "removing the replaced store");
     remove_dir(&path).await;
+    tracing::info!(dir = %path.display(), "removed the replaced store");
 }
 
 async fn remove(path: &Path) {
@@ -307,6 +333,46 @@ async fn remove_dir(path: &Path) {
         && e.kind() != std::io::ErrorKind::NotFound
     {
         tracing::warn!(dir = %path.display(), error = %e, "can't remove");
+    }
+}
+
+/// The size of a store (its files' lengths) and the free space of the data directory, for the logs.
+async fn disk(store: &Path, data_dir: &Path) -> (u64, u64) {
+    let (store, data_dir) = (store.to_owned(), data_dir.to_owned());
+    tokio::task::spawn_blocking(move || (dir_size(&store), free_bytes(&data_dir).unwrap_or(0)))
+        .await
+        .unwrap_or((0, 0))
+}
+
+fn dir_size(dir: &Path) -> u64 {
+    let Ok(entries) = std::fs::read_dir(dir) else {
+        return 0;
+    };
+    entries
+        .filter_map(Result::ok)
+        .map(|e| match e.metadata() {
+            Ok(m) if m.is_dir() => dir_size(&e.path()),
+            Ok(m) => m.len(),
+            Err(_) => 0,
+        })
+        .sum()
+}
+
+/// Bytes as GB with one decimal.
+fn gb(bytes: u64) -> String {
+    let tenths = bytes.saturating_mul(10) >> 30;
+    format!("{}.{}", tenths / 10, tenths % 10)
+}
+
+/// A duration as the largest whole unit (`6h`, `30m`, `90s`).
+#[must_use]
+pub fn human(d: Duration) -> String {
+    let s = d.as_secs();
+    match s {
+        _ if s >= 86_400 && s.is_multiple_of(86_400) => format!("{}d", s / 86_400),
+        _ if s >= 3600 && s.is_multiple_of(3600) => format!("{}h", s / 3600),
+        _ if s >= 60 && s.is_multiple_of(60) => format!("{}m", s / 60),
+        _ => format!("{s}s"),
     }
 }
 
@@ -328,5 +394,15 @@ mod tests {
         assert_eq!(dir_dump("musicbrainz-local"), Some("local"));
         assert_eq!(dir_dump("musicbrainz-x"), None);
         assert_eq!(dir_dump("other"), None);
+    }
+
+    #[test]
+    fn log_units() {
+        assert_eq!(gb(19 << 30), "19.0");
+        assert_eq!(gb((3 << 30) / 2), "1.5");
+        assert_eq!(human(Duration::from_hours(6)), "6h");
+        assert_eq!(human(Duration::from_hours(24)), "1d");
+        assert_eq!(human(Duration::from_mins(30)), "30m");
+        assert_eq!(human(Duration::from_secs(90)), "90s");
     }
 }

@@ -129,6 +129,14 @@ Flags, each with an environment variable fallback:
 
 `RUST_LOG` sets the log filter (default `info`).
 
+What the log says at `info`: the settings it started with; the store served, its size and the free space; every
+check for a new dump (and when the next one is); downloads (progress, checksum verified), each archive read, each
+table written, each search index built, how long each step took; the switch to a new store and the removal of the old
+one and of the downloads. Every request is two lines, paired by `id`: `received` (method, URL, user agent) and
+`answered` (status, total time, time spent answering without the wait for a free thread, size, and what it held:
+what a search found or a browse listed and how many of them it returned, the entity a lookup found, the error).
+`RUST_LOG=info,access=warn` leaves the requests out.
+
 A check for a new dump is one small request (`LATEST`); the served store is named after its dump, so the same
 dump is never downloaded twice. An interrupted download resumes; every archive is checked against the dump's
 `SHA256SUMS`. A dump whose build fails is skipped until the next start (or the next dump).

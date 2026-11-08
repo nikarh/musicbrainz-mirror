@@ -96,8 +96,19 @@ pub fn tables(sources: &[PathBuf], out: &Path) -> Result<Summary, BuildError> {
         let (tx, rx) = mpsc::sync_channel::<Msg>(8);
         let (source, specs_r) = (source.clone(), specs.clone());
         handles.push(std::thread::spawn(move || {
-            if let Err(e) = read_source(&source, &specs_r, &tx) {
-                let _ = tx.send(Msg::Failed(e));
+            let began = Instant::now();
+            let name = source
+                .file_name()
+                .map(|n| n.to_string_lossy().into_owned())
+                .unwrap_or_default();
+            tracing::info!(source = name, "reading (decompressing as it goes)");
+            match read_source(&source, &specs_r, &tx) {
+                Ok(()) => {
+                    tracing::info!(source = name, elapsed_s = began.elapsed().as_secs(), "read");
+                }
+                Err(e) => {
+                    let _ = tx.send(Msg::Failed(e));
+                }
             }
         }));
         let (out, specs_w, results_tx) = (out.to_owned(), specs.clone(), results_tx.clone());

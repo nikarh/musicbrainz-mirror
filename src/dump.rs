@@ -109,7 +109,7 @@ pub async fn fetch(
         .unwrap_or_default();
     if dest.exists() {
         if hash_file(dest).await? == sha256 {
-            tracing::debug!(file = name, "already downloaded");
+            tracing::info!(file = name, "already downloaded (checksum verified)");
             return Ok(());
         }
         let _ = tokio::fs::remove_file(dest).await;
@@ -120,6 +120,7 @@ pub async fn fetch(
     if have > 0 {
         request = request.header(reqwest::header::RANGE, format!("bytes={have}-"));
     }
+    let began = std::time::Instant::now();
     let mut response = request.send().await?.error_for_status()?;
     let resumed = have > 0 && response.status() == reqwest::StatusCode::PARTIAL_CONTENT;
     let total = response
@@ -178,6 +179,12 @@ pub async fn fetch(
     tokio::fs::rename(&partial, dest)
         .await
         .map_err(|e| DumpError::Io(dest.to_owned(), e))?;
+    tracing::info!(
+        file = name,
+        size_mb = received >> 20,
+        elapsed_s = began.elapsed().as_secs(),
+        "downloaded (checksum verified)"
+    );
     Ok(())
 }
 

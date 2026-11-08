@@ -79,6 +79,17 @@ async fn serve(config: Config) -> ExitCode {
     // reqwest is built without a default crypto provider: ring builds much faster than aws-lc.
     let _ = rustls::crypto::ring::default_provider().install_default();
     tracing::info!(version = VERSION, "starting");
+    tracing::info!(
+        data_dir = %config.data_dir.display(),
+        update_interval = %config
+            .update_interval
+            .map_or_else(|| "off".to_owned(), musicbrainz_mirror::mirror::human),
+        min_free_gb = config.min_free_bytes >> 30,
+        build_threads = config.build.threads,
+        build_memory_mb = config.build.memory_mb,
+        compress_rows = config.build.compress_rows,
+        "settings"
+    );
     let listen = config.listen;
     let cover_art_url = config.cover_art_url.clone();
     let mirror = match Mirror::new(config) {
