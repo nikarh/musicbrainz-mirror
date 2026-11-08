@@ -542,7 +542,8 @@ const COMPRESS_MIN: u64 = 64 << 10;
 const COMPRESS_LEVEL: i32 = 3;
 
 /// Builds a complete store into `out` (created: it must not exist): the tables, the derived files, the search
-/// indexes, the rows compressed (when asked), and `meta.json` last (a store without it is unfinished).
+/// indexes, the rows compressed (when asked), and `meta.json` last (a store without it is unfinished), once the rest
+/// is on disk.
 pub fn build(
     sources: &[PathBuf],
     dump: &str,
@@ -592,7 +593,10 @@ pub fn build(
     meta.insert("dump".into(), dump.to_owned());
     meta.insert("format_version".into(), super::FORMAT_VERSION.to_string());
     let json = serde_json::to_vec_pretty(&meta).map_err(|e| BuildError::Other(e.to_string()))?;
-    std::fs::write(out.join("meta.json"), json)
+    // Every file of the store on disk before the mark of a finished store: after a power loss, a store with a
+    // `meta.json` has all of its contents.
+    super::file::sync_filesystem(out).map_err(|e| BuildError::Io(out.to_owned(), e))?;
+    super::file::write_durably(&out.join("meta.json"), &json)
         .map_err(|e| BuildError::Io(out.join("meta.json"), e))?;
     tracing::info!(elapsed_s = started.elapsed().as_secs(), "store built");
     Ok(summary)

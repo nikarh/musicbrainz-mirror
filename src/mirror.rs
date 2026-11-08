@@ -260,6 +260,8 @@ impl Mirror {
         tokio::fs::rename(partial, &path)
             .await
             .map_err(|e| MirrorError::Io(path.clone(), e))?;
+        // The move on disk before the archives it was built from are removed.
+        sync_dir(&self.config.data_dir).await?;
         let opened = {
             let path = path.clone();
             tokio::task::spawn_blocking(move || Store::open(&path))
@@ -318,6 +320,16 @@ async fn retire(store: Arc<Store>) {
     tracing::info!(dir = %path.display(), "removing the replaced store");
     remove_dir(&path).await;
     tracing::info!(dir = %path.display(), "removed the replaced store");
+}
+
+async fn sync_dir(dir: &Path) -> Result<(), MirrorError> {
+    let io = |e| MirrorError::Io(dir.to_owned(), e);
+    tokio::fs::File::open(dir)
+        .await
+        .map_err(io)?
+        .sync_all()
+        .await
+        .map_err(io)
 }
 
 async fn remove(path: &Path) {

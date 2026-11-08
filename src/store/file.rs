@@ -347,8 +347,11 @@ pub fn compress_rows(
         written += frame.len() as u64;
     }
     index.write_all(&written.to_le_bytes())?;
+    // On disk before the plain rows are removed: they are the only copy after that.
     for w in [Some(data), Some(index), gids].into_iter().flatten() {
-        w.into_inner().map_err(io::IntoInnerError::into_error)?;
+        w.into_inner()
+            .map_err(io::IntoInnerError::into_error)?
+            .sync_all()?;
     }
     drop(plain);
     std::fs::remove_file(path)
@@ -508,6 +511,31 @@ pub fn with_ext(base: &Path, ext: &str) -> PathBuf {
     name.push(".");
     name.push(ext);
     PathBuf::from(name)
+}
+
+// Durability: what a later step relies on (a finished store, a finished build step, a verified download) is on
+// disk before the step says so, so that a crash or power loss can't leave a mark of something that isn't.
+
+/// Flushes everything written on the file system holding `dir` to disk (cheaper than syncing each file of a store).
+pub fn sync_filesystem(dir: &Path) -> io::Result<()> {
+    rustix::fs::syncfs(File::open(dir)?)?;
+    Ok(())
+}
+
+/// Makes the entries of `dir` (files created, renamed, removed in it) durable.
+pub fn sync_dir(dir: &Path) -> io::Result<()> {
+    File::open(dir)?.sync_all()
+}
+
+/// Writes a file whole or not at all: under a temporary name, synced, then renamed over `path`.
+pub fn write_durably(path: &Path, bytes: &[u8]) -> io::Result<()> {
+    let tmp = with_ext(path, "tmp");
+    let mut file = File::create(&tmp)?;
+    file.write_all(bytes)?;
+    file.sync_all()?;
+    drop(file);
+    std::fs::rename(&tmp, path)?;
+    sync_dir(path.parent().unwrap_or_else(|| Path::new(".")))
 }
 
 // Writers. They keep memory bounded: what has to be reordered goes through temporary files next to the output.

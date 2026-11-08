@@ -179,6 +179,15 @@ pub async fn fetch(
     tokio::fs::rename(&partial, dest)
         .await
         .map_err(|e| DumpError::Io(dest.to_owned(), e))?;
+    if let Some(dir) = dest.parent() {
+        let io = |e| DumpError::Io(dir.to_owned(), e);
+        tokio::fs::File::open(dir)
+            .await
+            .map_err(io)?
+            .sync_all()
+            .await
+            .map_err(io)?;
+    }
     tracing::info!(
         file = name,
         size_mb = received >> 20,
