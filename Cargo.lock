@@ -1014,7 +1014,7 @@ checksum = "a8afc6df942f4c022d70c5725e18df1a705773870e5b7f96fde94ca0334ce77a"
 
 [[package]]
 name = "musicbrainz-mirror"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "arc-swap",
  "axum",
