@@ -126,6 +126,7 @@ Flags, each with an environment variable fallback:
 | `--build-threads` | `MUSICBRAINZ_MIRROR_BUILD_THREADS` | `2` | Threads that build the search indexes |
 | `--build-memory-mb` | `MUSICBRAINZ_MIRROR_BUILD_MEMORY_MB` | `1024` | Memory of the search index builders (the rest of a build needs little) |
 | `--compress-rows` | `MUSICBRAINZ_MIRROR_COMPRESS_ROWS` | off | Build stores with their rows compressed: smaller, a little slower to read (see below) |
+| `--schema-mismatch` | `MUSICBRAINZ_MIRROR_SCHEMA_MISMATCH` | `refuse` | A dump of another MusicBrainz schema (its `SCHEMA_SEQUENCE`) than this version reads: `refuse` fails its import (the store being served stays, and the dump is tried again after a restart), `warn` imports it anyway (it still fails if a table's number of columns changed) |
 
 `RUST_LOG` sets the log filter (default `info`).
 

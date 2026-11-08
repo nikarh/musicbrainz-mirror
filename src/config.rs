@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use std::str::FromStr;
 use std::time::Duration;
 
-pub use crate::store::build::BuildOptions;
+pub use crate::store::build::{BuildOptions, SchemaMismatch};
 
 pub const DEFAULT_DUMP_URL: &str = "https://data.metabrainz.org/pub/musicbrainz/data/fullexport";
 pub const DEFAULT_COVER_ART_URL: &str = "https://coverartarchive.org";
@@ -14,7 +14,8 @@ pub const HELP: &str = "\
 musicbrainz-mirror: MusicBrainz's web service (ws/2, read-only) on a local copy of MusicBrainz's database dumps
 
 Usage: musicbrainz-mirror [serve] [OPTIONS]
-       musicbrainz-mirror import --out DIR [--dump ID] [--build-threads N] [--compress-rows] ARCHIVE_OR_DIR...
+       musicbrainz-mirror import --out DIR [--dump ID] [--build-threads N] [--compress-rows]
+                                 [--schema-mismatch MODE] ARCHIVE_OR_DIR...
        musicbrainz-mirror healthcheck [--listen ADDR]
 
 Options (each has an environment variable fallback):
@@ -31,6 +32,10 @@ Options (each has an environment variable fallback):
   --compress-rows          MUSICBRAINZ_MIRROR_COMPRESS_ROWS   build stores with their rows compressed (smaller,
                                                               a little slower to read; stores of either kind are
                                                               served) [off]
+  --schema-mismatch MODE   MUSICBRAINZ_MIRROR_SCHEMA_MISMATCH a dump of another MusicBrainz schema than this version
+                                                              reads: refuse (the import fails; the store being
+                                                              served stays) or warn (imported anyway, and fails
+                                                              only if a table's column count changed) [refuse]
   -h, --help               this help
   -V, --version            the version
 
@@ -155,6 +160,12 @@ fn build_options(args: &mut pico_args::Arguments) -> Result<BuildOptions, Config
             1024,
         )?,
         compress_rows: switch(args, "--compress-rows", "MUSICBRAINZ_MIRROR_COMPRESS_ROWS")?,
+        schema_mismatch: value(
+            args,
+            "--schema-mismatch",
+            "MUSICBRAINZ_MIRROR_SCHEMA_MISMATCH",
+            SchemaMismatch::Refuse,
+        )?,
     })
 }
 
@@ -262,6 +273,13 @@ mod tests {
         assert_eq!(c.dump_url, "http://h");
         assert_eq!(c.listen.port(), 5000);
         assert_eq!(c.cover_art_url, DEFAULT_COVER_ART_URL);
+        assert_eq!(c.build.schema_mismatch, SchemaMismatch::Refuse);
+        let c = parse(&["--schema-mismatch", "warn"]).unwrap();
+        assert_eq!(c.build.schema_mismatch, SchemaMismatch::Warn);
+        assert!(matches!(
+            parse(&["--schema-mismatch", "ignore"]),
+            Err(ConfigError::Invalid { .. })
+        ));
     }
 
     #[test]

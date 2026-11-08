@@ -321,6 +321,7 @@ fn config(data_dir: &Path, addr: std::net::SocketAddr) -> Config {
             threads: 1,
             memory_mb: 50,
             compress_rows: true,
+            schema_mismatch: musicbrainz_mirror::config::SchemaMismatch::Refuse,
         },
     }
 }
@@ -452,6 +453,7 @@ async fn a_store_is_removed_only_when_shown_damaged() {
             threads: 1,
             memory_mb: 50,
             compress_rows: false,
+            schema_mismatch: musicbrainz_mirror::config::SchemaMismatch::Refuse,
         },
     )
     .unwrap();

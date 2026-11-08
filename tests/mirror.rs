@@ -108,6 +108,7 @@ async fn downloads_imports_and_switches_dumps() {
             threads: 2,
             memory_mb: 64,
             compress_rows: true,
+            schema_mismatch: musicbrainz_mirror::config::SchemaMismatch::Refuse,
         },
     };
     let mirror = Mirror::new(config).unwrap();
@@ -175,6 +176,7 @@ fn mirror_config(data_dir: &Path, addr: std::net::SocketAddr) -> Config {
             threads: 2,
             memory_mb: 64,
             compress_rows: true,
+            schema_mismatch: musicbrainz_mirror::config::SchemaMismatch::Refuse,
         },
     }
 }

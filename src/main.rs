@@ -88,6 +88,7 @@ async fn serve(config: Config) -> ExitCode {
         build_threads = config.build.threads,
         build_memory_mb = config.build.memory_mb,
         compress_rows = config.build.compress_rows,
+        schema_mismatch = ?config.build.schema_mismatch,
         "settings"
     );
     let listen = config.listen;
