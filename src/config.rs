@@ -34,7 +34,8 @@ Options (each has an environment variable fallback):
   -V, --version            the version
 
 import builds a store from dump archives (mbdump.tar.bz2, mbdump-derived.tar.bz2, mbdump-cover-art-archive.tar.bz2)
-or directories they were unpacked into, without serving it. --out is a new directory (it must not exist).
+or directories they were unpacked into, without serving it. --out is a new directory, or one an interrupted import
+(of the same --dump) left: that import continues.
 
 Logging: RUST_LOG (default info).";
 

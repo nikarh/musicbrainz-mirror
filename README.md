@@ -142,7 +142,8 @@ dump is never downloaded twice. An interrupted download resumes; every archive i
 `SHA256SUMS`. A dump whose build fails is skipped until the next start (or the next dump).
 
 With updates off it serves the newest store in the data directory. `musicbrainz-mirror import` builds one (into a
-new directory) from archives (or directories they were unpacked into) without serving it:
+new directory) from archives (or directories they were unpacked into) without serving it; run again with the same
+`--out` and `--dump`, it continues an interrupted import:
 
 ```sh
 musicbrainz-mirror import --out /srv/musicbrainz/musicbrainz-local \

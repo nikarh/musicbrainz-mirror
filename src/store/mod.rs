@@ -357,7 +357,18 @@ impl Store {
             .collect()
     }
 
-    /// A store of tables only, for the build steps after the tables.
+    /// A store of tables only, for the derived values.
+    pub fn tables_only(dir: &Path) -> std::io::Result<Self> {
+        Ok(Self {
+            dir: dir.to_owned(),
+            meta: HashMap::new(),
+            tables: Self::open_tables(dir)?,
+            derived: derive::Derived::default(),
+            search: search::SearchIndex::default(),
+        })
+    }
+
+    /// A store of tables and derived values, for the search indexes.
     pub fn partial(dir: &Path) -> std::io::Result<Self> {
         Ok(Self {
             dir: dir.to_owned(),

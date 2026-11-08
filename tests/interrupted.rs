@@ -1,10 +1,12 @@
 //! Interruptions: the process stopped (killed) at any point of an update, and started again. What was downloaded
-//! isn't downloaded again.
+//! isn't downloaded again, and an interrupted build continues to the same store as one that wasn't interrupted.
 
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::indexing_slicing)]
 
 use std::fmt::Write as _;
+use std::io::BufRead as _;
 use std::path::{Path, PathBuf};
+use std::process::{Command, Stdio};
 use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 
@@ -15,7 +17,7 @@ use musicbrainz_mirror::dump;
 use sha2::{Digest as _, Sha256};
 
 mod common;
-use common::{archive, fixture};
+use common::{archive, assert_same_store, fixture};
 
 const DUMP: &str = "20261101-000000";
 
@@ -220,5 +222,85 @@ async fn an_interrupted_download_continues_where_it_stopped() {
     fetch(&exports, addr, &dir).await.unwrap();
     assert_eq!(std::fs::read(&dest).unwrap(), data);
 
+    std::fs::remove_dir_all(&dir).unwrap();
+}
+
+/// Runs `musicbrainz-mirror import`, killed (SIGKILL) once its log has `kill_at.1` lines with `kill_at.0`. Whether it
+/// finished.
+fn import(out: &Path, kill_at: Option<(&str, usize)>) -> bool {
+    let mut child = Command::new(env!("CARGO_BIN_EXE_musicbrainz-mirror"))
+        .arg("import")
+        .arg("--out")
+        .arg(out)
+        .args(["--dump", DUMP, "--compress-rows", "--build-threads", "1"])
+        .arg(fixture())
+        .env("RUST_LOG", "info")
+        .env("NO_COLOR", "1")
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unwrap();
+    if let Some((pattern, nth)) = kill_at {
+        let mut seen = 0;
+        for line in std::io::BufReader::new(child.stdout.take().unwrap()).lines() {
+            if line.unwrap().contains(pattern) {
+                seen += 1;
+                if seen == nth {
+                    child.kill().unwrap();
+                    break;
+                }
+            }
+        }
+    }
+    let output = child.wait_with_output().unwrap();
+    let finished = output.status.success();
+    assert!(
+        finished || kill_at.is_some(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    finished
+}
+
+#[test]
+fn an_import_killed_at_any_step_continues_to_the_same_store() {
+    let dir = temp_dir("import");
+    let reference = dir.join("reference");
+    assert!(import(&reference, None));
+
+    // Killed while writing the tables, right after, after the derived values, while building the search indexes,
+    // after (while compressing rows, if it hasn't finished yet); then let finish.
+    let out = dir.join("killed");
+    for kill_at in [
+        ("written", 20),
+        ("tables written", 1),
+        ("derived values written", 1),
+        ("search index built", 3),
+        ("search indexes built", 1),
+    ] {
+        assert!(
+            !import(&out, Some(kill_at)) || kill_at.0 == "search indexes built",
+            "finished before {kill_at:?}"
+        );
+        assert!(
+            musicbrainz_mirror::store::Store::open(&out).is_err() || out.join("meta.json").exists()
+        );
+    }
+    if !out.join("meta.json").exists() {
+        assert!(import(&out, None));
+    }
+    assert_same_store(&out, &reference);
+
+    // A finished store isn't touched.
+    let output = Command::new(env!("CARGO_BIN_EXE_musicbrainz-mirror"))
+        .arg("import")
+        .arg("--out")
+        .arg(&out)
+        .args(["--dump", DUMP])
+        .arg(fixture())
+        .output()
+        .unwrap();
+    assert!(!output.status.success());
+    assert_same_store(&out, &reference);
     std::fs::remove_dir_all(&dir).unwrap();
 }
