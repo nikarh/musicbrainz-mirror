@@ -54,6 +54,90 @@ pub fn router(store: Current, cover_art_url: &str) -> Router {
         .merge(caa::router())
         .fallback(not_found_route)
         .with_state(state)
+        .layer(axum::middleware::from_fn(access_log))
+}
+
+/// Request ids in the access log, to pair a request's lines.
+static NEXT_REQUEST: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
+
+/// What an answer held, for the access log (counts, not the data).
+#[derive(Clone)]
+struct Summary(String);
+
+/// Time spent answering, without the wait for a free thread.
+#[derive(Clone, Copy)]
+struct Work(std::time::Duration);
+
+/// Two lines per request, `received` and `answered`, paired by `id` (target `access`: `RUST_LOG=info,access=warn`
+/// leaves them out); health checks only at debug.
+async fn access_log(request: axum::extract::Request, next: axum::middleware::Next) -> Response {
+    use axum::body::HttpBody as _;
+    let started = std::time::Instant::now();
+    let id = NEXT_REQUEST.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    let quiet = request.uri().path() == "/healthz";
+    if !quiet {
+        let agent = request
+            .headers()
+            .get(header::USER_AGENT)
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or("-");
+        tracing::info!(target: "access", id, method = %request.method(), uri = %request.uri(), agent, "received");
+    }
+    let response = next.run(request).await;
+    let status = response.status().as_u16();
+    let ms = millis(started.elapsed());
+    let work_ms = response
+        .extensions()
+        .get::<Work>()
+        .map_or_else(|| "-".to_owned(), |w| millis(w.0));
+    let bytes = response.body().size_hint().exact();
+    let summary = response
+        .extensions()
+        .get::<Summary>()
+        .map_or("", |s| s.0.as_str());
+    if quiet {
+        tracing::debug!(target: "access", id, status, %ms, "health check");
+    } else {
+        tracing::info!(target: "access", id, status, %ms, %work_ms, bytes, %summary, "answered");
+    }
+    response
+}
+
+/// Milliseconds with three decimals.
+fn millis(d: std::time::Duration) -> String {
+    let micros = d.as_micros();
+    format!("{}.{:03}", micros / 1000, micros % 1000)
+}
+
+/// A short description of an answer: what a search found (`count`) or a browse listed (`<type>-count`), and how
+/// many of them it holds; the entity a lookup found.
+fn summarize(root: &str, value: &Value) -> String {
+    let Some(object) = value.as_object() else {
+        return root.to_owned();
+    };
+    let total = object
+        .get("count")
+        .or_else(|| {
+            object
+                .iter()
+                .find(|(k, _)| k.ends_with("-count"))
+                .map(|(_, v)| v)
+        })
+        .and_then(Value::as_u64);
+    let returned = object.values().find_map(Value::as_array).map(Vec::len);
+    match (total, returned) {
+        (Some(total), Some(returned)) if root.ends_with("-list") => {
+            format!("{root}: {total} found, {returned} returned")
+        }
+        _ => match object
+            .get("title")
+            .or_else(|| object.get("name"))
+            .and_then(Value::as_str)
+        {
+            Some(name) => format!("{root} {name:?}"),
+            None => root.to_owned(),
+        },
+    }
 }
 
 async fn healthz(State(state): State<AppState>) -> Response {
@@ -150,6 +234,11 @@ impl Answer {
     }
 
     fn respond(self, format: Format) -> Response {
+        let summary = match &self {
+            Self::Ok(root, value) => summarize(root, value),
+            Self::Text(_) => "text".to_owned(),
+            Self::Error(_, message) => message.clone(),
+        };
         let (status, body, content_type) = match self {
             Self::Text(text) => (StatusCode::OK, text, "text/plain; charset=utf-8"),
             Self::Ok(root, value) if format == Format::Xml => {
@@ -174,6 +263,7 @@ impl Answer {
             header::ACCESS_CONTROL_ALLOW_ORIGIN,
             HeaderValue::from_static("*"),
         );
+        response.extensions_mut().insert(Summary(summary));
         response
     }
 }
@@ -236,7 +326,10 @@ where
     let Ok(_permit) = state.permits.acquire().await else {
         return StatusCode::SERVICE_UNAVAILABLE.into_response();
     };
-    match tokio::task::spawn_blocking(move || answer(&store)).await {
+    let work = std::time::Instant::now();
+    let answered = tokio::task::spawn_blocking(move || answer(&store)).await;
+    let work = Work(work.elapsed());
+    let mut response = match answered {
         Ok(Ok(answer)) => answer.respond(format),
         Ok(Err(e)) => {
             tracing::error!(error = %e, "request failed");
@@ -254,7 +347,9 @@ where
             )
             .respond(format)
         }
-    }
+    };
+    response.extensions_mut().insert(work);
+    response
 }
 
 /// Whether `s` is an MBID (a UUID, any case, but not the nil UUID, as musicbrainz-server's `is_guid`).
