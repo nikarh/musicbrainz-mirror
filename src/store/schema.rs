@@ -67,7 +67,8 @@ pub enum Rows {
 pub struct Table {
     /// The dump file, and the store's file names.
     pub name: String,
-    pub column_count: usize,
+    /// The dump file's columns, in order (as in musicbrainz-server's `CreateTables.sql`).
+    pub columns: Vec<String>,
     pub rows: Rows,
     pub fields: Vec<Field>,
     pub width: usize,
@@ -139,7 +140,7 @@ fn table(name: &str, columns: &str, rows: Option<&str>, fields: &str) -> Table {
         .collect();
     Table {
         name: name.to_owned(),
-        column_count: columns.len(),
+        columns: columns.iter().map(|&c| c.to_owned()).collect(),
         rows: rows.map_or(Rows::Sequential, |r| {
             Rows::ById(columns.iter().position(|c| *c == r).unwrap_or(usize::MAX))
         }),
@@ -563,7 +564,7 @@ mod tests {
         for t in all().values() {
             for f in &t.fields {
                 assert!(
-                    f.column < t.column_count,
+                    f.column < t.columns.len(),
                     "{}: no column for {}",
                     t.name,
                     f.name
@@ -584,7 +585,7 @@ mod tests {
                 );
             }
             if let Rows::ById(column) = &t.rows {
-                assert!(*column < t.column_count, "{}: no id column", t.name);
+                assert!(*column < t.columns.len(), "{}: no id column", t.name);
             }
         }
     }

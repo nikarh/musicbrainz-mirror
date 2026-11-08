@@ -256,14 +256,14 @@ impl TableWriter {
     }
 
     fn rows(&mut self, data: &[u8]) -> Result<(), BuildError> {
-        let mut fields = Vec::with_capacity(self.spec.column_count);
+        let mut fields = Vec::with_capacity(self.spec.columns.len());
         for line in data.split(|&b| b == b'\n').filter(|l| !l.is_empty()) {
             copy::split_row(line, &mut fields);
-            if fields.len() != self.spec.column_count {
+            if fields.len() != self.spec.columns.len() {
                 return Err(BuildError::Columns {
                     table: self.spec.name.clone(),
                     got: fields.len(),
-                    expected: self.spec.column_count,
+                    expected: self.spec.columns.len(),
                 });
             }
             self.row(&fields)?;
