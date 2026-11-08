@@ -5,7 +5,13 @@
 //!   newest is served; its name is what keeps the same dump from being downloaded again.
 //! - `import/<dump>/`: the archives of a dump being imported (kept until it is imported, so a failed or interrupted
 //!   import doesn't download them again), with `failed` in it when its import failed (it isn't retried until the
-//!   next start or a newer dump); `import/<dump>.partial/`: the store being built.
+//!   next start or a newer dump); `import/<dump>.partial/`: the store being built (an interrupted build continues
+//!   after its last finished step, see `store::build`; a failed one is removed).
+//! - `import/<name>.removing/`: a store or build being removed. Nothing is removed in place, so a crash never leaves
+//!   part of a store under a name that would be served or continued.
+//!
+//! The process can stop at any point: a download continues where it stopped (and is checked whole before it is
+//! used), a build after its last finished step, and a finished store is only ever served whole.
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -15,7 +21,7 @@ use arc_swap::ArcSwapOption;
 
 use crate::config::Config;
 use crate::dump::{self, DumpError};
-use crate::store::build::BuildError;
+use crate::store::build::{self, BuildError};
 use crate::store::{Store, StoreError};
 
 #[derive(Debug, thiserror::Error)]
@@ -82,8 +88,8 @@ impl Mirror {
         self.config.data_dir.join("import")
     }
 
-    /// Opens the newest finished store in the data directory, if there is one, and removes leftovers (stores being
-    /// built, older stores).
+    /// Opens the newest finished store in the data directory, if there is one, and removes leftovers (older stores,
+    /// the downloads and builds of dumps not newer than it, what was being removed).
     pub async fn start(&self) -> Result<(), MirrorError> {
         let _guard = self.lock.lock().await;
         let dir = self.config.data_dir.clone();
@@ -91,24 +97,6 @@ impl Mirror {
         tokio::fs::create_dir_all(&import_dir)
             .await
             .map_err(|e| MirrorError::Io(import_dir.clone(), e))?;
-        let mut entries = tokio::fs::read_dir(&import_dir)
-            .await
-            .map_err(|e| MirrorError::Io(import_dir.clone(), e))?;
-        while let Some(entry) = entries
-            .next_entry()
-            .await
-            .map_err(|e| MirrorError::Io(import_dir.clone(), e))?
-        {
-            let name = entry.file_name().to_string_lossy().into_owned();
-            if name.ends_with(".partial") || name.ends_with(".partial.tmp") {
-                tracing::info!(dir = name, "removing an interrupted import");
-                remove_dir(&entry.path()).await;
-                remove(&entry.path()).await;
-            } else if entry.path().is_dir() {
-                // A failed import is retried after a restart.
-                remove(&entry.path().join("failed")).await;
-            }
-        }
 
         let mut stores = Vec::new();
         let mut entries = tokio::fs::read_dir(&dir)
@@ -140,18 +128,50 @@ impl Mirror {
                         "serving"
                     );
                     self.current.store(Some(Arc::new(store)));
-                    for old in stores {
+                    for old in stores.drain(..) {
                         tracing::info!(dir = old, "removing an older store");
-                        remove_dir(&dir.join(old)).await;
+                        discard(&dir.join(old), &import_dir).await;
                     }
-                    return Ok(());
                 }
                 Err(e) => {
                     // Built by another version (or unfinished): rebuilt from the next dump.
                     tracing::warn!(dir = newest, error = %e, "can't serve this store; removing it");
-                    remove_dir(&dir.join(&newest)).await;
+                    discard(&dir.join(&newest), &import_dir).await;
                 }
             }
+        }
+
+        let served = self.current.load_full().map(|s| s.dump().to_owned());
+        let mut entries = tokio::fs::read_dir(&import_dir)
+            .await
+            .map_err(|e| MirrorError::Io(import_dir.clone(), e))?;
+        while let Some(entry) = entries
+            .next_entry()
+            .await
+            .map_err(|e| MirrorError::Io(import_dir.clone(), e))?
+        {
+            let name = entry.file_name().to_string_lossy().into_owned();
+            let path = entry.path();
+            if name.ends_with(REMOVING) || name.ends_with(".partial.tmp") {
+                tracing::info!(dir = name, "removing what was being removed");
+                remove_dir(&path).await;
+                remove(&path).await;
+            } else if let Some(dump) = import_dump(&name) {
+                if served
+                    .as_deref()
+                    .is_some_and(|s| dump::is_dump_id(s) && s >= dump)
+                {
+                    tracing::info!(dir = name, "removing the import of a dump already served");
+                    discard(&path, &import_dir).await;
+                } else if path.is_dir() {
+                    // A failed import is retried after a restart; an interrupted one continues.
+                    remove(&path.join("failed")).await;
+                }
+            }
+        }
+
+        if served.is_some() {
+            return Ok(());
         }
         if self.config.update_interval.is_none() {
             return Err(MirrorError::NoStore(dir));
@@ -203,38 +223,66 @@ impl Mirror {
         }
         self.remove_other_imports(&id).await;
 
+        // What an interrupted import of this dump downloaded and built is kept: it counts as free space.
+        let partial = self.import_dir().join(format!("{id}.partial"));
+        let kept = {
+            let (work, partial) = (work.clone(), partial.clone());
+            tokio::task::spawn_blocking(move || dir_size(&work) + dir_size(&partial))
+                .await
+                .unwrap_or(0)
+        };
         let free = free_bytes(&self.config.data_dir)
             .map_err(|e| MirrorError::Io(self.config.data_dir.clone(), e))?;
-        if free < self.config.min_free_bytes {
+        if free.saturating_add(kept) < self.config.min_free_bytes {
             return Err(MirrorError::NoSpace(
                 id,
-                free >> 30,
+                free.saturating_add(kept) >> 30,
                 self.config.min_free_bytes >> 30,
             ));
         }
-        tracing::info!(dump = id, free_gb = %gb(free), "a new dump is out; downloading");
         let began = std::time::Instant::now();
-        let archives = dump::download(&self.client, &self.config.dump_url, &id, &work).await?;
-        tracing::info!(
-            dump = id,
-            elapsed_s = began.elapsed().as_secs(),
-            threads = self.config.build.threads,
-            compress_rows = self.config.build.compress_rows,
-            "downloaded; building the store"
-        );
+        let archives = if build::needs_sources(&partial, &id) {
+            tracing::info!(
+                dump = id,
+                free_gb = %gb(free),
+                kept_gb = %gb(kept),
+                "a new dump is out; downloading"
+            );
+            let archives = dump::download(&self.client, &self.config.dump_url, &id, &work).await?;
+            tracing::info!(
+                dump = id,
+                elapsed_s = began.elapsed().as_secs(),
+                "downloaded"
+            );
+            archives
+        } else {
+            // Past the step that reads the archives.
+            tracing::info!(
+                dump = id,
+                free_gb = %gb(free),
+                "a new dump is out; its interrupted import continues"
+            );
+            Vec::new()
+        };
 
-        let partial = self.import_dir().join(format!("{id}.partial"));
-        remove_dir(&partial).await;
-        let built = {
-            let (archives, partial, id) = (archives.clone(), partial.clone(), id.clone());
+        let built = if build::finished(&partial) {
+            Ok(Ok(()))
+        } else {
+            tracing::info!(
+                dump = id,
+                threads = self.config.build.threads,
+                compress_rows = self.config.build.compress_rows,
+                "building the store"
+            );
+            let (partial, id) = (partial.clone(), id.clone());
             let options = self.config.build.clone();
             tokio::task::spawn_blocking(move || {
-                crate::store::build::build(&archives, &id, &partial, &options)
+                build::resume(&archives, &id, &partial, &options).map(|_| ())
             })
             .await
         };
         let result = match built {
-            Ok(Ok(_)) => self.switch(&id, &partial).await,
+            Ok(Ok(())) => self.switch(&id, &partial).await,
             Ok(Err(e)) => Err(e.into()),
             Err(e) => Err(MirrorError::Task(e.to_string())),
         };
@@ -245,7 +293,8 @@ impl Mirror {
                 Ok(())
             }
             Err(e) => {
-                remove_dir(&partial).await;
+                discard(&partial, &self.import_dir()).await;
+                let _ = tokio::fs::create_dir_all(&work).await;
                 let _ = tokio::fs::write(work.join("failed"), e.to_string()).await;
                 Err(e)
             }
@@ -256,7 +305,7 @@ impl Mirror {
     /// using it are done.
     async fn switch(&self, id: &str, partial: &Path) -> Result<(), MirrorError> {
         let path = self.config.data_dir.join(format!("{PREFIX}{id}"));
-        remove_dir(&path).await;
+        discard(&path, &self.import_dir()).await;
         tokio::fs::rename(partial, &path)
             .await
             .map_err(|e| MirrorError::Io(path.clone(), e))?;
@@ -271,7 +320,7 @@ impl Mirror {
         let store = match opened {
             Ok(s) => s,
             Err(e) => {
-                remove_dir(&path).await;
+                discard(&path, &self.import_dir()).await;
                 return Err(e.into());
             }
         };
@@ -285,12 +334,12 @@ impl Mirror {
             "serving the new dump"
         );
         if let Some(previous) = previous {
-            tokio::spawn(retire(previous));
+            tokio::spawn(retire(previous, self.import_dir()));
         }
         Ok(())
     }
 
-    /// Removes the downloads of other dumps (an older one superseded before its import finished).
+    /// Removes the downloads and builds of other dumps (an older one superseded before its import finished).
     async fn remove_other_imports(&self, keep: &str) {
         let dir = self.import_dir();
         let Ok(mut entries) = tokio::fs::read_dir(&dir).await else {
@@ -298,9 +347,9 @@ impl Mirror {
         };
         while let Ok(Some(entry)) = entries.next_entry().await {
             let name = entry.file_name().to_string_lossy().into_owned();
-            if name != keep && dump::is_dump_id(&name) && entry.path().is_dir() {
-                tracing::info!(dump = name, "removing the downloads of a superseded dump");
-                remove_dir(&entry.path()).await;
+            if import_dump(&name).is_some_and(|d| d != keep) {
+                tracing::info!(dir = name, "removing the import of a superseded dump");
+                discard(&entry.path(), &dir).await;
             }
         }
     }
@@ -308,7 +357,7 @@ impl Mirror {
 
 /// Removes a replaced store once nothing uses it (or after 10 minutes: its files are unlinked, the open mappings
 /// keep working).
-async fn retire(store: Arc<Store>) {
+async fn retire(store: Arc<Store>, import_dir: PathBuf) {
     for _ in 0..600 {
         if Arc::strong_count(&store) == 1 {
             break;
@@ -318,8 +367,35 @@ async fn retire(store: Arc<Store>) {
     let path = store.dir.clone();
     drop(store);
     tracing::info!(dir = %path.display(), "removing the replaced store");
-    remove_dir(&path).await;
+    discard(&path, &import_dir).await;
     tracing::info!(dir = %path.display(), "removed the replaced store");
+}
+
+/// The suffix of what is being removed, in the import directory.
+const REMOVING: &str = ".removing";
+
+/// The dump of an import directory's entry: `<dump>` (its downloads) or `<dump>.partial` (its build).
+fn import_dump(name: &str) -> Option<&str> {
+    Some(name.strip_suffix(".partial").unwrap_or(name)).filter(|d| dump::is_dump_id(d))
+}
+
+/// Removes a store or a build without ever leaving part of one under its name (which would be served or continued):
+/// it is moved into the import directory first, and what remains of it there after a crash is removed at start.
+async fn discard(path: &Path, import_dir: &Path) {
+    let name = path
+        .file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .unwrap_or_default();
+    let trash = import_dir.join(format!("{name}{REMOVING}"));
+    remove_dir(&trash).await;
+    match tokio::fs::rename(path, &trash).await {
+        Ok(()) => remove_dir(&trash).await,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+        Err(e) => {
+            tracing::warn!(dir = %path.display(), error = %e, "can't move away to remove");
+            remove_dir(path).await;
+        }
+    }
 }
 
 async fn sync_dir(dir: &Path) -> Result<(), MirrorError> {

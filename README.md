@@ -120,7 +120,7 @@ Flags, each with an environment variable fallback:
 | `--data-dir` | `MUSICBRAINZ_MIRROR_DATA_DIR` | `/data` | Stores (`musicbrainz-<dump>/`), downloads and builds (`import/`) |
 | `--listen` | `MUSICBRAINZ_MIRROR_LISTEN` | `0.0.0.0:5000` | HTTP address |
 | `--update-interval` | `MUSICBRAINZ_MIRROR_UPDATE_INTERVAL` | `6h` | How often to look for a newer dump (`30m`, `1d`); `0`: never |
-| `--min-free-gb` | `MUSICBRAINZ_MIRROR_MIN_FREE_GB` | `40` | Free space an update needs before it starts |
+| `--min-free-gb` | `MUSICBRAINZ_MIRROR_MIN_FREE_GB` | `40` | Free space an update needs before it starts (what an interrupted one downloaded and built counts as free) |
 | `--dump-url` | `MUSICBRAINZ_MIRROR_DUMP_URL` | MetaBrainz's | The full exports (a directory with `LATEST` and a directory per dump) |
 | `--cover-art-url` | `MUSICBRAINZ_MIRROR_COVER_ART_URL` | `https://coverartarchive.org` | Where cover art image URLs point |
 | `--build-threads` | `MUSICBRAINZ_MIRROR_BUILD_THREADS` | `2` | Threads that build the search indexes |
@@ -140,6 +140,12 @@ what a search found or a browse listed and how many of them it returned, the ent
 A check for a new dump is one small request (`LATEST`); the served store is named after its dump, so the same
 dump is never downloaded twice. An interrupted download resumes; every archive is checked against the dump's
 `SHA256SUMS`. A dump whose build fails is skipped until the next start (or the next dump).
+
+The process can be stopped (or killed, or lose power) at any point: a store is only served once all of it is on
+disk, and nothing is lost but the work in progress. After a restart, archives already downloaded are checked rather
+than downloaded again, an interrupted download continues where it stopped, and an interrupted build continues after
+its last finished step (the tables, the derived values, the search indexes); once past the tables it doesn't need
+the archives.
 
 With updates off it serves the newest store in the data directory. `musicbrainz-mirror import` builds one (into a
 new directory) from archives (or directories they were unpacked into) without serving it; run again with the same

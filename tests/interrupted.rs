@@ -1,5 +1,6 @@
-//! Interruptions: the process stopped (killed) at any point of an update, and started again. What was downloaded
-//! isn't downloaded again, and an interrupted build continues to the same store as one that wasn't interrupted.
+//! Interruptions: the process stopped (killed) at any point of an update, and started again. Nothing it left is
+//! served unless it is whole, what was downloaded isn't downloaded again, and an interrupted build continues to the
+//! same store as one that wasn't interrupted.
 
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::indexing_slicing)]
 
@@ -9,11 +10,14 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
 use axum::extract::{Path as UrlPath, State};
 use axum::http::{HeaderMap, StatusCode, header};
 use axum::response::IntoResponse;
+use musicbrainz_mirror::config::{BuildOptions, Config};
 use musicbrainz_mirror::dump;
+use musicbrainz_mirror::mirror::Mirror;
 use sha2::{Digest as _, Sha256};
 
 mod common;
@@ -303,4 +307,92 @@ fn an_import_killed_at_any_step_continues_to_the_same_store() {
     assert!(!output.status.success());
     assert_same_store(&out, &reference);
     std::fs::remove_dir_all(&dir).unwrap();
+}
+
+fn config(data_dir: &Path, addr: std::net::SocketAddr) -> Config {
+    Config {
+        data_dir: data_dir.to_owned(),
+        listen: "127.0.0.1:0".parse().unwrap(),
+        update_interval: Some(Duration::from_hours(1)),
+        min_free_bytes: 0,
+        dump_url: format!("http://{addr}/exports"),
+        cover_art_url: "https://coverartarchive.org".into(),
+        build: BuildOptions {
+            threads: 1,
+            memory_mb: 50,
+            compress_rows: true,
+        },
+    }
+}
+
+/// Starts the updater on `data_dir` (as after a restart) and lets it update.
+async fn restart(data_dir: &Path, addr: std::net::SocketAddr) -> Mirror {
+    let mirror = Mirror::new(config(data_dir, addr)).unwrap();
+    mirror.start().await.unwrap();
+    mirror.update().await.unwrap();
+    assert_eq!(mirror.current().load_full().unwrap().dump(), DUMP);
+    mirror
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn a_restarted_update_uses_what_it_had_downloaded_and_built() {
+    let exports = Exports::fixture();
+    let addr = exports.serve().await;
+    let data_dir = temp_dir("restart");
+    let import = data_dir.join("import");
+    let (work, partial) = (import.join(DUMP), import.join(format!("{DUMP}.partial")));
+    let store = data_dir.join(format!("musicbrainz-{DUMP}"));
+
+    // Stopped after the downloads: they are checked, not downloaded again.
+    std::fs::create_dir_all(&work).unwrap();
+    for (name, data) in &exports.files {
+        std::fs::write(work.join(name), data).unwrap();
+    }
+    let mirror = restart(&data_dir, addr).await;
+    assert_eq!(exports.counts(), (0, 0));
+    assert!(!work.exists() && !partial.exists());
+    drop(mirror);
+    std::fs::remove_dir_all(&store).unwrap();
+
+    // Stopped while building, past the tables, the downloads already removed: the build continues without them.
+    std::fs::create_dir_all(&import).unwrap();
+    assert!(!import_killed(&partial, "derived values written"));
+    let mirror = restart(&data_dir, addr).await;
+    assert_eq!(exports.counts(), (0, 0));
+    drop(mirror);
+    std::fs::remove_dir_all(&store).unwrap();
+
+    // Stopped once the store was built, before it was moved into place: served as it is.
+    assert!(import_killed(&partial, "no such line"));
+    let mirror = restart(&data_dir, addr).await;
+    assert_eq!(exports.counts(), (0, 0));
+    assert!(!partial.exists());
+    drop(mirror);
+
+    // Stopped after the switch, before the downloads were removed (and with a store being removed): removed at
+    // start.
+    std::fs::create_dir_all(&work).unwrap();
+    std::fs::write(work.join("mbdump.tar.bz2"), b"left").unwrap();
+    std::fs::create_dir_all(import.join("musicbrainz-20261001-000000.removing")).unwrap();
+    // An older dump's leftovers too, and a newer one's (kept: its import continues).
+    let newer = "20261201-000000";
+    for name in ["20261001-000000", "20261001-000000.partial", newer] {
+        std::fs::create_dir_all(import.join(name)).unwrap();
+    }
+    let mirror = Mirror::new(config(&data_dir, addr)).unwrap();
+    mirror.start().await.unwrap();
+    let mut left: Vec<_> = std::fs::read_dir(&import)
+        .unwrap()
+        .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
+        .collect();
+    left.sort();
+    assert_eq!(left, [newer]);
+
+    std::fs::remove_dir_all(&data_dir).unwrap();
+}
+
+/// Imports the fixture into `out` as the updater would, killed at the first log line with `pattern`. Whether it
+/// finished.
+fn import_killed(out: &Path, pattern: &str) -> bool {
+    import(out, Some((pattern, 1)))
 }
