@@ -119,7 +119,7 @@ Flags, each with an environment variable fallback:
 | --- | --- | --- | --- |
 | `--data-dir` | `MUSICBRAINZ_MIRROR_DATA_DIR` | `/data` | Stores (`musicbrainz-<dump>/`), downloads and builds (`import/`) |
 | `--listen` | `MUSICBRAINZ_MIRROR_LISTEN` | `0.0.0.0:5000` | HTTP address |
-| `--update-interval` | `MUSICBRAINZ_MIRROR_UPDATE_INTERVAL` | `6h` | How often to look for a newer dump (`30m`, `1d`); `0`: never |
+| `--update-schedule` | `MUSICBRAINZ_MIRROR_UPDATE_SCHEDULE` | `34 2 * * *` | When to look for a newer dump, besides at start: a cron expression (`minute hour day month weekday`, e.g. `0 */6 * * *`, `30 4 * * wed,sat`, or `@daily`) in the time zone of `TZ` (see below); `off`: never. The default is every day at 02:34 |
 | `--min-free-gb` | `MUSICBRAINZ_MIRROR_MIN_FREE_GB` | `40` | Free space an update needs before it starts (what an interrupted one downloaded and built counts as free) |
 | `--dump-url` | `MUSICBRAINZ_MIRROR_DUMP_URL` | MetaBrainz's | The full exports (a directory with `LATEST` and a directory per dump) |
 | `--cover-art-url` | `MUSICBRAINZ_MIRROR_COVER_ART_URL` | `https://coverartarchive.org` | Where cover art image URLs point |
@@ -127,6 +127,11 @@ Flags, each with an environment variable fallback:
 | `--build-memory-mb` | `MUSICBRAINZ_MIRROR_BUILD_MEMORY_MB` | `1024` | Memory of the search index builders (the rest of a build needs little) |
 | `--compress-rows` | `MUSICBRAINZ_MIRROR_COMPRESS_ROWS` | off | Build stores with their rows compressed: smaller, a little slower to read (see below) |
 | `--schema-mismatch` | `MUSICBRAINZ_MIRROR_SCHEMA_MISMATCH` | `refuse` | A dump of another MusicBrainz schema (its `SCHEMA_SEQUENCE`) than this version reads: `refuse` fails its import (the store being served stays, and the dump is tried again after a restart), `warn` imports it anyway (it still fails if a table's number of columns changed) |
+
+`TZ` sets the time zone of the schedule, as an IANA name (`TZ=Europe/Riga`); without it, the system's time zone
+(UTC in the container image). The time zone database is built in, so the `FROM scratch` image needs no files for it.
+`--update-interval` was replaced by `--update-schedule`: a start with `--update-interval` or
+`MUSICBRAINZ_MIRROR_UPDATE_INTERVAL` set fails, rather than ignore it.
 
 `RUST_LOG` sets the log filter (default `info`).
 

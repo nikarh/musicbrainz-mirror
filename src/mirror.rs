@@ -195,7 +195,7 @@ impl Mirror {
         if served.is_some() {
             return Ok(());
         }
-        if self.config.update_interval.is_none() {
+        if self.config.update_schedule.is_none() {
             return Err(MirrorError::NoStore(dir));
         }
         tracing::info!(
@@ -204,17 +204,21 @@ impl Mirror {
         Ok(())
     }
 
-    /// Checks for a newer dump every `update_interval`, forever.
+    /// Checks for a newer dump now and then at each time of `update_schedule`, forever.
     pub async fn run_updates(self: Arc<Self>) {
-        let Some(interval) = self.config.update_interval else {
+        let Some(schedule) = self.config.update_schedule.clone() else {
             return;
         };
         loop {
             if let Err(e) = self.update().await {
                 tracing::error!(error = %e, "update failed");
             }
-            tracing::info!("next check for a new dump in {}", human(interval));
-            tokio::time::sleep(interval).await;
+            let Some((next, wait)) = schedule.next() else {
+                tracing::warn!(%schedule, "the update schedule has no next time: no more checks for a new dump");
+                return;
+            };
+            tracing::info!("next check for a new dump at {next} (in {})", human(wait));
+            tokio::time::sleep(wait).await;
         }
     }
 
@@ -478,15 +482,25 @@ fn gb(bytes: u64) -> String {
     format!("{}.{}", tenths / 10, tenths % 10)
 }
 
-/// A duration as the largest whole unit (`6h`, `30m`, `90s`).
+/// A duration for the log, like `6h` or `19h 34m 5s`.
 #[must_use]
 pub fn human(d: Duration) -> String {
     let s = d.as_secs();
-    match s {
-        _ if s >= 86_400 && s.is_multiple_of(86_400) => format!("{}d", s / 86_400),
-        _ if s >= 3600 && s.is_multiple_of(3600) => format!("{}h", s / 3600),
-        _ if s >= 60 && s.is_multiple_of(60) => format!("{}m", s / 60),
-        _ => format!("{s}s"),
+    let parts = [
+        (s / 86_400, "d"),
+        (s / 3600 % 24, "h"),
+        (s / 60 % 60, "m"),
+        (s % 60, "s"),
+    ];
+    let text: Vec<String> = parts
+        .iter()
+        .filter(|(n, _)| *n > 0)
+        .map(|(n, unit)| format!("{n}{unit}"))
+        .collect();
+    if text.is_empty() {
+        "0s".to_owned()
+    } else {
+        text.join(" ")
     }
 }
 
@@ -517,6 +531,11 @@ mod tests {
         assert_eq!(human(Duration::from_hours(6)), "6h");
         assert_eq!(human(Duration::from_hours(24)), "1d");
         assert_eq!(human(Duration::from_mins(30)), "30m");
-        assert_eq!(human(Duration::from_secs(90)), "90s");
+        assert_eq!(human(Duration::from_secs(90)), "1m 30s");
+        assert_eq!(
+            human(Duration::from_secs(19 * 3600 + 34 * 60 + 5)),
+            "19h 34m 5s"
+        );
+        assert_eq!(human(Duration::ZERO), "0s");
     }
 }

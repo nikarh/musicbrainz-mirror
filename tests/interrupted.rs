@@ -10,12 +10,11 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
 
 use axum::extract::{Path as UrlPath, State};
 use axum::http::{HeaderMap, StatusCode, header};
 use axum::response::IntoResponse;
-use musicbrainz_mirror::config::{BuildOptions, Config};
+use musicbrainz_mirror::config::{BuildOptions, Config, Schedule};
 use musicbrainz_mirror::dump;
 use musicbrainz_mirror::mirror::Mirror;
 use sha2::{Digest as _, Sha256};
@@ -313,7 +312,7 @@ fn config(data_dir: &Path, addr: std::net::SocketAddr) -> Config {
     Config {
         data_dir: data_dir.to_owned(),
         listen: "127.0.0.1:0".parse().unwrap(),
-        update_interval: Some(Duration::from_hours(1)),
+        update_schedule: Some(Schedule::default()),
         min_free_bytes: 0,
         dump_url: format!("http://{addr}/exports"),
         cover_art_url: "https://coverartarchive.org".into(),

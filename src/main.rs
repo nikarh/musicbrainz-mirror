@@ -81,9 +81,10 @@ async fn serve(config: Config) -> ExitCode {
     tracing::info!(version = VERSION, "starting");
     tracing::info!(
         data_dir = %config.data_dir.display(),
-        update_interval = %config
-            .update_interval
-            .map_or_else(|| "off".to_owned(), musicbrainz_mirror::mirror::human),
+        update_schedule = %config
+            .update_schedule
+            .as_ref()
+            .map_or_else(|| "off".to_owned(), ToString::to_string),
         min_free_gb = config.min_free_bytes >> 30,
         build_threads = config.build.threads,
         build_memory_mb = config.build.memory_mb,

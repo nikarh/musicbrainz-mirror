@@ -5,6 +5,9 @@ use std::path::PathBuf;
 use std::str::FromStr;
 use std::time::Duration;
 
+use jiff::tz::TimeZone;
+use jiff::{Timestamp, Zoned};
+
 pub use crate::store::build::{BuildOptions, SchemaMismatch};
 
 pub const DEFAULT_DUMP_URL: &str = "https://data.metabrainz.org/pub/musicbrainz/data/fullexport";
@@ -21,8 +24,10 @@ Usage: musicbrainz-mirror [serve] [OPTIONS]
 Options (each has an environment variable fallback):
   --data-dir DIR           MUSICBRAINZ_MIRROR_DATA_DIR        stores, downloads and builds [/data]
   --listen ADDR            MUSICBRAINZ_MIRROR_LISTEN          HTTP address [0.0.0.0:5000]
-  --update-interval TIME   MUSICBRAINZ_MIRROR_UPDATE_INTERVAL how often to check for a new dump (30m, 6h, 7d);
-                                                              0: never [6h]
+  --update-schedule CRON   MUSICBRAINZ_MIRROR_UPDATE_SCHEDULE when to check for a new dump, besides at start: a cron
+                                                              expression (minute hour day month weekday) in the
+                                                              time zone of TZ (else the system's); off: never
+                                                              [34 2 * * *, every day at 02:34]
   --min-free-gb GB         MUSICBRAINZ_MIRROR_MIN_FREE_GB     free space an update needs before it starts (what an
                                                               interrupted one downloaded and built counts) [40]
   --dump-url URL           MUSICBRAINZ_MIRROR_DUMP_URL        where the full exports are [MetaBrainz's]
@@ -50,7 +55,7 @@ pub struct Config {
     pub data_dir: PathBuf,
     pub listen: SocketAddr,
     /// `None`: never check for a new dump (the newest database in the data directory is served).
-    pub update_interval: Option<Duration>,
+    pub update_schedule: Option<Schedule>,
     pub min_free_bytes: u64,
     pub dump_url: String,
     pub cover_art_url: String,
@@ -65,6 +70,11 @@ pub enum ConfigError {
     Args(#[from] pico_args::Error),
     #[error("unknown arguments: {0}")]
     Unknown(String),
+    #[error("{old} was replaced by {new}")]
+    Replaced {
+        old: &'static str,
+        new: &'static str,
+    },
 }
 
 impl Config {
@@ -81,12 +91,31 @@ impl Config {
             "MUSICBRAINZ_MIRROR_LISTEN",
             SocketAddr::from(([0, 0, 0, 0], 5000)),
         )?;
-        let interval: Interval = value(
+        if args.contains("--update-interval") {
+            return Err(ConfigError::Replaced {
+                old: "--update-interval",
+                new: "--update-schedule",
+            });
+        }
+        if std::env::var_os("MUSICBRAINZ_MIRROR_UPDATE_INTERVAL").is_some() {
+            return Err(ConfigError::Replaced {
+                old: "MUSICBRAINZ_MIRROR_UPDATE_INTERVAL",
+                new: "MUSICBRAINZ_MIRROR_UPDATE_SCHEDULE",
+            });
+        }
+        let cron: Cron = value(
             args,
-            "--update-interval",
-            "MUSICBRAINZ_MIRROR_UPDATE_INTERVAL",
-            Interval(Some(Duration::from_hours(6))),
+            "--update-schedule",
+            "MUSICBRAINZ_MIRROR_UPDATE_SCHEDULE",
+            Cron(Some(default_schedule())),
         )?;
+        let update_schedule = match cron.0 {
+            Some(cron) => Some(Schedule {
+                cron,
+                tz: time_zone()?,
+            }),
+            None => None,
+        };
         let min_free_gb: u64 = value(args, "--min-free-gb", "MUSICBRAINZ_MIRROR_MIN_FREE_GB", 40)?;
         let dump_url = value(
             args,
@@ -105,7 +134,7 @@ impl Config {
         Ok(Self {
             data_dir: PathBuf::from(data_dir),
             listen,
-            update_interval: interval.0,
+            update_schedule,
             min_free_bytes: min_free_gb.saturating_mul(1 << 30),
             dump_url: dump_url.trim_end_matches('/').to_owned(),
             cover_art_url: cover_art_url.trim_end_matches('/').to_owned(),
@@ -200,31 +229,92 @@ fn finish(args: &mut pico_args::Arguments) -> Result<(), ConfigError> {
     Err(ConfigError::Unknown(rest.join(" ")))
 }
 
-/// A duration like `90s`, `30m`, `6h` or `7d`; `0` is none.
-struct Interval(Option<Duration>);
+/// The default schedule: every day at 02:34.
+pub const DEFAULT_UPDATE_SCHEDULE: &str = "34 2 * * *";
 
-impl FromStr for Interval {
-    type Err = ();
+/// When to check for a new dump: a cron expression in a time zone.
+#[derive(Debug, Clone)]
+pub struct Schedule {
+    cron: croner::Cron,
+    tz: TimeZone,
+}
 
-    fn from_str(s: &str) -> Result<Self, ()> {
-        if s == "0" {
+impl Schedule {
+    /// A cron expression (`minute hour day month weekday`, or a nickname like `@daily`) in the time zone `tz`.
+    pub fn parse(expr: &str, tz: TimeZone) -> Result<Self, croner::errors::CronError> {
+        Ok(Self {
+            cron: expr.parse()?,
+            tz,
+        })
+    }
+
+    /// The first time after `now` the schedule fires (`None` for one that never does, like `0 0 30 2 *`).
+    #[must_use]
+    pub fn next_after(&self, now: Timestamp) -> Option<Zoned> {
+        self.cron
+            .find_next_occurrence(&now.to_zoned(self.tz.clone()), false)
+            .ok()
+    }
+
+    /// The next time the schedule fires, and how long until then.
+    #[must_use]
+    pub fn next(&self) -> Option<(Zoned, Duration)> {
+        let now = Timestamp::now();
+        let next = self.next_after(now)?;
+        let wait = Duration::try_from(now.duration_until(next.timestamp())).unwrap_or_default();
+        Some((next, wait))
+    }
+}
+
+impl Default for Schedule {
+    /// Every day at 02:34 UTC.
+    fn default() -> Self {
+        Self {
+            cron: default_schedule(),
+            tz: TimeZone::UTC,
+        }
+    }
+}
+
+impl std::fmt::Display for Schedule {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let tz = self.tz.iana_name().unwrap_or("local time");
+        write!(f, "{} ({tz})", self.cron.pattern.as_str())
+    }
+}
+
+/// A cron expression; `off` is none.
+struct Cron(Option<croner::Cron>);
+
+fn default_schedule() -> croner::Cron {
+    // A test checks that it parses.
+    DEFAULT_UPDATE_SCHEDULE
+        .parse()
+        .unwrap_or_else(|_| unreachable!("the default schedule parses"))
+}
+
+impl FromStr for Cron {
+    type Err = croner::errors::CronError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if s.trim().eq_ignore_ascii_case("off") {
             return Ok(Self(None));
         }
-        let split = s.find(|c: char| !c.is_ascii_digit()).ok_or(())?;
-        let (number, unit) = s.split_at(split);
-        let number: u64 = number.parse().map_err(|_| ())?;
-        let seconds = match unit {
-            "s" => 1,
-            "m" => 60,
-            "h" => 3600,
-            "d" => 86400,
-            _ => return Err(()),
-        };
-        match number.checked_mul(seconds) {
-            Some(0) => Ok(Self(None)),
-            Some(secs) => Ok(Self(Some(Duration::from_secs(secs)))),
-            None => Err(()),
-        }
+        s.parse().map(|c| Self(Some(c)))
+    }
+}
+
+/// The time zone of `TZ`, else the system's, else UTC; a `TZ` that names no time zone is an error.
+fn time_zone() -> Result<TimeZone, ConfigError> {
+    match TimeZone::try_system() {
+        Ok(tz) => Ok(tz),
+        Err(_) => match std::env::var("TZ") {
+            Ok(tz) if !tz.is_empty() => Err(ConfigError::Invalid {
+                name: "TZ".to_owned(),
+                value: tz,
+            }),
+            _ => Ok(TimeZone::UTC),
+        },
     }
 }
 
@@ -262,14 +352,14 @@ mod tests {
         let c = parse(&[
             "--data-dir",
             "/x",
-            "--update-interval",
-            "0",
+            "--update-schedule",
+            "off",
             "--dump-url",
             "http://h/",
         ])
         .unwrap();
         assert_eq!(c.data_dir, PathBuf::from("/x"));
-        assert_eq!(c.update_interval, None);
+        assert!(c.update_schedule.is_none());
         assert_eq!(c.dump_url, "http://h");
         assert_eq!(c.listen.port(), 5000);
         assert_eq!(c.cover_art_url, DEFAULT_COVER_ART_URL);
@@ -286,25 +376,66 @@ mod tests {
     fn rejects_unknown_and_invalid() {
         assert!(matches!(parse(&["--nope"]), Err(ConfigError::Unknown(_))));
         assert!(matches!(
-            parse(&["--update-interval", "x"]),
+            parse(&["--update-schedule", "x"]),
             Err(ConfigError::Invalid { .. })
         ));
         assert!(matches!(
-            parse(&["--update-interval", "24"]),
+            parse(&["--update-schedule", "61 * * * *"]),
             Err(ConfigError::Invalid { .. })
+        ));
+        assert!(matches!(
+            parse(&["--update-interval", "24h"]),
+            Err(ConfigError::Replaced { .. })
         ));
     }
 
     #[test]
-    fn intervals() {
-        let interval = |s: &str| parse(&["--update-interval", s]).unwrap().update_interval;
-        assert_eq!(interval("90s"), Some(Duration::from_secs(90)));
-        assert_eq!(interval("30m"), Some(Duration::from_mins(30)));
-        assert_eq!(interval("7d"), Some(Duration::from_hours(7 * 24)));
-        assert_eq!(interval("0"), None);
+    fn schedules() {
+        let at = |cron: &str, tz: &str, now: &str| {
+            Schedule::parse(cron, jiff::tz::db().get(tz).unwrap())
+                .unwrap()
+                .next_after(now.parse().unwrap())
+                .unwrap()
+                .timestamp()
+                .to_string()
+        };
+        // the default: every day at 02:34
+        let daily = DEFAULT_UPDATE_SCHEDULE;
         assert_eq!(
-            parse(&[]).unwrap().update_interval,
-            Some(Duration::from_hours(6))
+            at(daily, "UTC", "2026-11-08T01:00:00Z"),
+            "2026-11-08T02:34:00Z"
+        );
+        assert_eq!(
+            at(daily, "UTC", "2026-11-08T02:34:00Z"),
+            "2026-11-09T02:34:00Z"
+        );
+        // in the time zone given, across a daylight saving change
+        assert_eq!(
+            at(daily, "Europe/Riga", "2026-10-24T12:00:00Z"),
+            "2026-10-24T23:34:00Z"
+        );
+        assert_eq!(
+            at(daily, "Europe/Riga", "2026-10-25T12:00:00Z"),
+            "2026-10-26T00:34:00Z"
+        );
+        assert_eq!(
+            at("0 */6 * * *", "UTC", "2026-11-08T07:00:00Z"),
+            "2026-11-08T12:00:00Z"
+        );
+        assert_eq!(
+            at("@weekly", "UTC", "2026-11-08T07:00:00Z"),
+            "2026-11-15T00:00:00Z"
+        );
+        assert!("Off".parse::<Cron>().unwrap().0.is_none());
+        assert_eq!(
+            parse(&[])
+                .unwrap()
+                .update_schedule
+                .unwrap()
+                .cron
+                .pattern
+                .as_str(),
+            DEFAULT_UPDATE_SCHEDULE
         );
     }
 

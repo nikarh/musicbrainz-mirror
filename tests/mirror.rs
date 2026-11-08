@@ -13,7 +13,7 @@ use std::time::Duration;
 use axum::extract::{Path as UrlPath, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
-use musicbrainz_mirror::config::{BuildOptions, Config};
+use musicbrainz_mirror::config::{BuildOptions, Config, Schedule};
 use musicbrainz_mirror::mirror::Mirror;
 use sha2::{Digest as _, Sha256};
 
@@ -100,7 +100,7 @@ async fn downloads_imports_and_switches_dumps() {
     let config = Config {
         data_dir: data_dir.clone(),
         listen: "127.0.0.1:0".parse().unwrap(),
-        update_interval: Some(Duration::from_hours(1)),
+        update_schedule: Some(Schedule::default()),
         min_free_bytes: 0,
         dump_url: format!("http://{addr}/exports"),
         cover_art_url: "https://coverartarchive.org".into(),
@@ -152,7 +152,7 @@ async fn downloads_imports_and_switches_dumps() {
     // A restart serves what is there.
     drop(mirror);
     let restarted = Mirror::new(Config {
-        update_interval: None,
+        update_schedule: None,
         ..mirror_config(&data_dir, addr)
     })
     .unwrap();
@@ -168,7 +168,7 @@ fn mirror_config(data_dir: &Path, addr: std::net::SocketAddr) -> Config {
     Config {
         data_dir: data_dir.to_owned(),
         listen: "127.0.0.1:0".parse().unwrap(),
-        update_interval: Some(Duration::from_hours(1)),
+        update_schedule: Some(Schedule::default()),
         min_free_bytes: 0,
         dump_url: format!("http://{addr}/exports"),
         cover_art_url: "https://coverartarchive.org".into(),
