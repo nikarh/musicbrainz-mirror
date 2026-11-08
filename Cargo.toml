@@ -1,6 +1,6 @@
 [package]
 name = "musicbrainz-mirror"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2024"
 rust-version = "1.99"
 description = "A self-hosted, read-only MusicBrainz web service (ws/2) on a local copy of MusicBrainz's database dumps, kept up to date"
