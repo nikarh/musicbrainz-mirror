@@ -22,7 +22,8 @@ Options (each has an environment variable fallback):
   --listen ADDR            MUSICBRAINZ_MIRROR_LISTEN          HTTP address [0.0.0.0:5000]
   --update-interval TIME   MUSICBRAINZ_MIRROR_UPDATE_INTERVAL how often to check for a new dump (30m, 6h, 7d);
                                                               0: never [6h]
-  --min-free-gb GB         MUSICBRAINZ_MIRROR_MIN_FREE_GB     free space an update needs before it starts [40]
+  --min-free-gb GB         MUSICBRAINZ_MIRROR_MIN_FREE_GB     free space an update needs before it starts (what an
+                                                              interrupted one downloaded and built counts) [40]
   --dump-url URL           MUSICBRAINZ_MIRROR_DUMP_URL        where the full exports are [MetaBrainz's]
   --cover-art-url URL      MUSICBRAINZ_MIRROR_COVER_ART_URL   where cover art images are [https://coverartarchive.org]
   --build-threads N        MUSICBRAINZ_MIRROR_BUILD_THREADS   threads that build the search indexes [2]
@@ -34,7 +35,8 @@ Options (each has an environment variable fallback):
   -V, --version            the version
 
 import builds a store from dump archives (mbdump.tar.bz2, mbdump-derived.tar.bz2, mbdump-cover-art-archive.tar.bz2)
-or directories they were unpacked into, without serving it. --out is a new directory (it must not exist).
+or directories they were unpacked into, without serving it. --out is a new directory, or one an interrupted import
+(of the same --dump) left: that import continues.
 
 Logging: RUST_LOG (default info).";
 

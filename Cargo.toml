@@ -85,6 +85,11 @@ debug = false
 # run dev`.
 opt-level = 2
 
+# This crate too, a little: unoptimized, a build of the test fixture's store takes 50s instead of 3s, and the tests
+# build several.
+[profile.dev.package.musicbrainz-mirror]
+opt-level = 1
+
 [profile.release]
 strip = true
 panic = "abort"

@@ -38,6 +38,8 @@ pub enum BuildError {
     Missing(&'static str),
     #[error("{0} exists: a store is built into a new directory")]
     Exists(PathBuf),
+    #[error("{0} is in use by another process")]
+    Locked(PathBuf),
     #[error("the import was interrupted")]
     Interrupted,
     #[error("{0}")]
@@ -541,50 +543,191 @@ const COMPRESS_MIN: u64 = 64 << 10;
 /// zstd's level for rows.
 const COMPRESS_LEVEL: i32 = 3;
 
+/// The steps of a build, in order. Each is recorded in `build.json` once its files are on disk, and an interrupted
+/// build continues after the last one recorded. Only the first reads the dump.
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
+)]
+#[serde(rename_all = "lowercase")]
+pub enum Step {
+    /// The directory is the build's (nothing in it to keep yet).
+    Started,
+    /// The tables, from the dump.
+    Tables,
+    /// The derived values (`derive.rs`).
+    Derived,
+    /// The search indexes.
+    Search,
+}
+
+/// The record of a build in progress (`build.json`, removed when the store is finished).
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+struct Progress {
+    dump: String,
+    /// The program that built the steps so far: another one continues nothing.
+    version: String,
+    format_version: u32,
+    done: Step,
+    /// From the tables: the dump's `TIMESTAMP`, `SCHEMA_SEQUENCE`, `REPLICATION_SEQUENCE`; rows per table.
+    info: HashMap<String, String>,
+    rows: HashMap<String, u64>,
+}
+
+const PROGRESS: &str = "build.json";
+const VERSION: &str = env!("MUSICBRAINZ_MIRROR_VERSION");
+
+impl Progress {
+    fn read(out: &Path, dump: &str) -> Option<Self> {
+        let progress: Self =
+            serde_json::from_slice(&std::fs::read(out.join(PROGRESS)).ok()?).ok()?;
+        (progress.dump == dump
+            && progress.version == VERSION
+            && progress.format_version == super::FORMAT_VERSION)
+            .then_some(progress)
+    }
+
+    /// Records a finished step, once everything it wrote is on disk.
+    fn done(&mut self, out: &Path, step: Step) -> Result<(), BuildError> {
+        self.done = step;
+        let io = |e| BuildError::Io(out.join(PROGRESS), e);
+        super::file::sync_filesystem(out).map_err(io)?;
+        let json = serde_json::to_vec_pretty(self).map_err(|e| BuildError::Other(e.to_string()))?;
+        super::file::write_durably(&out.join(PROGRESS), &json).map_err(io)
+    }
+
+    fn summary(&self) -> Summary {
+        Summary {
+            rows: self.rows.clone(),
+            info: self.info.clone(),
+        }
+    }
+}
+
+/// Whether the build into `out` finished: it has a `meta.json` (written last).
+#[must_use]
+pub fn finished(out: &Path) -> bool {
+    out.join("meta.json").exists()
+}
+
+/// Whether continuing a build of `dump` into `out` reads the dump: not when it is finished or past its tables.
+#[must_use]
+pub fn needs_sources(out: &Path, dump: &str) -> bool {
+    !finished(out) && Progress::read(out, dump).is_none_or(|p| p.done < Step::Tables)
+}
+
 /// Builds a complete store into `out` (created: it must not exist): the tables, the derived files, the search
-/// indexes, the rows compressed (when asked), and `meta.json` last (a store without it is unfinished).
+/// indexes, the rows compressed (when asked), and `meta.json` last (a store without it is unfinished), once the rest
+/// is on disk.
 pub fn build(
     sources: &[PathBuf],
     dump: &str,
     out: &Path,
     options: &BuildOptions,
 ) -> Result<Summary, BuildError> {
+    run(sources, dump, out, options, false, None)
+}
+
+/// Continues a build of `dump` into `out` that was interrupted, after its last finished step; a build of something
+/// else (another dump, another version of this program) or one interrupted before its first step is started over.
+/// Without `out`, the same as [`build`]. A finished store (or a directory that isn't a build's) is left alone:
+/// [`BuildError::Exists`].
+pub fn resume(
+    sources: &[PathBuf],
+    dump: &str,
+    out: &Path,
+    options: &BuildOptions,
+) -> Result<Summary, BuildError> {
+    run(sources, dump, out, options, true, None)
+}
+
+fn run(
+    sources: &[PathBuf],
+    dump: &str,
+    out: &Path,
+    options: &BuildOptions,
+    resume: bool,
+    stop_after: Option<Step>,
+) -> Result<Summary, BuildError> {
     let started = Instant::now();
-    // A new directory, never an existing one: its files are created by truncating whatever has their names, which
-    // under a store being served (memory-mapped) would change the bytes it reads.
-    if let Some(parent) = out.parent().filter(|p| !p.as_os_str().is_empty()) {
-        std::fs::create_dir_all(parent).map_err(|e| BuildError::Io(parent.to_owned(), e))?;
+    let io = |e| BuildError::Io(out.to_owned(), e);
+    let (mut progress, _lock) = begin(dump, out, resume)?;
+    let stop = |progress: &Progress| stop_after.is_some_and(|s| progress.done >= s);
+    if stop(&progress) {
+        return Ok(progress.summary());
     }
-    std::fs::create_dir(out).map_err(|e| match e.kind() {
-        std::io::ErrorKind::AlreadyExists => BuildError::Exists(out.to_owned()),
-        _ => BuildError::Io(out.to_owned(), e),
-    })?;
-    let summary = tables(sources, out)?;
-    let store = super::Store::partial(out).map_err(|e| BuildError::Io(out.to_owned(), e))?;
-    super::derive::build(&store).map_err(|e| BuildError::Io(out.to_owned(), e))?;
-    tracing::info!(
-        elapsed_s = started.elapsed().as_secs(),
-        "derived values written"
-    );
-    // Reopened: the search documents use the derived values.
-    let store = super::Store::partial(out).map_err(|e| BuildError::Io(out.to_owned(), e))?;
-    super::search::build(
-        &store,
-        &out.join("search"),
-        options.threads,
-        options.memory_mb,
-    )
-    .map_err(|e| BuildError::Other(format!("search index: {e}")))?;
-    drop(store);
-    tracing::info!(
-        elapsed_s = started.elapsed().as_secs(),
-        "search indexes built"
-    );
+    if progress.done < Step::Tables {
+        // What an interrupted run of this step left.
+        clear(out).map_err(io)?;
+        let summary = tables(sources, out)?;
+        progress.info = summary.info;
+        progress.rows = summary.rows;
+        progress.done(out, Step::Tables)?;
+    }
+    if stop(&progress) {
+        return Ok(progress.summary());
+    }
+    if progress.done < Step::Derived {
+        // Without the derived files an interrupted run of this step left: they are rewritten, not read.
+        let store = super::Store::tables_only(out).map_err(io)?;
+        super::derive::build(&store).map_err(io)?;
+        drop(store);
+        tracing::info!(
+            elapsed_s = started.elapsed().as_secs(),
+            "derived values written"
+        );
+        progress.done(out, Step::Derived)?;
+    }
+    if stop(&progress) {
+        return Ok(progress.summary());
+    }
+    if progress.done < Step::Search {
+        let search = out.join("search");
+        if let Err(e) = std::fs::remove_dir_all(&search)
+            && e.kind() != std::io::ErrorKind::NotFound
+        {
+            return Err(BuildError::Io(search, e));
+        }
+        // With the derived values: the search documents use them.
+        let store = super::Store::partial(out).map_err(io)?;
+        super::search::build(&store, &search, options.threads, options.memory_mb)
+            .map_err(|e| BuildError::Other(format!("search index: {e}")))?;
+        drop(store);
+        tracing::info!(
+            elapsed_s = started.elapsed().as_secs(),
+            "search indexes built"
+        );
+        progress.done(out, Step::Search)?;
+    }
+    if stop(&progress) {
+        return Ok(progress.summary());
+    }
+    // Table by table, each finished before its plain rows are removed: an interrupted run leaves tables to
+    // compress (again), never a table without rows. What it left of a table it didn't finish is removed (the
+    // compressed rows are read when they are there), whether or not this run compresses that table.
+    for spec in schema::all().into_values() {
+        let rows = with_ext(&out.join(&spec.name), "rows");
+        if rows.exists() {
+            for ext in ["z", "zi", "gid"] {
+                let path = with_ext(&rows, ext);
+                if let Err(e) = std::fs::remove_file(&path)
+                    && e.kind() != std::io::ErrorKind::NotFound
+                {
+                    return Err(BuildError::Io(path, e));
+                }
+            }
+        }
+    }
     if options.compress_rows {
         compress(out, options.threads)?;
         tracing::info!(elapsed_s = started.elapsed().as_secs(), "rows compressed");
     }
-    let mut meta: HashMap<String, String> = summary
+    let mut files = super::manifest(out).map_err(io)?;
+    // (removed once the store is finished)
+    files.remove(PROGRESS);
+    let json = serde_json::to_vec_pretty(&files).map_err(|e| BuildError::Other(e.to_string()))?;
+    super::file::write_durably(&out.join(super::MANIFEST), &json)
+        .map_err(|e| BuildError::Io(out.join(super::MANIFEST), e))?;
+    let mut meta: std::collections::BTreeMap<String, String> = progress
         .info
         .iter()
         .map(|(k, v)| (k.to_lowercase(), v.clone()))
@@ -592,10 +735,93 @@ pub fn build(
     meta.insert("dump".into(), dump.to_owned());
     meta.insert("format_version".into(), super::FORMAT_VERSION.to_string());
     let json = serde_json::to_vec_pretty(&meta).map_err(|e| BuildError::Other(e.to_string()))?;
-    std::fs::write(out.join("meta.json"), json)
+    // Every file of the store on disk before the mark of a finished store: after a power loss, a store with a
+    // `meta.json` has all of its contents.
+    super::file::sync_filesystem(out).map_err(io)?;
+    super::file::write_durably(&out.join("meta.json"), &json)
         .map_err(|e| BuildError::Io(out.join("meta.json"), e))?;
+    std::fs::remove_file(out.join(PROGRESS)).map_err(io)?;
     tracing::info!(elapsed_s = started.elapsed().as_secs(), "store built");
-    Ok(summary)
+    Ok(progress.summary())
+}
+
+/// The build's directory, locked, and its progress: a new directory, or (`resume`) the one of an interrupted build.
+fn begin(
+    dump: &str,
+    out: &Path,
+    resume: bool,
+) -> Result<(Progress, super::file::DirLock), BuildError> {
+    let io = |e| BuildError::Io(out.to_owned(), e);
+    if let Some(parent) = out.parent().filter(|p| !p.as_os_str().is_empty()) {
+        std::fs::create_dir_all(parent).map_err(|e| BuildError::Io(parent.to_owned(), e))?;
+    }
+    // A new directory, unless continuing: a build's files are created by truncating whatever has their names, which
+    // under a store being served (memory-mapped) would change the bytes it reads.
+    let created = match std::fs::create_dir(out) {
+        Ok(()) => true,
+        Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists && resume => false,
+        Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {
+            return Err(BuildError::Exists(out.to_owned()));
+        }
+        Err(e) => return Err(io(e)),
+    };
+    // One build at a time in a directory.
+    let lock = super::file::DirLock::try_lock(out)
+        .map_err(io)?
+        .ok_or_else(|| BuildError::Locked(out.to_owned()))?;
+    if created {
+        return Ok((start(dump, out)?, lock));
+    }
+    if finished(out) {
+        return Err(BuildError::Exists(out.to_owned()));
+    }
+    if let Some(progress) = Progress::read(out, dump) {
+        tracing::info!(after = ?progress.done, "continuing an interrupted build");
+        return Ok((progress, lock));
+    }
+    // A build's directory has a `build.json` from its start (or nothing yet, when it was interrupted before writing
+    // it).
+    let ours = out.join(PROGRESS).exists()
+        || std::fs::read_dir(out)
+            .map_err(io)?
+            .filter_map(Result::ok)
+            .all(|e| e.file_name() == *format!("{PROGRESS}.tmp"));
+    if !ours {
+        return Err(BuildError::Exists(out.to_owned()));
+    }
+    // Recorded as started before anything is removed (by the first step), so that it stays a build's.
+    tracing::info!("starting an interrupted build of something else over");
+    Ok((start(dump, out)?, lock))
+}
+
+/// Records a build of `dump` as started in `out`.
+fn start(dump: &str, out: &Path) -> Result<Progress, BuildError> {
+    let mut progress = Progress {
+        dump: dump.to_owned(),
+        version: VERSION.to_owned(),
+        format_version: super::FORMAT_VERSION,
+        done: Step::Started,
+        info: HashMap::new(),
+        rows: HashMap::new(),
+    };
+    progress.done(out, Step::Started)?;
+    Ok(progress)
+}
+
+/// Removes everything from a build's directory but its `build.json`.
+fn clear(out: &Path) -> std::io::Result<()> {
+    for entry in std::fs::read_dir(out)? {
+        let entry = entry?;
+        if entry.file_name() == PROGRESS {
+            continue;
+        }
+        if entry.file_type()?.is_dir() {
+            std::fs::remove_dir_all(entry.path())?;
+        } else {
+            std::fs::remove_file(entry.path())?;
+        }
+    }
+    Ok(())
 }
 
 /// Compresses the rows of every table but the smallest, the largest first, on `threads` threads.
@@ -653,6 +879,193 @@ mod tests {
         };
         let result = build(&[dir.join("nothing")], "x", &dir, &options);
         assert!(matches!(result, Err(BuildError::Exists(_))));
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    fn fixture() -> Vec<PathBuf> {
+        vec![PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/dump")]
+    }
+
+    fn temp(name: &str) -> PathBuf {
+        let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("target/tmp")
+            .join(name);
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    const COMPRESSED: BuildOptions = BuildOptions {
+        threads: 1,
+        memory_mb: 50,
+        compress_rows: true,
+    };
+
+    /// The files of a store and their contents, but the search indexes' (tantivy's files aren't the same from one
+    /// build to the next): the number of documents of each.
+    fn contents(dir: &Path) -> std::collections::BTreeMap<String, Vec<u8>> {
+        let mut files = std::collections::BTreeMap::new();
+        for entry in std::fs::read_dir(dir).unwrap() {
+            let entry = entry.unwrap();
+            let name = entry.file_name().to_string_lossy().into_owned();
+            if name == "search" {
+                for index in std::fs::read_dir(entry.path()).unwrap() {
+                    let index = index.unwrap();
+                    let docs = tantivy::Index::open_in_dir(index.path())
+                        .unwrap()
+                        .reader()
+                        .unwrap()
+                        .searcher()
+                        .num_docs();
+                    files.insert(
+                        format!("search/{}", index.file_name().to_string_lossy()),
+                        docs.to_le_bytes().to_vec(),
+                    );
+                }
+            } else if name == "files.json" {
+                // The manifest, without the search indexes' files (named at random).
+                let mut manifest: std::collections::BTreeMap<String, u64> =
+                    serde_json::from_slice(&std::fs::read(entry.path()).unwrap()).unwrap();
+                manifest.retain(|k, _| !k.starts_with("search/"));
+                files.insert(name, serde_json::to_vec(&manifest).unwrap());
+            } else {
+                files.insert(name, std::fs::read(entry.path()).unwrap());
+            }
+        }
+        files
+    }
+
+    fn assert_same(dir: &Path, expected: &std::collections::BTreeMap<String, Vec<u8>>) {
+        let got = contents(dir);
+        let names =
+            |m: &std::collections::BTreeMap<String, Vec<u8>>| m.keys().cloned().collect::<Vec<_>>();
+        assert_eq!(names(&got), names(expected));
+        for (name, bytes) in expected {
+            assert!(got.get(name) == Some(bytes), "{name} differs");
+        }
+    }
+
+    #[test]
+    fn one_build_at_a_time_in_a_directory() {
+        let dir = temp("build-locked");
+        let out = dir.join("out");
+        std::fs::create_dir(&out).unwrap();
+        let lock = super::super::file::DirLock::try_lock(&out)
+            .unwrap()
+            .unwrap();
+        let result = resume(&fixture(), "x", &out, &COMPRESSED);
+        assert!(matches!(result, Err(BuildError::Locked(_))), "{result:?}");
+        drop(lock);
+        run(
+            &fixture(),
+            "x",
+            &out,
+            &COMPRESSED,
+            true,
+            Some(Step::Started),
+        )
+        .unwrap();
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn resume_leaves_finished_stores_and_other_directories_alone() {
+        let dir = temp("resume-alone");
+        let finished = dir.join("finished");
+        std::fs::create_dir(&finished).unwrap();
+        std::fs::write(finished.join("meta.json"), "{}").unwrap();
+        let result = resume(&fixture(), "x", &finished, &COMPRESSED);
+        assert!(matches!(result, Err(BuildError::Exists(_))));
+        let other = dir.join("other");
+        std::fs::create_dir(&other).unwrap();
+        std::fs::write(other.join("file"), "kept").unwrap();
+        let result = resume(&fixture(), "x", &other, &COMPRESSED);
+        assert!(matches!(result, Err(BuildError::Exists(_))));
+        assert_eq!(std::fs::read(other.join("file")).unwrap(), b"kept");
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    /// A build stopped after each step, with what an interrupted run of the next step leaves, continues to the same
+    /// store as a build that wasn't interrupted.
+    #[test]
+    fn an_interrupted_build_continues_to_the_same_store() {
+        let dir = temp("resume");
+        let reference = dir.join("reference");
+        build(&fixture(), "fixture", &reference, &COMPRESSED).unwrap();
+        let expected = contents(&reference);
+        assert!(!expected.contains_key(PROGRESS));
+
+        for step in [Step::Started, Step::Tables, Step::Derived, Step::Search] {
+            let out = dir.join(format!("{step:?}"));
+            run(&fixture(), "fixture", &out, &COMPRESSED, false, Some(step)).unwrap();
+            assert!(!finished(&out));
+            assert_eq!(needs_sources(&out, "fixture"), step < Step::Tables);
+            match step {
+                // Tables half written.
+                Step::Started => {
+                    std::fs::write(out.join("artist.rows"), b"partial").unwrap();
+                    std::fs::write(out.join("artist.rows.tmp3"), b"partial").unwrap();
+                }
+                // The derived values written (some tables rewritten), but not recorded.
+                Step::Tables => {
+                    let store = crate::store::Store::tables_only(&out).unwrap();
+                    crate::store::derive::build(&store).unwrap();
+                }
+                // A search index half built.
+                Step::Derived => {
+                    std::fs::create_dir_all(out.join("search/artist")).unwrap();
+                    std::fs::write(out.join("search/artist/meta.json"), b"{").unwrap();
+                }
+                // A table half compressed (the fixture's only table big enough to be compressed), and another one
+                // (that isn't compressed now).
+                Step::Search => {
+                    for table in ["language", "artist"] {
+                        let base = out.join(table);
+                        std::fs::write(with_ext(&base, "rows.zi"), b"partial").unwrap();
+                        std::fs::write(with_ext(&base, "rows.z"), b"partial").unwrap();
+                    }
+                }
+            }
+            resume(&fixture(), "fixture", &out, &COMPRESSED).unwrap();
+            assert_same(&out, &expected);
+            crate::store::Store::open(&out).unwrap();
+        }
+
+        // A build of another dump, or by another version, is started over (and needs the dump).
+        for (key, value) in [("dump", "other"), ("version", "0.0.0")] {
+            let out = dir.join(key);
+            run(
+                &fixture(),
+                "fixture",
+                &out,
+                &COMPRESSED,
+                false,
+                Some(Step::Started),
+            )
+            .unwrap();
+            std::fs::write(out.join("artist.rows"), b"partial").unwrap();
+            let path = out.join(PROGRESS);
+            let mut progress: serde_json::Value =
+                serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+            progress["done"] = "tables".into();
+            std::fs::write(&path, serde_json::to_vec(&progress).unwrap()).unwrap();
+            assert!(!needs_sources(&out, "fixture"));
+            progress[key] = value.into();
+            std::fs::write(&path, serde_json::to_vec(&progress).unwrap()).unwrap();
+            assert!(needs_sources(&out, "fixture"));
+            run(
+                &fixture(),
+                "fixture",
+                &out,
+                &COMPRESSED,
+                true,
+                Some(Step::Started),
+            )
+            .unwrap();
+            let progress = Progress::read(&out, "fixture").unwrap();
+            assert_eq!(progress.done, Step::Started);
+        }
+
         std::fs::remove_dir_all(&dir).unwrap();
     }
 

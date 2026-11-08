@@ -28,6 +28,79 @@ pub enum StoreError {
     Version(PathBuf, u32),
     #[error("{0}: {1}")]
     Search(PathBuf, String),
+    #[error("{0}: damaged: {1}")]
+    Damaged(PathBuf, String),
+}
+
+impl StoreError {
+    /// Whether the store is shown to be unusable for good: unfinished, a file of it missing, of another size than
+    /// it was built with, or found corrupt. The other errors say nothing about the store (they can come from the
+    /// system: memory maps, file descriptors, permissions, a failing disk), and another version's store is whole.
+    #[must_use]
+    pub fn is_damage(&self) -> bool {
+        matches!(self, Self::Damaged(..))
+    }
+}
+
+/// The manifest of a store: every file of it (but `meta.json` and the manifest) and its size, written before
+/// `meta.json`. Stores built before manifests existed have none, and are opened without that check.
+pub const MANIFEST: &str = "files.json";
+
+/// The files of a store and their sizes, by path from its directory, for its manifest. tantivy's lock files are left
+/// out: readers create them.
+pub fn manifest(dir: &Path) -> std::io::Result<std::collections::BTreeMap<String, u64>> {
+    fn walk(
+        dir: &Path,
+        prefix: &str,
+        files: &mut std::collections::BTreeMap<String, u64>,
+    ) -> std::io::Result<()> {
+        for entry in std::fs::read_dir(dir)? {
+            let entry = entry?;
+            let name = format!("{prefix}{}", entry.file_name().to_string_lossy());
+            let meta = entry.metadata()?;
+            if meta.is_dir() {
+                walk(&entry.path(), &format!("{name}/"), files)?;
+            } else if !(name == "meta.json"
+                || name == MANIFEST
+                || entry.file_name().to_string_lossy().starts_with(".tantivy-"))
+            {
+                files.insert(name, meta.len());
+            }
+        }
+        Ok(())
+    }
+    let mut files = std::collections::BTreeMap::new();
+    walk(dir, "", &mut files)?;
+    Ok(files)
+}
+
+/// Checks that every file of a store's manifest is there with its size.
+fn check_manifest(dir: &Path) -> Result<(), StoreError> {
+    let path = dir.join(MANIFEST);
+    let bytes = match std::fs::read(&path) {
+        Ok(b) => b,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+        Err(e) => return Err(StoreError::Io(path, e)),
+    };
+    let files: std::collections::BTreeMap<String, u64> = serde_json::from_slice(&bytes)
+        .map_err(|e| StoreError::Damaged(path.clone(), e.to_string()))?;
+    for (name, size) in files {
+        let file = dir.join(&name);
+        match std::fs::metadata(&file) {
+            Ok(m) if m.is_file() && m.len() == size => {}
+            Ok(m) => {
+                return Err(StoreError::Damaged(
+                    file,
+                    format!("{} bytes, {size} when it was built", m.len()),
+                ));
+            }
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+                return Err(StoreError::Damaged(file, "missing".into()));
+            }
+            Err(e) => return Err(StoreError::Io(file, e)),
+        }
+    }
+    Ok(())
 }
 
 /// A table of the store.
@@ -325,10 +398,15 @@ impl Store {
     pub fn open(dir: &Path) -> Result<Self, StoreError> {
         let io = |e| StoreError::Io(dir.to_owned(), e);
         let meta_path = dir.join("meta.json");
-        let meta: HashMap<String, String> = serde_json::from_slice(
-            &std::fs::read(&meta_path).map_err(|e| StoreError::Io(meta_path.clone(), e))?,
-        )
-        .map_err(|e| StoreError::Io(meta_path.clone(), std::io::Error::other(e)))?;
+        // A store is moved under its name once finished, `meta.json` written last.
+        let bytes = std::fs::read(&meta_path).map_err(|e| match e.kind() {
+            std::io::ErrorKind::NotFound => {
+                StoreError::Damaged(meta_path.clone(), "missing (an unfinished store)".into())
+            }
+            _ => StoreError::Io(meta_path.clone(), e),
+        })?;
+        let meta: HashMap<String, String> = serde_json::from_slice(&bytes)
+            .map_err(|e| StoreError::Damaged(meta_path.clone(), e.to_string()))?;
         let version = meta
             .get("format_version")
             .and_then(|v| v.parse().ok())
@@ -336,10 +414,15 @@ impl Store {
         if version != FORMAT_VERSION {
             return Err(StoreError::Version(dir.to_owned(), version));
         }
+        check_manifest(dir)?;
         let tables = Self::open_tables(dir).map_err(io)?;
         let derived = derive::Derived::open(dir).map_err(io)?;
-        let search = search::SearchIndex::open(&dir.join("search"))
-            .map_err(|e| StoreError::Search(dir.join("search"), e.to_string()))?;
+        let search = search::SearchIndex::open(&dir.join("search")).map_err(|e| match e {
+            tantivy::TantivyError::DataCorruption(_) => {
+                StoreError::Damaged(dir.join("search"), e.to_string())
+            }
+            _ => StoreError::Search(dir.join("search"), e.to_string()),
+        })?;
         Ok(Self {
             dir: dir.to_owned(),
             meta,
@@ -357,7 +440,18 @@ impl Store {
             .collect()
     }
 
-    /// A store of tables only, for the build steps after the tables.
+    /// A store of tables only, for the derived values.
+    pub fn tables_only(dir: &Path) -> std::io::Result<Self> {
+        Ok(Self {
+            dir: dir.to_owned(),
+            meta: HashMap::new(),
+            tables: Self::open_tables(dir)?,
+            derived: derive::Derived::default(),
+            search: search::SearchIndex::default(),
+        })
+    }
+
+    /// A store of tables and derived values, for the search indexes.
     pub fn partial(dir: &Path) -> std::io::Result<Self> {
         Ok(Self {
             dir: dir.to_owned(),

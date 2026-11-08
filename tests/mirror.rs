@@ -5,7 +5,6 @@
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::indexing_slicing)]
 
 use std::fmt::Write as _;
-use std::io::Write as _;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
@@ -18,29 +17,8 @@ use musicbrainz_mirror::config::{BuildOptions, Config};
 use musicbrainz_mirror::mirror::Mirror;
 use sha2::{Digest as _, Sha256};
 
-/// A dump archive: a bzip2'd tar of the fixture's files whose names start with one of `prefixes`.
-fn archive(fixture: &Path, prefixes: &[&str]) -> Vec<u8> {
-    let encoder = bzip2::write::BzEncoder::new(Vec::new(), bzip2::Compression::fast());
-    let mut tar = tar::Builder::new(encoder);
-    for name in ["TIMESTAMP", "SCHEMA_SEQUENCE", "REPLICATION_SEQUENCE"] {
-        tar.append_path_with_name(fixture.join(name), name).unwrap();
-    }
-    let mut files: Vec<_> = std::fs::read_dir(fixture.join("mbdump"))
-        .unwrap()
-        .map(|e| e.unwrap().path())
-        .collect();
-    files.sort();
-    for file in files {
-        let name = file.file_name().unwrap().to_string_lossy().into_owned();
-        if prefixes.iter().any(|p| p.is_empty() || name.starts_with(p)) {
-            tar.append_path_with_name(&file, format!("mbdump/{name}"))
-                .unwrap();
-        }
-    }
-    let mut encoder = tar.into_inner().unwrap();
-    encoder.flush().unwrap();
-    encoder.finish().unwrap()
-}
+mod common;
+use common::archive;
 
 #[derive(Default)]
 struct Exports {
@@ -171,6 +149,7 @@ async fn downloads_imports_and_switches_dumps() {
     assert!(!data_dir.join("musicbrainz-20261101-000000").exists());
 
     // A restart serves what is there.
+    drop(mirror);
     let restarted = Mirror::new(Config {
         update_interval: None,
         ..mirror_config(&data_dir, addr)
