@@ -91,9 +91,9 @@ musicbrainz:
 Two different "latest"s: the image tag `:latest` (and GitHub's
 [latest release](https://github.com/nikarh/musicbrainz-mirror/releases/latest)) is the newest release, while the
 GitHub pre-release named `latest` is rebuilt from every push to `main`, together with the image tags `:main` and
-`:sha-<commit>`. Builds of `main` say so in `--version`: `0.1.0-dev+12569c7` is commit `12569c7`, after release 0.1.0
-or on the way to it. Until the first release, only the `main` builds exist: use `:main` in the compose file below, and
-`releases/download/latest/` instead of `releases/latest/download/` to verify downloads.
+`:sha-<commit>`. Builds of `main` say so in `--version`: `0.1.1-dev+0333d98` is commit `0333d98`, after release 0.1.1
+or on the way to the next one. To verify a build of `main`, download from `releases/download/latest/` instead of
+`releases/latest/download/`.
 
 The image is `FROM scratch`: a static x86_64 musl binary and CA certificates. How releases are made:
 [docs/releasing.md](docs/releasing.md).
