@@ -56,6 +56,14 @@ fn report(dir: &Path, url: Option<&str>) -> Result<Option<String>, String> {
         Some(url) => format!("[`{path}`]({}/{path})", url.trim_end_matches('/')),
         None => format!("`{path}`"),
     };
+    // Inside HTML (a `<summary>`), where GitHub renders no Markdown.
+    let html_link = |path: &str| match url {
+        Some(url) => format!(
+            "<a href=\"{}/{path}\"><code>{path}</code></a>",
+            url.trim_end_matches('/')
+        ),
+        None => format!("<code>{path}</code>"),
+    };
 
     let mut upstream = create_tables(&read("admin/sql/CreateTables.sql")?)?;
     // The dumps' `cover_art_archive.<table>` files, which the store reads as `<table>`.
@@ -125,7 +133,7 @@ fn report(dir: &Path, url: Option<&str>) -> Result<Option<String>, String> {
             _ = writeln!(
                 out,
                 "<details><summary>{}</summary>\n\n```sql\n{}\n{}```\n\n</details>\n",
-                link(&path),
+                html_link(&path),
                 text.trim_end(),
                 if cut { "-- (cut)\n" } else { "" }
             );
