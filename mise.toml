@@ -5,7 +5,7 @@ cargo-deny = "0.20.2"
 
 [tasks.dev]
 description = "Serve the newest dev-data/musicbrainz-*/ on 127.0.0.1:5000 without updates (mise run import builds one)"
-run = "cargo run --release -- serve --data-dir dev-data --listen 127.0.0.1:5000 --update-interval 0"
+run = "cargo run --release -- serve --data-dir dev-data --listen 127.0.0.1:5000 --update-schedule off"
 
 [tasks.import]
 description = "Build dev-data/musicbrainz-local from the archives or unpacked dumps given as arguments"

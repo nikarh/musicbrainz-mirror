@@ -16,6 +16,8 @@ arc-swap = "1.9.4"
 axum = "0.8.9"
 bytes = "1.12.1"
 bzip2 = "0.6.1"
+croner = { version = "4.0.3", default-features = false, features = ["jiff"] }
+jiff = { version = "0.2.41", default-features = false, features = ["std", "tz-system", "tzdb-bundle-always"] }
 memmap2 = "0.9.12"
 pico-args = "0.5.0"
 reqwest = { version = "0.13.5", default-features = false, features = ["rustls-no-provider", "stream"] }

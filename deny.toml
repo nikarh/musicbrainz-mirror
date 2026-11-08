@@ -40,6 +40,9 @@ skip = [
     { crate = "syn@2.0.119", reason = "tracing-attributes still uses syn 2 (build time only)" },
     { crate = "getrandom@0.2.17", reason = "rustls's ring still uses getrandom 0.2" },
     { crate = "getrandom@0.3.4", reason = "tantivy-columnar uses rand 0.9 (getrandom 0.3)" },
+    { crate = "darling@0.20.11", reason = "croner's derive_builder still uses darling 0.20 (build time only)" },
+    { crate = "darling_core@0.20.11", reason = "croner's derive_builder still uses darling 0.20 (build time only)" },
+    { crate = "darling_macro@0.20.11", reason = "croner's derive_builder still uses darling 0.20 (build time only)" },
 ]
 
 [sources]
