@@ -55,6 +55,12 @@ pub fn contents(dir: &Path) -> BTreeMap<String, Vec<u8>> {
                     docs.to_le_bytes().to_vec(),
                 );
             }
+        } else if name == "files.json" {
+            // The manifest, without the search indexes' files (named at random).
+            let mut manifest: std::collections::BTreeMap<String, u64> =
+                serde_json::from_slice(&std::fs::read(entry.path()).unwrap()).unwrap();
+            manifest.retain(|k, _| !k.starts_with("search/"));
+            files.insert(name, serde_json::to_vec(&manifest).unwrap());
         } else {
             files.insert(name, std::fs::read(entry.path()).unwrap());
         }

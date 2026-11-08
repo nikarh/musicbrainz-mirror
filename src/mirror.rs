@@ -11,7 +11,8 @@
 //!   part of a store under a name that would be served or continued.
 //!
 //! The process can stop at any point: a download continues where it stopped (and is checked whole before it is
-//! used), a build after its last finished step, and a finished store is only ever served whole.
+//! used), a build after its last finished step, and a finished store is only ever served whole. A store is removed
+//! only when it is shown to be damaged (see `StoreError::is_damage`).
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -133,11 +134,18 @@ impl Mirror {
                         discard(&dir.join(old), &import_dir).await;
                     }
                 }
-                Err(e) => {
-                    // Built by another version (or unfinished): rebuilt from the next dump.
-                    tracing::warn!(dir = newest, error = %e, "can't serve this store; removing it");
+                Err(e) if e.is_damage() => {
+                    tracing::warn!(dir = newest, error = %e, "this store is damaged; removing it");
                     discard(&dir.join(&newest), &import_dir).await;
                 }
+                Err(e @ StoreError::Version(..)) => {
+                    // Whole, but not for this version: replaced by the next store built, kept until then (for the
+                    // version that built it).
+                    tracing::warn!(dir = newest, error = %e, "can't serve this store (kept until replaced)");
+                }
+                // Nothing known about the store (out of memory maps or file descriptors, permissions, the disk):
+                // not served instead of a newer one, and not removed.
+                Err(e) => return Err(e.into()),
             }
         }
 
@@ -320,7 +328,11 @@ impl Mirror {
         let store = match opened {
             Ok(s) => s,
             Err(e) => {
-                discard(&path, &self.import_dir()).await;
+                // A damaged store is removed; another error says nothing about the store, which is kept (tried
+                // again at the next start).
+                if e.is_damage() {
+                    discard(&path, &self.import_dir()).await;
+                }
                 return Err(e.into());
             }
         };

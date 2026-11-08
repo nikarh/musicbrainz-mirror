@@ -719,6 +719,12 @@ fn run(
         compress(out, options.threads)?;
         tracing::info!(elapsed_s = started.elapsed().as_secs(), "rows compressed");
     }
+    let mut files = super::manifest(out).map_err(io)?;
+    // (removed once the store is finished)
+    files.remove(PROGRESS);
+    let json = serde_json::to_vec_pretty(&files).map_err(|e| BuildError::Other(e.to_string()))?;
+    super::file::write_durably(&out.join(super::MANIFEST), &json)
+        .map_err(|e| BuildError::Io(out.join(super::MANIFEST), e))?;
     let mut meta: std::collections::BTreeMap<String, String> = progress
         .info
         .iter()
@@ -902,6 +908,12 @@ mod tests {
                         docs.to_le_bytes().to_vec(),
                     );
                 }
+            } else if name == "files.json" {
+                // The manifest, without the search indexes' files (named at random).
+                let mut manifest: std::collections::BTreeMap<String, u64> =
+                    serde_json::from_slice(&std::fs::read(entry.path()).unwrap()).unwrap();
+                manifest.retain(|k, _| !k.starts_with("search/"));
+                files.insert(name, serde_json::to_vec(&manifest).unwrap());
             } else {
                 files.insert(name, std::fs::read(entry.path()).unwrap());
             }

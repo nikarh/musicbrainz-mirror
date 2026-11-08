@@ -396,3 +396,119 @@ async fn a_restarted_update_uses_what_it_had_downloaded_and_built() {
 fn import_killed(out: &Path, pattern: &str) -> bool {
     import(out, Some((pattern, 1)))
 }
+
+fn copy_dir(from: &Path, to: &Path) {
+    std::fs::create_dir_all(to).unwrap();
+    for entry in std::fs::read_dir(from).unwrap() {
+        let entry = entry.unwrap();
+        if entry.file_type().unwrap().is_dir() {
+            copy_dir(&entry.path(), &to.join(entry.file_name()));
+        } else {
+            std::fs::copy(entry.path(), to.join(entry.file_name())).unwrap();
+        }
+    }
+}
+
+/// Starts the updater on a data directory with two stores, the newer one changed by `change`: what is served, and
+/// whether the newer one is still there.
+async fn start_with(
+    name: &str,
+    template: &Path,
+    change: impl FnOnce(&Path),
+) -> (Result<Option<String>, String>, bool) {
+    let data_dir = temp_dir(name);
+    let (older, newer) = ("20261001-000000", DUMP);
+    copy_dir(template, &data_dir.join(format!("musicbrainz-{older}")));
+    let newer_dir = data_dir.join(format!("musicbrainz-{newer}"));
+    copy_dir(template, &newer_dir);
+    change(&newer_dir);
+    let mirror = Mirror::new(config(&data_dir, "127.0.0.1:9".parse().unwrap())).unwrap();
+    let started = mirror
+        .start()
+        .await
+        .map(|()| {
+            mirror
+                .current()
+                .load_full()
+                .map(|s| s.dir.file_name().unwrap().to_string_lossy().into_owned())
+        })
+        .map_err(|e| e.to_string());
+    let kept = newer_dir.exists();
+    drop(mirror);
+    std::fs::remove_dir_all(&data_dir).unwrap();
+    (started, kept)
+}
+
+/// A store that can't be opened is removed only when it is shown to be damaged.
+#[tokio::test(flavor = "multi_thread")]
+async fn a_store_is_removed_only_when_shown_damaged() {
+    let dir = temp_dir("damaged");
+    let template = dir.join("store");
+    musicbrainz_mirror::store::build::build(
+        &[fixture()],
+        DUMP,
+        &template,
+        &BuildOptions {
+            threads: 1,
+            memory_mb: 50,
+            compress_rows: false,
+        },
+    )
+    .unwrap();
+    let older = Ok(Some("musicbrainz-20261001-000000".to_owned()));
+    let newer = Ok(Some(format!("musicbrainz-{DUMP}")));
+
+    // Whole: served.
+    assert_eq!(start_with("whole", &template, |_| {}).await, (newer, true));
+    // Built before stores had a manifest: served, unverified.
+    let unverified = start_with("no-manifest", &template, |d| {
+        std::fs::remove_file(d.join("files.json")).unwrap();
+    })
+    .await;
+    assert_eq!(unverified, (Ok(Some(format!("musicbrainz-{DUMP}"))), true));
+    // A file missing, or of another size: removed, the older store served.
+    let missing = start_with("missing", &template, |d| {
+        std::fs::remove_file(d.join("artist.rows")).unwrap();
+    })
+    .await;
+    assert_eq!(missing, (older.clone(), false));
+    let truncated = start_with("truncated", &template, |d| {
+        let file = std::fs::OpenOptions::new()
+            .write(true)
+            .open(d.join("search/artist/meta.json"))
+            .unwrap();
+        file.set_len(10).unwrap();
+    })
+    .await;
+    assert_eq!(truncated, (older.clone(), false));
+    // Unfinished (no meta.json): removed.
+    let unfinished = start_with("unfinished", &template, |d| {
+        std::fs::remove_file(d.join("meta.json")).unwrap();
+    })
+    .await;
+    assert_eq!(unfinished, (older.clone(), false));
+    // Another version's: not served, kept until replaced.
+    let other_version = start_with("version", &template, |d| {
+        let meta = std::fs::read_to_string(d.join("meta.json")).unwrap();
+        let meta = meta.replace(
+            &format!(
+                "\"format_version\": \"{}\"",
+                musicbrainz_mirror::store::FORMAT_VERSION
+            ),
+            "\"format_version\": \"1\"",
+        );
+        std::fs::write(d.join("meta.json"), meta).unwrap();
+    })
+    .await;
+    assert_eq!(other_version, (older, true));
+    // Can't be read, for a reason that says nothing about the store: the start fails, nothing is removed (nor an
+    // older store served instead).
+    let unreadable = start_with("unreadable", &template, |d| {
+        std::fs::remove_file(d.join("meta.json")).unwrap();
+        std::fs::create_dir(d.join("meta.json")).unwrap();
+    })
+    .await;
+    assert!(unreadable.0.is_err() && unreadable.1, "{unreadable:?}");
+
+    std::fs::remove_dir_all(&dir).unwrap();
+}
