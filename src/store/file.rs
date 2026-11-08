@@ -538,6 +538,22 @@ pub fn write_durably(path: &Path, bytes: &[u8]) -> io::Result<()> {
     sync_dir(path.parent().unwrap_or_else(|| Path::new(".")))
 }
 
+/// An exclusive lock on a directory (`flock` on the directory itself: no lock file), held until dropped; the system
+/// releases it when the process ends, however it ends.
+pub struct DirLock(#[allow(dead_code)] File);
+
+impl DirLock {
+    /// `None` when another process (or another open of it) holds it.
+    pub fn try_lock(dir: &Path) -> io::Result<Option<Self>> {
+        let file = File::open(dir)?;
+        match rustix::fs::flock(&file, rustix::fs::FlockOperation::NonBlockingLockExclusive) {
+            Ok(()) => Ok(Some(Self(file))),
+            Err(rustix::io::Errno::WOULDBLOCK) => Ok(None),
+            Err(e) => Err(e.into()),
+        }
+    }
+}
+
 // Writers. They keep memory bounded: what has to be reordered goes through temporary files next to the output.
 
 /// Rows held per temporary bucket of a [`RowsWriter`] by id (64 MB of rows).

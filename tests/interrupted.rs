@@ -512,3 +512,19 @@ async fn a_store_is_removed_only_when_shown_damaged() {
 
     std::fs::remove_dir_all(&dir).unwrap();
 }
+
+/// One process at a time on a data directory.
+#[tokio::test(flavor = "multi_thread")]
+async fn a_data_directory_is_used_by_one_process() {
+    let data_dir = temp_dir("locked");
+    let addr = "127.0.0.1:9".parse().unwrap();
+    let first = Mirror::new(config(&data_dir, addr)).unwrap();
+    first.start().await.unwrap();
+    let second = Mirror::new(config(&data_dir, addr)).unwrap();
+    let error = second.start().await.unwrap_err().to_string();
+    assert!(error.contains("in use by another process"), "{error}");
+    drop(first);
+    second.start().await.unwrap();
+    drop(second);
+    std::fs::remove_dir_all(&data_dir).unwrap();
+}

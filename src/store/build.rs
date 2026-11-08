@@ -38,6 +38,8 @@ pub enum BuildError {
     Missing(&'static str),
     #[error("{0} exists: a store is built into a new directory")]
     Exists(PathBuf),
+    #[error("{0} is in use by another process")]
+    Locked(PathBuf),
     #[error("the import was interrupted")]
     Interrupted,
     #[error("{0}")]
@@ -648,7 +650,7 @@ fn run(
 ) -> Result<Summary, BuildError> {
     let started = Instant::now();
     let io = |e| BuildError::Io(out.to_owned(), e);
-    let mut progress = begin(dump, out, resume)?;
+    let (mut progress, _lock) = begin(dump, out, resume)?;
     let stop = |progress: &Progress| stop_after.is_some_and(|s| progress.done >= s);
     if stop(&progress) {
         return Ok(progress.summary());
@@ -743,41 +745,53 @@ fn run(
     Ok(progress.summary())
 }
 
-/// The build's directory and its progress: a new directory, or (`resume`) the one of an interrupted build.
-fn begin(dump: &str, out: &Path, resume: bool) -> Result<Progress, BuildError> {
+/// The build's directory, locked, and its progress: a new directory, or (`resume`) the one of an interrupted build.
+fn begin(
+    dump: &str,
+    out: &Path,
+    resume: bool,
+) -> Result<(Progress, super::file::DirLock), BuildError> {
     let io = |e| BuildError::Io(out.to_owned(), e);
-    if resume && out.exists() {
-        if finished(out) {
-            return Err(BuildError::Exists(out.to_owned()));
-        }
-        if let Some(progress) = Progress::read(out, dump) {
-            tracing::info!(after = ?progress.done, "continuing an interrupted build");
-            return Ok(progress);
-        }
-        // A build's directory has a `build.json` from its start (or nothing yet, when it was interrupted before
-        // writing it).
-        let ours = out.join(PROGRESS).exists()
-            || std::fs::read_dir(out)
-                .map_err(io)?
-                .filter_map(Result::ok)
-                .all(|e| e.file_name() == *format!("{PROGRESS}.tmp"));
-        if !ours {
-            return Err(BuildError::Exists(out.to_owned()));
-        }
-        // Recorded as started before anything is removed (by the first step), so that it stays a build's.
-        tracing::info!("starting an interrupted build of something else over");
-        return start(dump, out);
-    }
-    // A new directory, never an existing one: its files are created by truncating whatever has their names, which
-    // under a store being served (memory-mapped) would change the bytes it reads.
     if let Some(parent) = out.parent().filter(|p| !p.as_os_str().is_empty()) {
         std::fs::create_dir_all(parent).map_err(|e| BuildError::Io(parent.to_owned(), e))?;
     }
-    std::fs::create_dir(out).map_err(|e| match e.kind() {
-        std::io::ErrorKind::AlreadyExists => BuildError::Exists(out.to_owned()),
-        _ => io(e),
-    })?;
-    start(dump, out)
+    // A new directory, unless continuing: a build's files are created by truncating whatever has their names, which
+    // under a store being served (memory-mapped) would change the bytes it reads.
+    let created = match std::fs::create_dir(out) {
+        Ok(()) => true,
+        Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists && resume => false,
+        Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {
+            return Err(BuildError::Exists(out.to_owned()));
+        }
+        Err(e) => return Err(io(e)),
+    };
+    // One build at a time in a directory.
+    let lock = super::file::DirLock::try_lock(out)
+        .map_err(io)?
+        .ok_or_else(|| BuildError::Locked(out.to_owned()))?;
+    if created {
+        return Ok((start(dump, out)?, lock));
+    }
+    if finished(out) {
+        return Err(BuildError::Exists(out.to_owned()));
+    }
+    if let Some(progress) = Progress::read(out, dump) {
+        tracing::info!(after = ?progress.done, "continuing an interrupted build");
+        return Ok((progress, lock));
+    }
+    // A build's directory has a `build.json` from its start (or nothing yet, when it was interrupted before writing
+    // it).
+    let ours = out.join(PROGRESS).exists()
+        || std::fs::read_dir(out)
+            .map_err(io)?
+            .filter_map(Result::ok)
+            .all(|e| e.file_name() == *format!("{PROGRESS}.tmp"));
+    if !ours {
+        return Err(BuildError::Exists(out.to_owned()));
+    }
+    // Recorded as started before anything is removed (by the first step), so that it stays a build's.
+    tracing::info!("starting an interrupted build of something else over");
+    Ok((start(dump, out)?, lock))
 }
 
 /// Records a build of `dump` as started in `out`.
@@ -929,6 +943,29 @@ mod tests {
         for (name, bytes) in expected {
             assert!(got.get(name) == Some(bytes), "{name} differs");
         }
+    }
+
+    #[test]
+    fn one_build_at_a_time_in_a_directory() {
+        let dir = temp("build-locked");
+        let out = dir.join("out");
+        std::fs::create_dir(&out).unwrap();
+        let lock = super::super::file::DirLock::try_lock(&out)
+            .unwrap()
+            .unwrap();
+        let result = resume(&fixture(), "x", &out, &COMPRESSED);
+        assert!(matches!(result, Err(BuildError::Locked(_))), "{result:?}");
+        drop(lock);
+        run(
+            &fixture(),
+            "x",
+            &out,
+            &COMPRESSED,
+            true,
+            Some(Step::Started),
+        )
+        .unwrap();
+        std::fs::remove_dir_all(&dir).unwrap();
     }
 
     #[test]

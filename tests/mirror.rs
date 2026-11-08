@@ -149,6 +149,7 @@ async fn downloads_imports_and_switches_dumps() {
     assert!(!data_dir.join("musicbrainz-20261101-000000").exists());
 
     // A restart serves what is there.
+    drop(mirror);
     let restarted = Mirror::new(Config {
         update_interval: None,
         ..mirror_config(&data_dir, addr)

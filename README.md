@@ -144,7 +144,8 @@ dump is never downloaded twice. An interrupted download resumes; every archive i
 The process can be stopped (or killed, or lose power) at any point: a store is only served once all of it is on
 disk, and nothing is lost but the work in progress. A store lists its files and their sizes (`files.json`), checked
 each time it is opened: a store shown to be damaged (unfinished, a file missing or of another size) is removed; one
-that can't be opened for another reason (permissions, memory maps, the disk) is left alone and the start fails. After a restart, archives already downloaded are checked rather
+that can't be opened for another reason (permissions, memory maps, the disk) is left alone and the start fails. One
+process at a time uses a data directory (and one import a build directory). After a restart, archives already downloaded are checked rather
 than downloaded again, an interrupted download continues where it stopped, and an interrupted build continues after
 its last finished step (the tables, the derived values, the search indexes); once past the tables it doesn't need
 the archives.

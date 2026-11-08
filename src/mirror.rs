@@ -12,7 +12,8 @@
 //!
 //! The process can stop at any point: a download continues where it stopped (and is checked whole before it is
 //! used), a build after its last finished step, and a finished store is only ever served whole. A store is removed
-//! only when it is shown to be damaged (see `StoreError::is_damage`).
+//! only when it is shown to be damaged (see `StoreError::is_damage`). The data directory is locked by the process
+//! using it.
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -23,6 +24,7 @@ use arc_swap::ArcSwapOption;
 use crate::config::Config;
 use crate::dump::{self, DumpError};
 use crate::store::build::{self, BuildError};
+use crate::store::file::DirLock;
 use crate::store::{Store, StoreError};
 
 #[derive(Debug, thiserror::Error)]
@@ -41,6 +43,8 @@ pub enum MirrorError {
     NoStore(PathBuf),
     #[error("the import task failed: {0}")]
     Task(String),
+    #[error("{0} is in use by another process")]
+    Locked(PathBuf),
 }
 
 pub struct Mirror {
@@ -49,6 +53,8 @@ pub struct Mirror {
     current: Arc<ArcSwapOption<Store>>,
     /// Serializes store changes.
     lock: tokio::sync::Mutex<()>,
+    /// The data directory, for this process only (from `start`).
+    dir_lock: std::sync::Mutex<Option<DirLock>>,
 }
 
 const PREFIX: &str = "musicbrainz-";
@@ -76,6 +82,7 @@ impl Mirror {
             client,
             current: Arc::new(ArcSwapOption::empty()),
             lock: tokio::sync::Mutex::new(()),
+            dir_lock: std::sync::Mutex::new(None),
         })
     }
 
@@ -98,6 +105,13 @@ impl Mirror {
         tokio::fs::create_dir_all(&import_dir)
             .await
             .map_err(|e| MirrorError::Io(import_dir.clone(), e))?;
+        // One process at a time: two would remove and replace each other's stores and builds.
+        let lock = DirLock::try_lock(&dir)
+            .map_err(|e| MirrorError::Io(dir.clone(), e))?
+            .ok_or_else(|| MirrorError::Locked(dir.clone()))?;
+        if let Ok(mut held) = self.dir_lock.lock() {
+            *held = Some(lock);
+        }
 
         let mut stores = Vec::new();
         let mut entries = tokio::fs::read_dir(&dir)
