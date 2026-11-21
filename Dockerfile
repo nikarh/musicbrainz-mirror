@@ -2,7 +2,7 @@
 # Builds the image from source. CI publishes the same image from a binary it has built already (Dockerfile.ci).
 
 # A static musl binary.
-FROM rust:1.99.1-alpine AS build
+FROM rust:1.100.0-alpine AS build
 RUN apk add --no-cache musl-dev ca-certificates
 WORKDIR /src
 COPY Cargo.toml Cargo.lock build.rs ./
