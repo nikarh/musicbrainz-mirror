@@ -22,6 +22,8 @@ allow = [
   "ISC",
   # matchit (axum's router), subtle
   "BSD-3-Clause",
+  # zstd-sys (zstd's C sources are BSD-3-Clause AND BSD-2-Clause since 2.1.3)
+  "BSD-2-Clause",
   # unicode-ident, the icu_* crates (URL handling): Unicode data
   "Unicode-3.0",
   # foldhash (hashbrown)
