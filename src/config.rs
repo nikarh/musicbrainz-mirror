@@ -6,7 +6,7 @@ use std::str::FromStr;
 use std::time::Duration;
 
 use jiff::tz::TimeZone;
-use jiff::{Timestamp, Zoned};
+use jiff::{Timestamp, ZonedDateTime};
 
 pub use crate::store::build::{BuildOptions, SchemaMismatch};
 
@@ -250,15 +250,15 @@ impl Schedule {
 
     /// The first time after `now` the schedule fires (`None` for one that never does, like `0 0 30 2 *`).
     #[must_use]
-    pub fn next_after(&self, now: Timestamp) -> Option<Zoned> {
+    pub fn next_after(&self, now: Timestamp) -> Option<ZonedDateTime> {
         self.cron
-            .find_next_occurrence(&now.to_zoned(self.tz.clone()), false)
+            .find_next_occurrence(&now.to_zoned_datetime(self.tz.clone()), false)
             .ok()
     }
 
     /// The next time the schedule fires, and how long until then.
     #[must_use]
-    pub fn next(&self) -> Option<(Zoned, Duration)> {
+    pub fn next(&self) -> Option<(ZonedDateTime, Duration)> {
         let now = Timestamp::now();
         let next = self.next_after(now)?;
         let wait = Duration::try_from(now.duration_until(next.timestamp())).unwrap_or_default();
